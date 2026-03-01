@@ -67,7 +67,7 @@ export default function TargetWizard({ windows, onComplete, onCancel }: TargetWi
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#1e293b] rounded-2xl border border-[#334155] p-6 w-[700px] max-h-[80vh] overflow-auto">
+      <div className="bg-[#0a0f1e]/95 backdrop-blur-2xl rounded-2xl border border-white/[0.06] p-6 w-[700px] max-h-[80vh] overflow-auto shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">
@@ -87,8 +87,8 @@ export default function TargetWizard({ windows, onComplete, onCancel }: TargetWi
               key={s}
               className={`h-1 flex-1 rounded-full transition-colors ${
                 i <= (step === "select" ? 0 : step === "verifying" || step === "confirm" || step === "failed" ? 1 : 2)
-                  ? "bg-blue-500"
-                  : "bg-slate-700"
+                  ? "bg-indigo-500"
+                  : "bg-white/[0.06]"
               }`}
             />
           ))}
@@ -105,7 +105,7 @@ export default function TargetWizard({ windows, onComplete, onCancel }: TargetWi
                 <button
                   key={w.hwnd}
                   onClick={() => handleSelectAndVerify(w)}
-                  className="w-full text-left flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg hover:bg-[#162032] transition-colors border border-transparent hover:border-blue-500/50"
+                  className="w-full text-left flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl hover:border-indigo-500/30 transition-colors border border-transparent"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{w.title}</div>
@@ -125,7 +125,7 @@ export default function TargetWizard({ windows, onComplete, onCancel }: TargetWi
           <div className="flex flex-col items-center py-12">
             <Loader2 size={40} className="animate-spin text-blue-400 mb-4" />
             <p className="text-slate-300 mb-2">正在向窗口发送测试文本...</p>
-            <div className="font-mono text-lg text-yellow-300 bg-[#0f172a] px-4 py-2 rounded-lg">
+            <div className="font-mono text-lg text-yellow-300 inner-panel rounded-xl px-4 py-2">
               {testUuid}
             </div>
             <p className="text-xs text-slate-500 mt-3">
@@ -137,7 +137,7 @@ export default function TargetWizard({ windows, onComplete, onCancel }: TargetWi
         {/* Step 2b: Confirm — ask "did you see it?" */}
         {step === "confirm" && (
           <div className="space-y-6">
-            <div className="bg-[#0f172a] rounded-xl p-5 text-center">
+            <div className="inner-panel rounded-xl p-5 text-center">
               <Clipboard size={28} className="mx-auto text-blue-400 mb-3" />
               <p className="text-slate-300 mb-2">
                 系统已向 <span className="text-blue-300 font-medium">{selectedWin?.title?.substring(0, 40)}</span> 发送:
@@ -151,7 +151,7 @@ export default function TargetWizard({ windows, onComplete, onCancel }: TargetWi
             </div>
 
             {trace && (
-              <div className="text-xs text-slate-600 bg-[#0f172a] rounded-lg p-3 font-mono">
+              <div className="text-xs text-slate-600 inner-panel rounded-xl p-3 font-mono">
                 trace_id: {trace.trace_id} · activation: {trace.activation_ok ? "✓" : "✗"} · 
                 stage: {trace.stage_ok ? "✓" : "✗"} · duration: {trace.duration_ms}ms
               </div>
@@ -189,7 +189,7 @@ export default function TargetWizard({ windows, onComplete, onCancel }: TargetWi
             <div className="flex gap-3">
               <button
                 onClick={() => setStep("select")}
-                className="flex-1 px-4 py-2 bg-[#0f172a] border border-[#334155] rounded-lg text-sm hover:bg-[#162032] transition-colors"
+                className="flex-1 px-4 py-2 btn-secondary text-sm"
               >
                 返回重选
               </button>

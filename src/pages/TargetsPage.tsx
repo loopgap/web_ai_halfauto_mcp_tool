@@ -128,29 +128,29 @@ export default function TargetsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Targets 管理</h2>
-          <p className="text-slate-400 mt-1">
+          <h2 className="text-2xl font-bold text-gradient">Targets 管理</h2>
+          <p className="text-slate-500 mt-1">
             管理目标窗口注册、健康检查、窗口探测
           </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleWizard}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
+            className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-medium"
           >
             <Plus size={16} />
             添加向导
           </button>
           <button
             onClick={handleExplore}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 rounded-xl text-sm font-medium transition-colors"
           >
             <Eye size={16} />
             窗口探测器
           </button>
           <button
             onClick={handleHealthCheck}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] border border-[#334155] rounded-lg text-sm hover:bg-[#263548] transition-colors"
+            className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm"
           >
             <RefreshCw size={16} />
             健康检查
@@ -158,7 +158,7 @@ export default function TargetsPage() {
           <button
             onClick={handleSave}
             disabled={pageState === "saving"}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
           >
             {pageState === "saving" ? (
               <Loader2 size={16} className="animate-spin" />
@@ -169,23 +169,25 @@ export default function TargetsPage() {
       </div>
 
       {/* Health Status */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Monitor size={20} className="text-blue-400" />
+      <div className="glass-card-static p-5 animate-fade-in-up">
+        <h3 className="text-base font-semibold mb-4 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
+            <Monitor size={16} className="text-blue-400" />
+          </div>
           健康状态
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {health.map((h) => (
             <div
               key={h.target_id}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+              className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border ${
                 h.status === "ready"
-                  ? "bg-green-900/20 border-green-800/50"
+                  ? "inner-panel border-emerald-500/20"
                   : h.status === "missing"
-                  ? "bg-red-900/20 border-red-800/50"
+                  ? "inner-panel border-red-500/20"
                   : h.status === "ambiguous"
-                  ? "bg-yellow-900/20 border-yellow-800/50"
-                  : "bg-orange-900/20 border-orange-800/50"
+                  ? "inner-panel border-yellow-500/20"
+                  : "inner-panel border-orange-500/20"
               }`}
             >
               {h.status === "ready" ? (
@@ -208,19 +210,19 @@ export default function TargetsPage() {
       </div>
 
       {/* Targets List */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
-        <h3 className="text-lg font-semibold mb-4">已注册 Targets</h3>
+      <div className="glass-card-static p-5 animate-fade-in-up delay-75">
+        <h3 className="text-base font-semibold mb-4">已注册 Targets</h3>
         <div className="space-y-3">
           {config &&
             Object.entries(config.targets).map(([id, target]) => (
               <div
                 key={id}
-                className="bg-[#0f172a] rounded-lg p-4 border border-[#334155]"
+                className="inner-panel rounded-xl p-4"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <span className="font-medium">{id}</span>
-                    <span className="text-xs px-2 py-0.5 bg-blue-600/20 text-blue-300 rounded">
+                    <span className="badge badge-blue text-[10px]">
                       {target.provider}
                     </span>
                   </div>
@@ -233,7 +235,7 @@ export default function TargetsPage() {
                 </div>
                 <div className="text-xs text-slate-500 space-y-1">
                   {target.match.title_regex.map((r, i) => (
-                    <div key={i} className="font-mono bg-[#1e293b] px-2 py-1 rounded">
+                    <div key={i} className="font-mono inner-panel rounded-lg px-2 py-1">
                       {r}
                     </div>
                   ))}
@@ -241,17 +243,17 @@ export default function TargetsPage() {
                   {(target.match.bound_hwnd || target.match.exe_name || target.match.class_name) && (
                     <div className="flex gap-2 flex-wrap mt-1">
                       {target.match.bound_hwnd && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-purple-600/20 text-purple-300 rounded">
+                        <span className="badge badge-purple text-[10px]">
                           hwnd:{target.match.bound_hwnd}
                         </span>
                       )}
                       {target.match.exe_name && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-cyan-600/20 text-cyan-300 rounded">
+                        <span className="badge badge-cyan text-[10px]">
                           exe:{target.match.exe_name}
                         </span>
                       )}
                       {target.match.class_name && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-teal-600/20 text-teal-300 rounded">
+                        <span className="badge badge-teal text-[10px]">
                           class:{target.match.class_name}
                         </span>
                       )}
@@ -283,7 +285,7 @@ export default function TargetsPage() {
       {/* Window Explorer Modal */}
       {showExplorer && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#1e293b] rounded-2xl border border-[#334155] p-6 w-[700px] max-h-[80vh] overflow-auto">
+          <div className="bg-[#0a0f1e]/90 backdrop-blur-2xl rounded-2xl border border-white/[0.06] p-6 w-[700px] max-h-[80vh] overflow-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">窗口探测器</h3>
               <button
@@ -302,7 +304,7 @@ export default function TargetsPage() {
                 .map((w) => (
                   <div
                     key={w.hwnd}
-                    className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg hover:bg-[#162032] transition-colors"
+                    className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl hover:border-white/10 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{w.title}</div>

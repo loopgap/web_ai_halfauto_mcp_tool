@@ -1,7 +1,7 @@
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-// Domain Layer 鈥?route.md 搂3 鍓嶇闂幆
-// 鎵€鏈夊姩浣滆蛋 precheck 鈫?execute 鈫?verify 鈫?persist 鈫?feedback
-// 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+// ═══════════════════════════════════════════════════════════
+// Domain Layer — route.md §3 前端闭环
+// 所有动作走 precheck → execute → verify → persist → feedback
+// ═══════════════════════════════════════════════════════════
 
 import type { Dispatch } from "react";
 import type { AppAction } from "../store/AppStore";
@@ -30,38 +30,38 @@ import * as injection from "./injection";
 const MAX_TEXT_LEN = 120_000;
 const MAX_INPUT_LEN = 50_000;
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搂28 Quality Gate 楠屾敹妫€鏌?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── §28 Quality Gate 验收检查 ─────────
 
 export interface QualityCheckResult {
   passed: boolean;
   failures: string[];
 }
 
-/** 搂28 Review Stage: 瀵?captured 鍐呭鎵ц璐ㄩ噺闂ㄦ鏌?*/
+/** §28 Review Stage: 对 captured 内容执行质量门检查 */
 export function checkQualityGates(text: string, gates: QualityGate[]): QualityCheckResult {
   const failures: string[] = [];
   for (const gate of gates) {
     if (gate.min_length && text.length < gate.min_length) {
-      failures.push(`杈撳嚭闀垮害 (${text.length}) 灏忎簬鏈€浣庤姹?(${gate.min_length})`);
+      failures.push(`输出长度 (${text.length}) 小于最低要求 (${gate.min_length})`);
     }
     if (gate.max_length && text.length > gate.max_length) {
-      failures.push(`杈撳嚭闀垮害 (${text.length}) 瓒呭嚭鏈€澶ч檺鍒?(${gate.max_length})`);
+      failures.push(`输出长度 (${text.length}) 超出最大限制 (${gate.max_length})`);
     }
     for (const kw of gate.must_contain) {
       if (!text.includes(kw)) {
-        failures.push(`杈撳嚭涓己灏戝繀椤诲寘鍚殑鍏抽敭璇? "${kw}"`);
+        failures.push(`输出中缺少必须包含的关键词: "${kw}"`);
       }
     }
     for (const kw of gate.must_not_contain) {
       if (text.includes(kw)) {
-        failures.push(`杈撳嚭涓寘鍚簡绂佹鍑虹幇鐨勫叧閿瘝: "${kw}"`);
+        failures.push(`输出中包含了禁止出现的关键词: "${kw}"`);
       }
     }
   }
   return { passed: failures.length === 0, failures };
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 鑴辨晱宸ュ叿 (搂3 鍓嶇瀹夊叏 鈥?閿欒鏃ュ織鑷姩鑴辨晱) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── 脱敏工具 (§3 前端安全 — 错误日志自动脱敏) ─────────
 
 function sanitizeForLog(text: string): string {
   return text
@@ -69,25 +69,148 @@ function sanitizeForLog(text: string): string {
     .replace(/[A-Za-z0-9+/]{32,}/g, "[REDACTED_BASE64]");
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 杈撳叆鏍￠獙 (搂3 鍓嶇瀹夊叏 鈥?杈撳叆闀垮害涓庢牸寮忔牎楠? 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── 安全防护层 (Security Hardening) ─────────
+
+/** Prompt 注入检测 — 检查常见 prompt injection 模式 */
+const INJECTION_PATTERNS = [
+  /ignore\s+(all\s+)?previous\s+instructions/i,
+  /forget\s+(all\s+)?previous/i,
+  /you\s+are\s+now\s+a/i,
+  /system\s*:\s*/i,
+  /\[INST\]/i,
+  /<<SYS>>/i,
+  /\bDAN\b.*\bmode\b/i,
+  /jailbreak/i,
+  /bypass\s+(all\s+)?safety/i,
+  /act\s+as\s+(if\s+)?you\s+(have\s+)?no\s+restrictions/i,
+];
+
+export function detectPromptInjection(text: string): { detected: boolean; patterns: string[] } {
+  const matched: string[] = [];
+  for (const pattern of INJECTION_PATTERNS) {
+    if (pattern.test(text)) {
+      matched.push(pattern.source);
+    }
+  }
+  return { detected: matched.length > 0, patterns: matched };
+}
+
+/** PII 检测 — 检查常见个人敏感信息 */
+const PII_PATTERNS = [
+  { name: "身份证号", pattern: /\b\d{17}[\dXx]\b/ },
+  { name: "手机号", pattern: /\b1[3-9]\d{9}\b/ },
+  { name: "邮箱", pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/ },
+  { name: "银行卡号", pattern: /\b\d{16,19}\b/ },
+  { name: "社保号", pattern: /\b\d{3}-\d{2}-\d{4}\b/ },
+];
+
+export function detectPII(text: string): { detected: boolean; types: string[] } {
+  const found: string[] = [];
+  for (const { name, pattern } of PII_PATTERNS) {
+    if (pattern.test(text)) {
+      found.push(name);
+    }
+  }
+  return { detected: found.length > 0, types: found };
+}
+
+/** 输入消毒 — 移除危险字符和控制序列 */
+export function sanitizeInput(text: string): string {
+  return text
+    .replace(/\0/g, "")              // 空字节
+    .replace(/[\x01-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "") // 控制字符
+    .replace(/\r\n/g, "\n")          // 统一换行
+    .trim();
+}
+
+/** 速率限制器 — 前端层防护 */
+const rateLimitState: Record<string, { count: number; resetAt: number }> = {};
+
+export function checkRateLimit(action: string, maxPerMinute: number = 10): boolean {
+  const now = Date.now();
+  const state = rateLimitState[action];
+  if (!state || now >= state.resetAt) {
+    rateLimitState[action] = { count: 1, resetAt: now + 60000 };
+    return true;
+  }
+  if (state.count >= maxPerMinute) {
+    return false;
+  }
+  state.count++;
+  return true;
+}
+
+// ───────── Agent 闭环检测 (Closed-Loop Detection) ─────────
+
+/** Agent 循环检测 — 检查连续步骤是否产生相似输出 */
+export function detectAgentLoop(outputs: string[], similarityThreshold: number = 0.85): boolean {
+  if (outputs.length < 3) return false;
+  const recent = outputs.slice(-3);
+  // 简单 Jaccard 相似度: 如果最近 3 次输出高度相似，认为进入循环
+  for (let i = 0; i < recent.length - 1; i++) {
+    const setA = new Set(recent[i].split(/\s+/));
+    const setB = new Set(recent[i + 1].split(/\s+/));
+    const intersection = new Set([...setA].filter((x) => setB.has(x)));
+    const union = new Set([...setA, ...setB]);
+    const similarity = union.size > 0 ? intersection.size / union.size : 0;
+    if (similarity < similarityThreshold) return false;
+  }
+  return true;
+}
+
+/** 闭环一致性校验 — 验证 run 的状态转换是否符合预期 */
+export function validateRunConsistency(run: RunRecord): { valid: boolean; issues: string[] } {
+  const issues: string[] = [];
+  // 1. 状态一致性
+  if (run.status === "done" && !run.output) {
+    issues.push("状态为 done 但无输出内容");
+  }
+  if (run.status === "done" && !run.ts_end) {
+    issues.push("状态为 done 但无结束时间戳");
+  }
+  if (run.status === "failed" && !run.error_code) {
+    issues.push("状态为 failed 但无错误码");
+  }
+  // 2. Step 一致性
+  for (const step of run.steps ?? []) {
+    if (step.status === "captured" && !step.output_artifact) {
+      issues.push(`步骤 ${step.id} 状态为 captured 但无输出 artifact`);
+    }
+    if (step.status === "failed" && !step.error_code) {
+      issues.push(`步骤 ${step.id} 状态为 failed 但无错误码`);
+    }
+  }
+  // 3. 时间戳一致性
+  if (run.ts_end && run.ts_end < run.ts_start) {
+    issues.push("结束时间早于开始时间");
+  }
+  // 4. Trace ID 存在性
+  if (!run.trace_id) {
+    issues.push("缺少 trace_id，无法审计追踪");
+  }
+  return { valid: issues.length === 0, issues };
+}
+
+// ───────── 输入校验 (§3 前端安全 — 输入长度与格式校验) ─────────
 
 export function validateInput(key: string, value: string, maxLen?: number): string | null {
   const limit = maxLen ?? MAX_INPUT_LEN;
   if (value.length > limit) {
-    return `${key} 瓒呭嚭鏈€澶ч暱搴﹂檺鍒?(${limit})`;
+    return `${key} 超出最大长度限制 (${limit})`;
   }
   if (value.includes('\0')) {
-    return `${key} 鍖呭惈闈炴硶瀛楃`;
+    return `${key} 包含非法字符`;
   }
   return null;
 }
 
 export function validatePrompt(text: string): string | null {
-  if (text.trim().length === 0) return "Prompt 涓嶈兘涓虹┖";
-  if (text.length > MAX_TEXT_LEN) return `Prompt 瓒呭嚭鏈€澶ч暱搴?(${MAX_TEXT_LEN})`;
-  if (text.includes('\0')) return "Prompt 鍖呭惈闈炴硶瀛楃";
+  if (text.trim().length === 0) return "Prompt 不能为空";
+  if (text.length > MAX_TEXT_LEN) return `Prompt 超出最大长度 (${MAX_TEXT_LEN})`;
+  if (text.includes('\0')) return "Prompt 包含非法字符";
   return null;
 }
+
 /** §60-§61 浏览器智能检测 — exe + class_name + title 启发式匹配，支持 12 种主流浏览器 */
 function detectBrowserId(win: WindowInfo): BrowserId {
   const exe = (win.exe_name ?? "").toLowerCase();
@@ -110,7 +233,6 @@ function detectBrowserId(win: WindowInfo): BrowserId {
 
   // ── class_name 启发式 (exe 不可用时回退) ──
   if (cls.includes("mozillawindowclass")) {
-    // Mozilla 家族: Firefox/Waterfox/LibreWolf/Floorp/Tor
     if (title.includes("waterfox")) return "waterfox";
     if (title.includes("librewolf")) return "librewolf";
     if (title.includes("floorp")) return "floorp";
@@ -118,13 +240,12 @@ function detectBrowserId(win: WindowInfo): BrowserId {
     return "firefox";
   }
   if (cls.includes("chrome_widgetwin_1")) {
-    // Chromium 家族: Chrome/Edge/Brave/Vivaldi/Opera/Arc
     if (title.includes("edge") || exe.includes("edge")) return "edge";
     if (title.includes("brave")) return "brave";
     if (title.includes("vivaldi")) return "vivaldi";
     if (title.includes("opera")) return "opera";
     if (title.includes("arc")) return "arc";
-    return "chrome"; // default Chromium family
+    return "chrome";
   }
 
   // ── title 兜底启发式 ──
@@ -156,7 +277,6 @@ function scoreBrowserCandidate(win: WindowInfo): BrowserCandidate {
     score += 20;
     reasons.push(`known_browser:${browserId}`);
   } else {
-    // §60 未知浏览器扣分但不排除
     score += 5;
     reasons.push("unknown_browser:detection_heuristic");
   }
@@ -228,11 +348,9 @@ function buildInjectedPrompt(basePrompt: string, mode: InjectionMode, autoInject
     return { finalPrompt: basePrompt };
   }
 
-  // Delegate to unified injection engine (injection.ts §82-86)
   const policy = injection.defaultInjectionPolicy();
   policy.mode = mode;
 
-  // Mode-specific workflow blocks
   const workflowBlocks: injection.InjectionBlock[] = [];
   if (mode === "strict") {
     workflowBlocks.push({
@@ -264,7 +382,6 @@ function buildInjectedPrompt(basePrompt: string, mode: InjectionMode, autoInject
   const finalPrompt = injection.buildFinalPrompt(basePrompt, applied);
   const checksum = injection.promptChecksum(finalPrompt);
 
-  // Map InjectionBlock → InstructionBlock for the audit record
   const toInstBlock = (b: injection.InjectionBlock): InstructionBlock => ({
     block_id: b.block_id,
     source: b.source as InstructionBlock["source"],
@@ -285,7 +402,7 @@ function buildInjectedPrompt(basePrompt: string, mode: InjectionMode, autoInject
   };
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搂10 鐘舵€佹満绾︽潫 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── §10 状态机约束 ─────────
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   created: ["dispatched", "failed", "cancelled"],
@@ -303,7 +420,7 @@ export function canTransitionTo(from: string, to: string): boolean {
   return (VALID_TRANSITIONS[from] ?? []).includes(to);
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 闂幆娴佺▼: 鍒濆鍖栨暟鎹姞杞?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── 闭环流程: 初始化数据加载 ─────────
 
 export async function initializeApp(dispatch: Dispatch<AppAction>): Promise<void> {
   dispatch({ type: "SET_PAGE_STATE", payload: { page: "dashboard", state: "loading" } });
@@ -346,13 +463,13 @@ export async function initializeApp(dispatch: Dispatch<AppAction>): Promise<void
   }
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搂9.3 棰勬鏌ラ棴鐜?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── §9.3 预检查闭环 ─────────
 
 export async function preflightCheck(targetId: string): Promise<PreflightResult> {
   return api.preflightTarget(targetId);
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 闂幆娴佺▼: 涓ら樁娈佃皟搴?(搂9.4) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── 闭环流程: 两阶段调度 (§9.4) ─────────
 
 export interface DispatchFlowParams {
   skill: Skill;
@@ -360,7 +477,7 @@ export interface DispatchFlowParams {
   targets: TargetsConfig;
   inputValues: Record<string, string>;
   routeDecision?: RouteDecision;
-  /** 搂9.4 涓ら樁娈垫彁浜? true=浠呯矘璐翠笉鍙戦€?*/
+  /** §9.4 两阶段提交: true=仅粘贴不发送 */
   stageOnly?: boolean;
   autoBrowserSelect?: boolean;
   autoInject?: boolean;
@@ -380,8 +497,8 @@ export interface DispatchResult {
 }
 
 /**
- * 瀹屾暣璋冨害闂幆: precheck 鈫?preflight 鈫?execute 鈫?verify 鈫?persist 鈫?feedback
- * route.md 搂3 搂8 搂9
+ * 完整调度闭环: precheck → preflight → execute → verify → persist → feedback
+ * route.md §3 §8 §9
  */
 export async function executeDispatchFlow(
   params: DispatchFlowParams,
@@ -390,10 +507,17 @@ export async function executeDispatchFlow(
   const traceId = `t${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runId = crypto.randomUUID();
 
-  // 鈹€鈹€鈹€ 1. Precheck (搂3 搂9.3) 鈹€鈹€鈹€
+  // ─── 0. 安全预检 ───
+  // 速率限制检查
+  if (!checkRateLimit("dispatch", 15)) {
+    dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
+    return { success: false, error: { code: "SECURITY_RATE_LIMIT_EXCEEDED", message: "操作频率超出安全阈值，请稍后重试", trace_id: traceId } };
+  }
+
+  // ─── 1. Precheck (§3 §9.3) ───
   dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "validating" } });
 
-  // 鏍￠獙鍙傛暟
+  // 校验参数
   let renderedPrompt = params.skill.prompt_template;
   for (const [key, val] of Object.entries(params.inputValues)) {
     const err = validateInput(key, val, params.skill.inputs[key]?.max_length);
@@ -401,7 +525,29 @@ export async function executeDispatchFlow(
       dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
       return { success: false, error: { code: "INPUT_INVALID_FORMAT", message: err, trace_id: traceId } };
     }
-    renderedPrompt = renderedPrompt.replace(new RegExp(`\\{${key}\\}`, "g"), val || `{${key}}`);
+    // 输入消毒
+    const sanitized = sanitizeInput(val);
+    renderedPrompt = renderedPrompt.replace(new RegExp(`\\{${key}\\}`, "g"), sanitized || `{${key}}`);
+  }
+
+  // Prompt 注入检测
+  const injectionCheck = detectPromptInjection(renderedPrompt);
+  if (injectionCheck.detected) {
+    dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
+    return {
+      success: false,
+      error: {
+        code: "SECURITY_PROMPT_INJECTION",
+        message: `检测到可疑 Prompt 注入模式: ${injectionCheck.patterns.slice(0, 2).join(", ")}`,
+        trace_id: traceId,
+      },
+    };
+  }
+
+  // PII 检测（仅警告，不阻止）
+  const piiCheck = detectPII(renderedPrompt);
+  if (piiCheck.detected) {
+    console.warn(`[Security] PII detected in prompt: ${piiCheck.types.join(", ")}. Consider redacting.`);
   }
 
   const { finalPrompt, audit: injectionAudit } = buildInjectedPrompt(
@@ -416,7 +562,7 @@ export async function executeDispatchFlow(
     return { success: false, error: { code: "INPUT_EMPTY", message: promptErr, trace_id: traceId } };
   }
 
-  // 鏍￠獙 target
+  // 校验 target
   const target = params.targets.targets[params.targetId];
   if (!target) {
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
@@ -426,7 +572,7 @@ export async function executeDispatchFlow(
     };
   }
 
-  // 蹇呭～瀛楁妫€鏌?
+  // 必填字段检查
   for (const [key, input] of Object.entries(params.skill.inputs)) {
     if (input.required && !params.inputValues[key]?.trim()) {
       dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
@@ -437,7 +583,15 @@ export async function executeDispatchFlow(
     }
   }
 
-  // 搂9.3 Preflight: 妫€鏌?target 鐘舵€?
+  // Agent 模式前置条件检查
+  if (params.skill.preconditions?.includes("user_confirmed_agent_mode")) {
+    // Agent 模式需要额外确认（由 UI 层 showConfirm 处理）
+    if (params.skill.safety_level === "dangerous") {
+      console.info(`[Agent] Skill ${params.skill.id} requires agent mode confirmation`);
+    }
+  }
+
+  // §9.3 Preflight: 检查 target 状态
   try {
     const preflight = await api.preflightTarget(params.targetId);
     if (preflight.status !== "ready") {
@@ -446,30 +600,29 @@ export async function executeDispatchFlow(
         success: false,
         error: {
           code: "TARGET_NOT_FOUND",
-          message: preflight.suggestion ?? `Target 鐘舵€? ${preflight.status}`,
+          message: preflight.suggestion ?? `Target 状态: ${preflight.status}`,
           trace_id: traceId,
         },
       };
     }
   } catch {
-    // Preflight failure is non-blocking in fallback mode, try direct match
+    // Preflight failure is non-blocking in fallback mode
   }
 
-  // 鈹€鈹€鈹€ 2. Execute (搂9.4 two-phase) 鈹€鈹€鈹€
+  // ─── 2. Execute (§9.4 two-phase) ───
   dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "dispatching" } });
 
-  // 搂9.5 Soft Lock: 楠岃瘉鐩爣绐楀彛鍙敤鎬э紙鍓嶇疆妫€鏌ワ級
+  // §9.5 Soft Lock: 验证目标窗口可用性
   try {
     const fgHwnd = await api.getForegroundHwnd();
-    // Soft lock just logs for now; actual enforcement is in Rust dispatch_stage
     if (fgHwnd === 0) {
-      console.warn("[搂9.5] Foreground hwnd is 0, may indicate focus instability");
+      console.warn("[§9.5] Foreground hwnd is 0, may indicate focus instability");
     }
   } catch {
     // Soft lock check is non-blocking
   }
 
-  // 搂37 鍒涘缓 StepRecord
+  // §37 创建 StepRecord
   const stepId = `step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const step: StepRecord = {
     id: stepId,
@@ -501,7 +654,6 @@ export async function executeDispatchFlow(
     if (params.autoBrowserSelect ?? true) {
       const browserSelection = await selectBrowserWindowByRegex(target.match.title_regex);
       browserCandidates = browserSelection.candidates;
-      // §60 捕获未知浏览器警告
       if (browserSelection.unknownBrowserWarning && browserSelection.warningMessage) {
         browserWarning = browserSelection.warningMessage;
       }
@@ -529,8 +681,7 @@ export async function executeDispatchFlow(
       run.injection_audit = injectionAudit;
     }
 
-    // 搂9.4 Two-phase: use dispatch_stage (paste only, no enter)
-    // 搂29.3 杩斿洖缁撴瀯鍖?DispatchTrace
+    // §9.4 Two-phase: dispatch_stage (paste only, no enter)
     const dispatchTrace = await api.dispatchStage({
       hwnd: win.hwnd,
       text: finalPrompt,
@@ -545,12 +696,10 @@ export async function executeDispatchFlow(
       append_watermark: target.behavior.append_run_watermark,
     });
     run.trace_id = dispatchTrace.trace_id;
-    // 搂37 鏇存柊 step 鐘舵€?
     step.status = "dispatched";
     step.trace_id = dispatchTrace.trace_id;
 
     if (params.stageOnly) {
-      // 搂9.4 Stage only: waiting for user confirm
       step.status = "awaiting_send";
       dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "waiting_capture" } });
       dispatch({ type: "ADD_RUN", payload: run });
@@ -558,17 +707,17 @@ export async function executeDispatchFlow(
       return { success: true, run, stagedHwnd: win.hwnd, dispatchTrace, browserWarning };
     }
 
-    // §9.4 Auto-confirm if not stage-only AND auto_enter is true
+    // §9.4 Auto-confirm if auto_enter
     if (target.behavior.auto_enter) {
       await api.dispatchConfirm({ hwnd: win.hwnd, enter_delay_ms: 120 });
       step.status = "waiting_output";
       run.confirm_source = "policy";
     }
 
-    // 鈹€鈹€鈹€ 3. Verify (鏍囪绛夊緟 capture) 鈹€鈹€鈹€
+    // ─── 3. Verify (标记等待 capture) ───
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "waiting_capture" } });
 
-    // 鈹€鈹€鈹€ 4. Persist 鈹€鈹€鈹€
+    // ─── 4. Persist ───
     dispatch({ type: "ADD_RUN", payload: run });
     await api.saveRun(run).catch((e) => console.error('[actions] saveRun(dispatch) persist failed:', e));
 
@@ -579,7 +728,6 @@ export async function executeDispatchFlow(
     run.status = "failed";
     run.error_code = error.code;
     run.ts_end = Date.now();
-    // 搂37 step 澶辫触
     step.status = "failed";
     step.error_code = error.code;
     step.ts_end = Date.now();
@@ -588,20 +736,29 @@ export async function executeDispatchFlow(
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
     await api.saveRun(run).catch((e) => console.error('[actions] saveRun(error) persist failed:', e));
 
+    // 闭环一致性校验
+    const consistency = validateRunConsistency(run);
+    if (!consistency.valid) {
+      console.warn("[ClosedLoop] Run consistency issues:", consistency.issues);
+    }
+
     return { success: false, run, error };
   }
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搂9.4 涓ら樁娈? 纭鍙戦€?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── §9.4 两阶段: 确认发送 ─────────
 
 export async function confirmSend(
   hwnd: number,
   _runId: string,
   dispatch: Dispatch<AppAction>,
 ): Promise<{ success: boolean; error?: ApiError }> {
+  // 速率限制
+  if (!checkRateLimit("confirm_send", 20)) {
+    return { success: false, error: { code: "SECURITY_RATE_LIMIT_EXCEEDED", message: "确认发送过于频繁", trace_id: `cs-${Date.now()}` } };
+  }
   try {
     await api.dispatchConfirm({ hwnd, enter_delay_ms: 120 });
-    // 搂29.4 濉厖 confirm_source
     dispatch({
       type: "UPDATE_RUN",
       payload: { id: _runId, updates: { confirm_source: "user" } },
@@ -615,7 +772,7 @@ export async function confirmSend(
   }
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搂9.8 姘村嵃瑙ｆ瀽宸ュ叿 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── §9.8 水印解析工具 ─────────
 
 const WATERMARK_REGEX = /\[AIWB_RUN_ID=(\S+)\s+STEP=(\S+)\s+TARGET=(\S+)\]/;
 
@@ -625,12 +782,12 @@ export function parseWatermark(text: string): { runId: string; stepId: string; t
   return { runId: match[1], stepId: match[2], targetId: match[3] };
 }
 
-/** 鍘婚櫎姘村嵃鏍囪锛岃繑鍥炵函鍑€鍐呭 */
+/** 去除水印标记，返回纯净内容 */
 function stripWatermark(text: string): string {
   return text.replace(WATERMARK_REGEX, "").trim();
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搂42.3 鏅鸿兘鎭㈠璺緞 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── §42.3 智能恢复路径 ─────────
 
 export interface RecoveryAction {
   label: string;
@@ -639,46 +796,46 @@ export interface RecoveryAction {
   primary: boolean;
 }
 
-/** 姣忎釜閿欒鐮佺粦瀹?棣栭€変慨澶嶅姩浣? 鈥?route.md 搂42.3 */
+/** 每个错误码绑定首选修复动作 — route.md §42.3 */
 export function getRecoveryActions(errorCode: string): RecoveryAction[] {
   const map: Record<string, RecoveryAction[]> = {
     TARGET_NOT_FOUND: [
-      { label: "Detect windows again", action: "redetect", description: "Refresh and rematch target windows", primary: true },
-      { label: "Open binding wizard", action: "wizard", description: "Open target binding wizard", primary: false },
+      { label: "重新检测窗口", action: "redetect", description: "刷新并重新匹配目标窗口", primary: true },
+      { label: "打开绑定向导", action: "wizard", description: "进入目标绑定向导", primary: false },
     ],
     TARGET_ACTIVATE_FAILED: [
-      { label: "Run focus recipe", action: "focus_recipe", description: "Re-focus input and reactivate window", primary: true },
-      { label: "Switch manually", action: "manual", description: "Switch to target window manually", primary: false },
+      { label: "执行焦点配方", action: "focus_recipe", description: "重新聚焦并激活窗口", primary: true },
+      { label: "手动切换", action: "manual", description: "手动切换到目标窗口", primary: false },
     ],
     CLIPBOARD_BUSY: [
-      { label: "Retry clipboard", action: "retry_clipboard", description: "Retry write and clipboard restore", primary: true },
-      { label: "Open guide", action: "guide", description: "Check clipboard permission/settings", primary: false },
+      { label: "重试剪贴板", action: "retry_clipboard", description: "重试写入并恢复剪贴板", primary: true },
+      { label: "查看指南", action: "guide", description: "检查剪贴板权限/设置", primary: false },
     ],
     DISPATCH_RATE_LIMITED: [
-      { label: "Retry later", action: "delay_retry", description: "Wait and retry after backoff", primary: true },
+      { label: "稍后重试", action: "delay_retry", description: "等待后自动重试", primary: true },
     ],
     INPUT_EMPTY: [
-      { label: "Back to edit", action: "edit", description: "Fill required inputs", primary: true },
+      { label: "返回编辑", action: "edit", description: "填写必要的输入字段", primary: true },
     ],
     INPUT_INVALID_FORMAT: [
-      { label: "Back to edit", action: "edit", description: "Fix input format", primary: true },
+      { label: "返回编辑", action: "edit", description: "修正输入格式", primary: true },
     ],
     STATE_TRANSITION_INVALID: [
-      { label: "Refresh state", action: "refresh", description: "Reload run state", primary: true },
+      { label: "刷新状态", action: "refresh", description: "重新加载运行状态", primary: true },
     ],
     PAYLOAD_TOO_LARGE: [
-      { label: "Reduce input", action: "edit", description: "Shorten prompt and retry", primary: true },
+      { label: "缩减输入", action: "edit", description: "缩短 Prompt 后重试", primary: true },
     ],
     DISPATCH_DUPLICATE_CONFIRM: [
-      { label: "Keep waiting", action: "wait", description: "Send already confirmed, wait for output", primary: true },
+      { label: "继续等待", action: "wait", description: "发送已确认，等待输出", primary: true },
     ],
     CAPTURE_EMPTY: [
-      { label: "Copy and retry", action: "retry_capture", description: "Copy model output first, then capture", primary: true },
-      { label: "Mark empty", action: "mark_empty", description: "Confirm no output for this step", primary: false },
+      { label: "复制后重试", action: "retry_capture", description: "先复制模型输出，再执行 Capture", primary: true },
+      { label: "标记为空", action: "mark_empty", description: "确认该步骤无输出", primary: false },
     ],
     DISPATCH_FOCUS_DRIFT: [
-      { label: "Reactivate window", action: "reactivate", description: "Reactivate target and retry", primary: true },
-      { label: "Run focus recipe", action: "focus_recipe", description: "Apply provider focus recipe", primary: false },
+      { label: "重新激活", action: "reactivate", description: "重新激活目标窗口后重试", primary: true },
+      { label: "执行焦点配方", action: "focus_recipe", description: "执行 Provider 焦点配方", primary: false },
     ],
     BROWSER_NOT_AVAILABLE: [
       { label: "打开浏览器", action: "open_browser", description: "请打开目标浏览器后重试", primary: true },
@@ -692,44 +849,88 @@ export function getRecoveryActions(errorCode: string): RecoveryAction[] {
       { label: "进入绑定向导", action: "wizard", description: "重新绑定目标浏览器", primary: true },
       { label: "重新检测", action: "redetect", description: "刷新窗口列表并重新匹配", primary: false },
     ],
+    // ── 安全相关恢复动作 ──
+    SECURITY_PROMPT_INJECTION: [
+      { label: "清理输入", action: "edit", description: "移除可疑注入内容后重试", primary: true },
+      { label: "查看详情", action: "detail", description: "查看检测到的注入模式", primary: false },
+    ],
+    SECURITY_RATE_LIMIT_EXCEEDED: [
+      { label: "等待冷却", action: "delay_retry", description: "等待速率限制冷却后重试", primary: true },
+    ],
+    SECURITY_INPUT_SANITIZE_FAILED: [
+      { label: "返回编辑", action: "edit", description: "检查并修正输入内容", primary: true },
+    ],
+    SECURITY_PII_DETECTED: [
+      { label: "脱敏后重试", action: "edit", description: "移除敏感信息后重试", primary: true },
+    ],
+    // ── Agent 相关恢复动作 ──
+    AGENT_LOOP_DETECTED: [
+      { label: "调整任务描述", action: "edit", description: "修改任务描述以打破循环", primary: true },
+      { label: "手动中断", action: "cancel", description: "终止 Agent 执行", primary: false },
+    ],
+    AGENT_MAX_STEPS_EXCEEDED: [
+      { label: "增大步骤限制", action: "edit", description: "提高最大步骤数后重试", primary: true },
+      { label: "缩小任务范围", action: "edit", description: "缩减任务范围", primary: false },
+    ],
+    AGENT_BUDGET_EXCEEDED: [
+      { label: "调整预算", action: "edit", description: "增加预算或简化任务", primary: true },
+    ],
+    // ── 闭环检测恢复动作 ──
+    CLOSED_LOOP_TIMEOUT: [
+      { label: "重试", action: "retry", description: "重新执行闭环流程", primary: true },
+      { label: "检查目标", action: "redetect", description: "检查目标窗口状态", primary: false },
+    ],
+    CLOSED_LOOP_QUALITY_FAIL: [
+      { label: "重新投递", action: "retry", description: "重新投递并等待更高质量输出", primary: true },
+      { label: "调整参数", action: "edit", description: "修改输入参数后重试", primary: false },
+    ],
+    CLOSED_LOOP_INCONSISTENT: [
+      { label: "刷新数据", action: "refresh", description: "重新加载最新状态", primary: true },
+    ],
   };
 
   return map[errorCode] ?? [
-    { label: "Retry", action: "retry", description: "Retry the operation", primary: true },
-    { label: "Show details", action: "detail", description: "Inspect error and trace id", primary: false },
+    { label: "重试", action: "retry", description: "重试此操作", primary: true },
+    { label: "查看详情", action: "detail", description: "检查错误与追踪 ID", primary: false },
   ];
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 闂幆娴佺▼: Capture 杈撳嚭 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── 闭环流程: Capture 输出 ─────────
 
 export async function captureOutput(
   runId: string,
   dispatch: Dispatch<AppAction>,
-  /** 搂28 quality gates 鈥?浼犲叆褰撳墠 skill 鐨?gates 鐢ㄤ簬楠屾敹 */
+  /** §28 quality gates — 传入当前 skill 的 gates 用于验收 */
   qualityGates?: QualityGate[],
 ): Promise<{ success: boolean; text?: string; error?: ApiError; boundRunId?: string; boundStepId?: string; qualityResult?: QualityCheckResult }> {
   try {
     const rawText = await api.clipboardGetText();
 
-    // 搂29.5 楠岃瘉杈撳嚭闈炵┖
+    // §29.5 验证输出非空
     if (!rawText || rawText.trim().length === 0) {
       return {
         success: false,
         error: {
           code: "CAPTURE_EMPTY",
-          message: "Captured clipboard text is empty. Copy model output first.",
+          message: "采集到的剪贴板内容为空。请先复制模型输出。",
           trace_id: `cap-${Date.now()}`,
         },
       };
     }
 
-    // 搂9.8 姘村嵃瑙ｆ瀽 鈥?鑷姩褰掓。鍒板搴?run/step
+    // §9.8 水印解析 — 自动归档到对应 run/step
     const watermark = parseWatermark(rawText);
     const cleanText = stripWatermark(rawText);
     const effectiveRunId = watermark?.runId ?? runId;
     const effectiveStepId = watermark?.stepId;
 
-    // 搂35 鍒涘缓 Artifact
+    // 输出安全校验
+    const outputInjection = detectPromptInjection(cleanText);
+    if (outputInjection.detected) {
+      console.warn("[Security] Output contains suspicious patterns:", outputInjection.patterns);
+    }
+
+    // §35 创建 Artifact
     const artifact: Artifact = {
       artifact_id: `art-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       run_id: effectiveRunId,
@@ -740,10 +941,10 @@ export async function captureOutput(
       content: cleanText,
     };
 
-    // 淇濆瓨 Artifact 鍒?vault
+    // 保存 Artifact 到 vault
     await api.saveArtifact(artifact).catch((e) => console.error('[actions] saveArtifact persist failed:', e));
 
-    // 搂28 Quality Gate 楠屾敹
+    // §28 Quality Gate 验收
     const qualityResult = qualityGates && qualityGates.length > 0
       ? checkQualityGates(cleanText, qualityGates)
       : { passed: true, failures: [] };
@@ -775,7 +976,7 @@ export async function captureOutput(
   }
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 闂幆娴佺▼: 淇濆瓨 Targets 閰嶇疆 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── 闭环流程: 保存 Targets 配置 ─────────
 
 export async function saveTargetsFlow(
   config: TargetsConfig,
@@ -795,7 +996,7 @@ export async function saveTargetsFlow(
   }
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 闂幆娴佺▼: 璺敱鍐崇瓥 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── 闭环流程: 路由决策 ─────────
 
 export async function routePromptFlow(
   prompt: string,
@@ -808,7 +1009,7 @@ export async function routePromptFlow(
   }
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搂5 鍙嶉瀛︿範: 璁板綍鐢ㄦ埛 accept/reject/override 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── §5 反馈学习: 记录用户 accept/reject/override ─────────
 
 export async function recordRouteFeedback(
   traceId: string,
@@ -824,18 +1025,17 @@ export async function recordRouteFeedback(
       override_intent: overrideIntent,
     });
   } catch {
-    // 搂5 feedback is non-blocking; failure doesn't interrupt main flow
-    console.warn("[搂5] Failed to save route feedback");
+    console.warn("[§5] Failed to save route feedback");
   }
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 閿欒鐮佹煡鎵?鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── 错误码查找 ─────────
 
 export function lookupError(catalog: { code: string; user_message: string; fix_suggestion: string }[], code: string) {
   return catalog.find((e) => e.code === code);
 }
 
-// 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€ 搂8 鑷剤鏌ユ壘 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
+// ───────── §8 自愈查找 ─────────
 
 export function lookupSelfHeal(registry: SelfHealAction[], strategyId: string): SelfHealAction | undefined {
   return registry.find((a) => a.strategy_id === strategyId);

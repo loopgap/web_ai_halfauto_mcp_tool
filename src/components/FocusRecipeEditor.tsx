@@ -102,7 +102,7 @@ export default function FocusRecipeEditor({
       </div>
 
       {/* 当前序列 */}
-      <div className="min-h-[40px] p-2 bg-[#0f172a] rounded-lg border border-[#334155] flex flex-wrap gap-1.5">
+      <div className="min-h-[40px] p-2 inner-panel rounded-xl flex flex-wrap gap-1.5">
         {recipe.length === 0 && (
           <span className="text-xs text-slate-500 py-1">点击下方按键添加焦点配方步骤...</span>
         )}
@@ -116,7 +116,7 @@ export default function FocusRecipeEditor({
             className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-mono transition-all ${
               dragIndex === index
                 ? "bg-blue-600/30 border-blue-500 border"
-                : "bg-slate-700/60 border border-slate-600 text-slate-200"
+                : "bg-white/[0.06] border border-white/[0.08] text-slate-200"
             } ${disabled ? "opacity-50" : "cursor-grab active:cursor-grabbing"}`}
           >
             <GripVertical size={10} className="text-slate-500" />

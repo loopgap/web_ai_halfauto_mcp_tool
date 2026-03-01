@@ -425,8 +425,6 @@ export interface BrowserProfile {
 
 /** §60 浏览器检测结果 — 含置信度与未知浏览器提醒 */
 export interface BrowserDetectionResult {
-  selected: BrowserCandidate;
-  candidates: BrowserCandidate[];
   profiles: BrowserProfile[];
   /** 当浏览器不在预设名单时为 true，需提醒用户 */
   unknown_browser_warning: boolean;

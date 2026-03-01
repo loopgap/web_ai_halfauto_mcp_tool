@@ -15,7 +15,7 @@ interface SkeletonProps {
 function SkeletonLine({ width }: { width: string }) {
   return (
     <div
-      className="h-4 rounded bg-slate-700/50 animate-pulse"
+      className="h-4 rounded-lg bg-white/[0.04] animate-pulse"
       style={{ width }}
     />
   );
@@ -24,8 +24,8 @@ function SkeletonLine({ width }: { width: string }) {
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   const widths = ["75%", "100%", "60%", "90%", "45%"];
   return (
-    <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5 space-y-3">
-      <div className="h-5 w-1/3 rounded bg-slate-600/50 animate-pulse" />
+    <div className="glass-card-static p-5 space-y-3">
+      <div className="h-5 w-1/3 rounded-lg bg-white/[0.06] animate-pulse" />
       {Array.from({ length: lines }, (_, i) => (
         <SkeletonLine key={i} width={widths[i % widths.length]} />
       ))}
@@ -39,12 +39,12 @@ export function SkeletonList({ count = 4 }: { count?: number }) {
       {Array.from({ length: count }, (_, i) => (
         <div
           key={i}
-          className="bg-[#1e293b] rounded-lg border border-[#334155] p-4 flex items-center gap-3"
+          className="glass-card-static p-4 flex items-center gap-3"
         >
-          <div className="w-8 h-8 rounded-full bg-slate-700/50 animate-pulse" />
+          <div className="w-8 h-8 rounded-full bg-white/[0.04] animate-pulse" />
           <div className="flex-1 space-y-2">
-            <div className="h-4 w-2/5 rounded bg-slate-600/50 animate-pulse" />
-            <div className="h-3 w-3/5 rounded bg-slate-700/50 animate-pulse" />
+            <div className="h-4 w-2/5 rounded-lg bg-white/[0.06] animate-pulse" />
+            <div className="h-3 w-3/5 rounded-lg bg-white/[0.04] animate-pulse" />
           </div>
         </div>
       ))}

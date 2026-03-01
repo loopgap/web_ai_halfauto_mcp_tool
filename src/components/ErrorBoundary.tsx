@@ -41,7 +41,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center p-8 bg-[#0f172a] rounded-xl border border-red-500/30 m-4">
+        <div className="flex flex-col items-center justify-center p-8 inner-panel rounded-xl border border-red-500/20 m-4">
           <AlertTriangle size={48} className="text-red-400 mb-4" />
           <h3 className="text-lg font-semibold text-red-300 mb-2">
             组件渲染异常

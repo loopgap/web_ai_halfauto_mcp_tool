@@ -21,9 +21,11 @@ export const RUN_STATUS: Record<string, { label: string; color: string; dot: str
   created: { label: "已创建", color: "text-slate-300", dot: "bg-slate-400" },
   dispatched: { label: "已投递", color: "text-yellow-300", dot: "bg-yellow-400" },
   waiting_output: { label: "等待输出", color: "text-blue-300", dot: "bg-blue-400" },
+  waiting_capture: { label: "等待回收", color: "text-purple-300", dot: "bg-purple-400" },
   captured: { label: "已回收", color: "text-green-300", dot: "bg-green-400" },
   done: { label: "完成", color: "text-green-300", dot: "bg-green-400" },
   failed: { label: "失败", color: "text-red-300", dot: "bg-red-400" },
+  compensating: { label: "补偿中", color: "text-orange-300", dot: "bg-orange-400" },
   closed: { label: "已关闭", color: "text-slate-400", dot: "bg-slate-500" },
   cancelled: { label: "已取消", color: "text-slate-400", dot: "bg-slate-500" },
 };

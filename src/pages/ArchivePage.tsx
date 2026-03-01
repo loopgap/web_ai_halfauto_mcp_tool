@@ -53,15 +53,15 @@ export default function ArchivePage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Runs 归档</h2>
-          <p className="text-slate-400 mt-1">
+          <h2 className="text-2xl font-bold text-gradient">Runs 归档</h2>
+          <p className="text-slate-500 mt-1">
             历史运行记录 · {runs.length} 条 · Vault 持久化
           </p>
         </div>
         <button
           onClick={handleExportMarkdown}
           disabled={filtered.length === 0}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1e293b] border border-[#334155] rounded-lg text-sm hover:bg-[#263548] transition-colors disabled:opacity-50"
+          className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm disabled:opacity-50"
         >
           <Download size={16} />
           导出 Markdown
@@ -75,7 +75,7 @@ export default function ArchivePage() {
           className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
         />
         <input
-          className="w-full bg-[#1e293b] border border-[#334155] rounded-lg pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500"
+          className="w-full input-modern pl-10 pr-4 py-2.5 text-sm"
           placeholder="搜索 skill、target、provider、trace_id..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -105,7 +105,7 @@ export default function ArchivePage() {
             <div
               key={run.id}
                     role="listitem"
-              className="bg-[#1e293b] rounded-xl border border-[#334155] p-4"
+              className="glass-card-static p-4"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -115,12 +115,12 @@ export default function ArchivePage() {
                   <span className="font-medium">{run.skill_id}</span>
                   <span className="text-slate-500">→</span>
                   <span className="text-blue-300">{run.target_id}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded ${RUN_STATUS[run.status]?.color ?? "text-slate-400"} bg-slate-700/50`}>{RUN_STATUS[run.status]?.label ?? run.status}</span>
-                  <span className="text-xs px-2 py-0.5 bg-slate-700 rounded text-slate-300">
+                  <span className={`badge text-[10px] ${RUN_STATUS[run.status]?.color ?? "text-slate-400"}`}>{RUN_STATUS[run.status]?.label ?? run.status}</span>
+                  <span className="badge badge-slate text-[10px]">
                     {run.provider}
                   </span>
                   {run.error_code && (
-                    <span className="text-xs px-2 py-0.5 bg-red-900/30 text-red-300 rounded">
+                    <span className="badge badge-red text-[10px]">
                       {run.error_code}
                     </span>
                   )}
@@ -136,14 +136,14 @@ export default function ArchivePage() {
                   </span>
                 </div>
               </div>
-              <pre className="bg-[#0f172a] rounded p-3 text-xs text-slate-400 overflow-auto max-h-[100px] whitespace-pre-wrap">
+              <pre className="inner-panel rounded-xl p-3 text-xs text-slate-400 overflow-auto max-h-[100px] whitespace-pre-wrap">
                 {run.prompt.substring(0, 200)}
                 {run.prompt.length > 200 && "..."}
               </pre>
               {run.output && (
                 <div className="mt-2">
                   <div className="text-xs text-slate-500 mb-1">输出:</div>
-                  <pre className="bg-[#0f172a] rounded p-3 text-xs text-green-300 overflow-auto max-h-[100px] whitespace-pre-wrap">
+                  <pre className="inner-panel rounded-xl p-3 text-xs text-green-300 overflow-auto max-h-[100px] whitespace-pre-wrap">
                     {run.output.substring(0, 300)}
                     {run.output.length > 300 && "..."}
                   </pre>

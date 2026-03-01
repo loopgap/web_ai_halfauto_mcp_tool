@@ -209,12 +209,12 @@ export default function CommandPalette({ extraCommands = [], onClose }: CommandP
       aria-label="命令面板"
     >
       <div
-        className="w-full max-w-lg bg-[#1e293b] rounded-xl border border-[#334155] shadow-2xl overflow-hidden"
+        className="w-full max-w-lg bg-[#0a0f1e]/95 backdrop-blur-2xl rounded-2xl border border-white/[0.06] shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#334155]">
-          <Search size={18} className="text-slate-400 shrink-0" />
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06]">
+          <Search size={18} className="text-indigo-400 shrink-0" />
           <input
             ref={inputRef}
             value={query}
@@ -249,8 +249,8 @@ export default function CommandPalette({ extraCommands = [], onClose }: CommandP
               onMouseEnter={() => setSelectedIndex(index)}
               className={`w-full px-4 py-2.5 flex items-center gap-3 text-left transition-colors ${
                 index === selectedIndex
-                  ? "bg-blue-600/20 text-blue-300"
-                  : "text-slate-300 hover:bg-slate-700/30"
+                  ? "bg-indigo-500/15 text-indigo-300"
+                  : "text-slate-300 hover:bg-white/[0.04]"
               }`}
               role="option"
               aria-selected={index === selectedIndex}
@@ -273,7 +273,7 @@ export default function CommandPalette({ extraCommands = [], onClose }: CommandP
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-[#334155] flex items-center gap-3 text-[10px] text-slate-500">
+        <div className="px-4 py-2 border-t border-white/[0.06] flex items-center gap-3 text-[10px] text-slate-500">
           <span>↑↓ 导航</span>
           <span>↵ 确认</span>
           <span>Esc 关闭</span>

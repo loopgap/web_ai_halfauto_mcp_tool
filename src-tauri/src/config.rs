@@ -612,6 +612,23 @@ pub fn error_catalog() -> Vec<ErrorDefinition> {
         // §66 STATE_* for completeness
         ErrorDefinition { code: "STATE_TRANSITION_INVALID".into(), category: "INTERNAL".into(), user_message: "非法状态转换".into(), fix_suggestion: "刷新状态后重试".into(), alert_level: "error".into(), auto_fix_strategy: None },
         ErrorDefinition { code: "STATE_CONSTRAINT_VIOLATED".into(), category: "INTERNAL".into(), user_message: "状态约束被违反".into(), fix_suggestion: "已完成的记录禁止修改".into(), alert_level: "error".into(), auto_fix_strategy: None },
+        // ───────── SECURITY_* — 安全防护 ─────────
+        ErrorDefinition { code: "SECURITY_PROMPT_INJECTION".into(), category: "SECURITY".into(), user_message: "检测到可疑 Prompt 注入".into(), fix_suggestion: "请移除可疑指令后重试".into(), alert_level: "critical".into(), auto_fix_strategy: Some("sanitize_input".into()) },
+        ErrorDefinition { code: "SECURITY_RATE_LIMIT_EXCEEDED".into(), category: "SECURITY".into(), user_message: "操作频率超出安全阈值".into(), fix_suggestion: "请等待冷却期后重试".into(), alert_level: "warn".into(), auto_fix_strategy: Some("delay_retry".into()) },
+        ErrorDefinition { code: "SECURITY_UNAUTHORIZED".into(), category: "SECURITY".into(), user_message: "未授权的操作".into(), fix_suggestion: "请确认操作权限".into(), alert_level: "critical".into(), auto_fix_strategy: None },
+        ErrorDefinition { code: "SECURITY_INPUT_SANITIZE_FAILED".into(), category: "SECURITY".into(), user_message: "输入消毒失败".into(), fix_suggestion: "请检查输入内容是否包含恶意代码".into(), alert_level: "error".into(), auto_fix_strategy: Some("sanitize_input".into()) },
+        ErrorDefinition { code: "SECURITY_PII_DETECTED".into(), category: "SECURITY".into(), user_message: "检测到个人敏感信息（PII）".into(), fix_suggestion: "请移除身份证号、手机号等敏感信息".into(), alert_level: "warn".into(), auto_fix_strategy: Some("redact_pii".into()) },
+        ErrorDefinition { code: "SECURITY_OUTPUT_VALIDATION_FAILED".into(), category: "SECURITY".into(), user_message: "输出安全校验未通过".into(), fix_suggestion: "输出包含受限内容，已自动过滤".into(), alert_level: "warn".into(), auto_fix_strategy: Some("filter_output".into()) },
+        // ───────── AGENT_* — Agent 模式 ─────────
+        ErrorDefinition { code: "AGENT_LOOP_DETECTED".into(), category: "AGENT".into(), user_message: "检测到 Agent 执行循环".into(), fix_suggestion: "已自动中断循环，请调整任务描述后重试".into(), alert_level: "error".into(), auto_fix_strategy: Some("break_loop".into()) },
+        ErrorDefinition { code: "AGENT_MAX_STEPS_EXCEEDED".into(), category: "AGENT".into(), user_message: "Agent 执行步骤超过上限".into(), fix_suggestion: "请缩小任务范围或增大步骤限制".into(), alert_level: "warn".into(), auto_fix_strategy: None },
+        ErrorDefinition { code: "AGENT_BUDGET_EXCEEDED".into(), category: "AGENT".into(), user_message: "Agent 预算已耗尽".into(), fix_suggestion: "当前任务预算不足，请调整预算或简化任务".into(), alert_level: "error".into(), auto_fix_strategy: None },
+        ErrorDefinition { code: "AGENT_PRECONDITION_FAILED".into(), category: "AGENT".into(), user_message: "Agent 前置条件未满足".into(), fix_suggestion: "请确认已启用 Agent 模式并完成预算检查".into(), alert_level: "warn".into(), auto_fix_strategy: None },
+        ErrorDefinition { code: "AGENT_OUTPUT_UNSAFE".into(), category: "AGENT".into(), user_message: "Agent 输出未通过安全扫描".into(), fix_suggestion: "输出包含潜在风险内容，已拦截".into(), alert_level: "critical".into(), auto_fix_strategy: Some("filter_output".into()) },
+        // ───────── CLOSED_LOOP_* — 闭环检测 ─────────
+        ErrorDefinition { code: "CLOSED_LOOP_TIMEOUT".into(), category: "CLOSED_LOOP".into(), user_message: "闭环流程超时".into(), fix_suggestion: "检查目标窗口响应状态".into(), alert_level: "error".into(), auto_fix_strategy: Some("retry_with_backoff".into()) },
+        ErrorDefinition { code: "CLOSED_LOOP_QUALITY_FAIL".into(), category: "CLOSED_LOOP".into(), user_message: "闭环质量门未通过".into(), fix_suggestion: "输出不满足质量要求，请重新投递或调整参数".into(), alert_level: "warn".into(), auto_fix_strategy: None },
+        ErrorDefinition { code: "CLOSED_LOOP_INCONSISTENT".into(), category: "CLOSED_LOOP".into(), user_message: "闭环状态不一致".into(), fix_suggestion: "检测到状态不一致，请刷新后重试".into(), alert_level: "error".into(), auto_fix_strategy: Some("refresh_data".into()) },
     ]
 }
 
@@ -1053,6 +1070,97 @@ fn default_router_rules() -> RouterRulesConfig {
             confidence_boost: 0.0,
         },
     );
+    intents.insert(
+        "code".to_string(),
+        IntentRule {
+            keywords: vec![
+                "代码".into(),
+                "审查".into(),
+                "code review".into(),
+                "重构".into(),
+                "生成代码".into(),
+                "脚手架".into(),
+                "bug".into(),
+                "测试".into(),
+            ],
+            patterns: vec![r"(代码|review|审查|重构|生成|修复).*(代码|bug|函数|模块)".into()],
+            dispatch_prefer: vec!["deepseek".into(), "chatgpt".into(), "gemini".into()],
+            fanout: false,
+            confidence_boost: 0.05,
+        },
+    );
+    intents.insert(
+        "security".to_string(),
+        IntentRule {
+            keywords: vec![
+                "安全".into(),
+                "漏洞".into(),
+                "审计".into(),
+                "CVE".into(),
+                "OWASP".into(),
+                "渗透".into(),
+                "加固".into(),
+                "合规".into(),
+            ],
+            patterns: vec![r"(安全|漏洞|审计|渗透|加固|合规).*".into()],
+            dispatch_prefer: vec!["deepseek".into(), "gemini".into(), "chatgpt".into()],
+            fanout: true,
+            confidence_boost: 0.1,
+        },
+    );
+    intents.insert(
+        "translate".to_string(),
+        IntentRule {
+            keywords: vec![
+                "翻译".into(),
+                "translate".into(),
+                "本地化".into(),
+                "localize".into(),
+                "中英".into(),
+                "英中".into(),
+            ],
+            patterns: vec![r"(翻译|translate|本地化).*".into()],
+            dispatch_prefer: vec!["chatgpt".into(), "kimi".into(), "deepseek".into()],
+            fanout: false,
+            confidence_boost: 0.0,
+        },
+    );
+    intents.insert(
+        "data".to_string(),
+        IntentRule {
+            keywords: vec![
+                "数据".into(),
+                "分析".into(),
+                "统计".into(),
+                "可视化".into(),
+                "报表".into(),
+                "SQL".into(),
+                "ETL".into(),
+            ],
+            patterns: vec![r"(数据|统计|可视化|报表|分析).*".into()],
+            dispatch_prefer: vec!["deepseek".into(), "gemini".into()],
+            fanout: false,
+            confidence_boost: 0.05,
+        },
+    );
+    intents.insert(
+        "agent".to_string(),
+        IntentRule {
+            keywords: vec![
+                "agent".into(),
+                "自主".into(),
+                "多轮".into(),
+                "规划".into(),
+                "分解".into(),
+                "编排".into(),
+                "研究".into(),
+            ],
+            patterns: vec![r"(agent|自主|多轮|编排|规划|分解).*".into()],
+            dispatch_prefer: vec!["deepseek".into(), "gemini".into(), "grok".into()],
+            fanout: false,
+            confidence_boost: 0.1,
+        },
+    );
 
     RouterRulesConfig {
         intents,
@@ -1264,6 +1372,383 @@ safety_level: normal
 cost_class: low
 latency_class: low
 determinism: non_deterministic
+"#,
+        // ───────── 新增 Skills: 代码 / 安全 / 翻译 / 数据 / Agent ─────────
+        r#"id: code.review
+version: "1.0.0"
+title: 代码审查与优化建议
+intent_tags: [code, review, quality]
+inputs:
+  code_snippet:
+    type: string
+    required: true
+    description: 需要审查的代码片段
+    max_length: 100000
+  language:
+    type: string
+    required: false
+    description: 编程语言（如 Rust, TypeScript, Python）
+  focus_areas:
+    type: string
+    required: false
+    description: 关注维度（安全/性能/可维护性/规范）
+prompt_template: |
+  你是资深代码审查专家。
+  请审查以下 {language} 代码：
+  ```
+  {code_snippet}
+  ```
+  重点关注：{focus_areas}
+  要求输出：
+  1. 问题清单（严重度：Critical/Major/Minor/Info）
+  2. 安全漏洞检查（SQL 注入、XSS、路径遍历等）
+  3. 性能瓶颈分析
+  4. 改进建议与修复示例代码
+dispatch:
+  mode: prefer_provider
+  prefer_providers: [deepseek, gemini, chatgpt]
+  timeout_ms: 60000
+  retry_count: 2
+quality_gates:
+  - min_length: 100
+    must_contain: []
+fallbacks:
+  - fallback_providers: [chatgpt, kimi]
+    action: retry_next_provider
+observability:
+  emit_start: true
+  emit_end: true
+  emit_error: true
+safety_level: normal
+cost_class: medium
+latency_class: high
+determinism: non_deterministic
+"#,
+        r#"id: code.generation
+version: "1.0.0"
+title: 代码生成与脚手架
+intent_tags: [code, generate, scaffold]
+inputs:
+  requirement:
+    type: string
+    required: true
+    description: 功能需求描述
+    max_length: 10000
+  language:
+    type: string
+    required: true
+    description: 目标编程语言
+  framework:
+    type: string
+    required: false
+    description: 框架/库约束
+  constraints:
+    type: string
+    required: false
+    description: 约束条件（安全要求、编码规范等）
+prompt_template: |
+  你是高级软件工程师。
+  请根据以下需求生成 {language} 代码：
+  需求：{requirement}
+  框架：{framework}
+  约束：{constraints}
+  要求：
+  1. 生产级代码质量，含完整错误处理
+  2. 必须包含类型定义/接口
+  3. 包含单元测试示例
+  4. 遵循 SOLID 原则
+  5. 安全编码（无硬编码密钥、SQL 注入防护等）
+dispatch:
+  mode: prefer_provider
+  prefer_providers: [deepseek, chatgpt, gemini]
+  timeout_ms: 60000
+  retry_count: 2
+quality_gates:
+  - min_length: 200
+    must_contain: []
+fallbacks:
+  - fallback_providers: [kimi]
+    action: retry_next_provider
+observability:
+  emit_start: true
+  emit_end: true
+  emit_error: true
+safety_level: normal
+cost_class: medium
+latency_class: high
+determinism: non_deterministic
+"#,
+        r#"id: security.audit
+version: "1.0.0"
+title: 安全审计与漏洞扫描
+intent_tags: [security, audit, vulnerability, CVE]
+inputs:
+  target_description:
+    type: string
+    required: true
+    description: 审计对象描述（代码/架构/配置）
+    max_length: 100000
+  scope:
+    type: string
+    required: false
+    description: 审计范围（OWASP Top 10/CWE/自定义）
+  compliance:
+    type: string
+    required: false
+    description: 合规标准（PCI-DSS/GDPR/等保）
+prompt_template: |
+  你是信息安全专家，请对以下目标进行安全审计：
+  审计对象：{target_description}
+  审计范围：{scope}
+  合规标准：{compliance}
+  要求输出：
+  1. 漏洞清单（CVSS 评分 + CWE 编号）
+  2. 风险矩阵（可能性 × 影响）
+  3. 修复建议（优先级排序）
+  4. 合规差距分析
+  5. 加固检查清单
+dispatch:
+  mode: prefer_provider
+  prefer_providers: [deepseek, gemini, chatgpt]
+  timeout_ms: 90000
+  retry_count: 2
+quality_gates:
+  - min_length: 200
+    must_contain: ["风险"]
+fallbacks:
+  - fallback_providers: [chatgpt, kimi]
+    action: retry_next_provider
+observability:
+  emit_start: true
+  emit_end: true
+  emit_error: true
+safety_level: dangerous
+cost_class: high
+latency_class: high
+determinism: non_deterministic
+"#,
+        r#"id: translate.document
+version: "1.0.0"
+title: 专业文档翻译
+intent_tags: [translate, document, localize]
+inputs:
+  content:
+    type: string
+    required: true
+    description: 需要翻译的文档内容
+    max_length: 50000
+  source_lang:
+    type: string
+    required: false
+    description: 源语言（默认自动检测）
+  target_lang:
+    type: string
+    required: true
+    description: 目标语言
+  domain:
+    type: string
+    required: false
+    description: 专业领域（技术/法律/金融/医学）
+prompt_template: |
+  你是专业翻译，请将以下内容翻译为 {target_lang}：
+  源语言：{source_lang}
+  专业领域：{domain}
+  内容：
+  {content}
+  要求：
+  1. 保持专业术语准确性
+  2. 保留原文格式与结构
+  3. 术语一致性，附术语对照表
+  4. 标注不确定的翻译
+dispatch:
+  mode: prefer_provider
+  prefer_providers: [chatgpt, kimi, deepseek]
+  timeout_ms: 45000
+  retry_count: 2
+quality_gates:
+  - min_length: 50
+    must_contain: []
+fallbacks:
+  - fallback_providers: [gemini]
+    action: retry_next_provider
+observability:
+  emit_start: true
+  emit_end: true
+  emit_error: true
+safety_level: safe
+cost_class: low
+latency_class: medium
+determinism: non_deterministic
+"#,
+        r#"id: data.analysis
+version: "1.0.0"
+title: 数据分析与可视化建议
+intent_tags: [data, analyze, statistics, visualization]
+inputs:
+  dataset_desc:
+    type: string
+    required: true
+    description: 数据集描述或样本数据
+    max_length: 50000
+  analysis_goal:
+    type: string
+    required: true
+    description: 分析目标
+  output_format:
+    type: string
+    required: false
+    description: 输出格式偏好（表格/图表建议/代码）
+prompt_template: |
+  你是数据分析专家。
+  数据集：{dataset_desc}
+  分析目标：{analysis_goal}
+  输出格式：{output_format}
+  要求：
+  1. 数据概览与统计摘要
+  2. 关键发现与异常值分析
+  3. 可视化建议（图表类型 + 维度选择）
+  4. 推荐 Python/SQL 分析代码片段
+  5. 结论与行动建议
+dispatch:
+  mode: prefer_provider
+  prefer_providers: [deepseek, gemini, chatgpt]
+  timeout_ms: 60000
+  retry_count: 2
+quality_gates:
+  - min_length: 150
+    must_contain: []
+fallbacks:
+  - fallback_providers: [chatgpt, kimi]
+    action: retry_next_provider
+observability:
+  emit_start: true
+  emit_end: true
+  emit_error: true
+safety_level: normal
+cost_class: medium
+latency_class: high
+determinism: non_deterministic
+"#,
+        r#"id: agent.research
+version: "1.0.0"
+title: Agent 研究助手（多轮自主探索）
+intent_tags: [agent, research, multi_step, autonomous]
+inputs:
+  research_topic:
+    type: string
+    required: true
+    description: 研究课题
+    max_length: 5000
+  depth:
+    type: string
+    required: false
+    description: 研究深度（survey/deep_dive/exhaustive）
+  constraints:
+    type: string
+    required: false
+    description: 约束条件（时间/来源/语言）
+prompt_template: |
+  你是自主研究 Agent，请对以下课题进行多轮深度研究：
+  课题：{research_topic}
+  研究深度：{depth}
+  约束：{constraints}
+  执行策略：
+  1. 第一轮：信息收集与概览
+  2. 第二轮：关键点深挖与交叉验证
+  3. 第三轮：形成结构化研究报告
+  输出格式：
+  - 研究摘要（300 字以内）
+  - 关键发现清单（含可信度评级）
+  - 信息来源与引用
+  - 开放问题与后续建议
+  安全约束：
+  - 仅使用公开可验证信息
+  - 不执行任何代码或系统操作
+  - 每轮操作必须可审计
+dispatch:
+  mode: prefer_provider
+  prefer_providers: [grok, gemini, deepseek]
+  timeout_ms: 120000
+  retry_count: 3
+quality_gates:
+  - min_length: 200
+    must_contain: ["摘要"]
+fallbacks:
+  - fallback_providers: [chatgpt, kimi]
+    action: retry_next_provider
+observability:
+  emit_start: true
+  emit_end: true
+  emit_error: true
+preconditions:
+  - "user_confirmed_agent_mode"
+  - "budget_check_passed"
+postconditions:
+  - "output_safety_scan_passed"
+  - "no_pii_leaked"
+safety_level: dangerous
+cost_class: high
+latency_class: high
+determinism: non_deterministic
+"#,
+        r#"id: agent.task_planner
+version: "1.0.0"
+title: Agent 任务规划器（目标分解与编排）
+intent_tags: [agent, plan, decompose, orchestrate]
+inputs:
+  goal:
+    type: string
+    required: true
+    description: 总体目标描述
+    max_length: 10000
+  available_skills:
+    type: string
+    required: false
+    description: 可用 Skill 列表（JSON 或逗号分隔）
+  max_steps:
+    type: string
+    required: false
+    description: 最大步骤数限制
+prompt_template: |
+  你是 AI 任务规划器。
+  总体目标：{goal}
+  可用技能：{available_skills}
+  最大步骤数：{max_steps}
+  请生成可执行的任务计划：
+  1. 目标分解（子任务 DAG）
+  2. 每个子任务映射到具体 Skill
+  3. 依赖关系与执行顺序
+  4. 预估时间与成本
+  5. 风险评估与回退方案
+  6. 检查点与验收标准
+  输出格式为 YAML workflow 定义。
+  安全约束：
+  - 遵循最小权限原则
+  - 高危操作必须人工确认
+  - 总预算不超过限制
+dispatch:
+  mode: prefer_provider
+  prefer_providers: [deepseek, gemini, chatgpt]
+  timeout_ms: 90000
+  retry_count: 2
+quality_gates:
+  - min_length: 100
+    must_contain: []
+fallbacks:
+  - fallback_providers: [chatgpt]
+    action: retry_next_provider
+observability:
+  emit_start: true
+  emit_end: true
+  emit_error: true
+preconditions:
+  - "user_confirmed_agent_mode"
+postconditions:
+  - "plan_safety_validated"
+safety_level: dangerous
+cost_class: medium
+latency_class: high
+determinism: non_deterministic
 "#];
 
     for (i, skill_yaml) in skills.iter().enumerate() {
@@ -1365,6 +1850,162 @@ steps:
   - id: step_summary
     use: writing.exec_summary
     depends_on: [step_tradeoff]
+    retry_policy:
+      max_retries: 1
+      delay_ms: 2000
+      backoff: linear
+    timeout_ms: 30000
+    compensation: skip
+    emit_events: [step_start, step_end]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [chatgpt]
+"#,
+        // ───────── 新增 Workflow: Agent 研究报告 ─────────
+        r#"id: agent.research_report
+version: "1.0.0"
+title: Agent 研究→分析→摘要（自主闭环）
+policy:
+  max_parallelism: 1
+  global_timeout_ms: 300000
+  fail_policy: fail_fast
+  checkpoint_policy: per_step
+  resume_policy: from_last_checkpoint
+  merge_strategy: first_success
+steps:
+  - id: step_research
+    use: agent.research
+    depends_on: []
+    retry_policy:
+      max_retries: 3
+      delay_ms: 2000
+      backoff: exponential
+    timeout_ms: 120000
+    compensation: skip
+    emit_events: [step_start, step_end, agent_iteration]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [grok, gemini]
+  - id: step_analyze
+    use: analysis.tech_feasibility
+    depends_on: [step_research]
+    retry_policy:
+      max_retries: 2
+      delay_ms: 1000
+      backoff: exponential
+    timeout_ms: 60000
+    compensation: skip
+    emit_events: [step_start, step_end]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [deepseek, gemini]
+  - id: step_summary
+    use: writing.exec_summary
+    depends_on: [step_analyze]
+    retry_policy:
+      max_retries: 1
+      delay_ms: 2000
+      backoff: linear
+    timeout_ms: 30000
+    compensation: skip
+    emit_events: [step_start, step_end]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [chatgpt]
+"#,
+        // ───────── 新增 Workflow: 安全审计全流程 ─────────
+        r#"id: security.full_audit
+version: "1.0.0"
+title: 安全审计全流程（收集→审计→报告）
+policy:
+  max_parallelism: 1
+  global_timeout_ms: 300000
+  fail_policy: fail_fast
+  checkpoint_policy: per_step
+  resume_policy: from_last_checkpoint
+  merge_strategy: first_success
+steps:
+  - id: step_collect_info
+    use: collect.realtime_brief
+    depends_on: []
+    retry_policy:
+      max_retries: 2
+      delay_ms: 1000
+      backoff: exponential
+    timeout_ms: 30000
+    compensation: skip
+    emit_events: [step_start, step_end]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [grok, kimi]
+  - id: step_security_audit
+    use: security.audit
+    depends_on: [step_collect_info]
+    retry_policy:
+      max_retries: 2
+      delay_ms: 2000
+      backoff: exponential
+    timeout_ms: 90000
+    compensation: skip
+    emit_events: [step_start, step_end]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [deepseek, gemini]
+  - id: step_audit_report
+    use: writing.proposal_polish
+    depends_on: [step_security_audit]
+    retry_policy:
+      max_retries: 1
+      delay_ms: 2000
+      backoff: linear
+    timeout_ms: 45000
+    compensation: skip
+    emit_events: [step_start, step_end]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [chatgpt, kimi]
+"#,
+        // ───────── 新增 Workflow: 代码生成→审查闭环 ─────────
+        r#"id: code.generate_and_review
+version: "1.0.0"
+title: 代码生成→审查→优化闭环
+policy:
+  max_parallelism: 1
+  global_timeout_ms: 240000
+  fail_policy: fail_fast
+  checkpoint_policy: per_step
+  resume_policy: from_last_checkpoint
+  merge_strategy: first_success
+steps:
+  - id: step_generate
+    use: code.generation
+    depends_on: []
+    retry_policy:
+      max_retries: 2
+      delay_ms: 1000
+      backoff: exponential
+    timeout_ms: 60000
+    compensation: skip
+    emit_events: [step_start, step_end]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [deepseek, chatgpt]
+  - id: step_review
+    use: code.review
+    depends_on: [step_generate]
+    retry_policy:
+      max_retries: 2
+      delay_ms: 1000
+      backoff: exponential
+    timeout_ms: 60000
+    compensation: skip
+    emit_events: [step_start, step_end]
+    dispatch:
+      mode: prefer_provider
+      prefer_providers: [gemini, deepseek]
+  - id: step_summary_report
+    use: writing.exec_summary
+    depends_on: [step_review]
     retry_policy:
       max_retries: 1
       delay_ms: 2000

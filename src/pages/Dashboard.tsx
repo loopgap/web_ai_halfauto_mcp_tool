@@ -2,16 +2,13 @@ import { useAppState } from "../store/AppStore";
 import { SkeletonCard, SkeletonList } from "../components/Skeleton";
 import { TARGET_STATUS, RUN_STATUS } from "../domain/dictionary";
 import { defaultRuntimeState, getSlmSummary } from "../domain/slm";
-import { Zap, GitBranch, Monitor, CheckCircle, XCircle, Shield, Clock, Cpu, HeartPulse, BarChart3 } from "lucide-react";
+import { Zap, GitBranch, Monitor, CheckCircle, XCircle, Shield, Clock, Cpu, HeartPulse, BarChart3, TrendingUp, Activity } from "lucide-react";
 
 export default function Dashboard() {
   const { skills, workflows, targets, health, runs, errorCatalog, initialized } = useAppState();
 
-  // §4 SLM runtime state
   const slmRuntime = defaultRuntimeState();
   const slmSummary = getSlmSummary(slmRuntime);
-
-  // §8 / §5 — counts derived from runs
   const totalHealAttempts = 0;
   const feedbackCount = 0;
 
@@ -34,125 +31,158 @@ export default function Dashboard() {
   const statusLabel = (status: string) => TARGET_STATUS[status]?.label ?? status;
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">仪表盘</h2>
-        <p className="text-slate-400 mt-1">AI Workbench 系统总览 · Schema v3</p>
+    <div className="p-8 space-y-8">
+      {/* Page Header */}
+      <div className="animate-fade-in-up">
+        <h2 className="text-2xl font-bold text-gradient">Dashboard</h2>
+        <p className="text-slate-500 text-sm mt-1">AI Workbench 系统总览</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={<Zap className="text-yellow-400" size={24} />}
-          title="Skills 技能"
+      {/* Stats Cards — gradient accents */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <GradientStatCard
+          icon={<Zap size={20} />}
+          title="Skills"
           value={skills.length}
           subtitle="已注册技能"
+          gradient="from-amber-500/20 to-orange-500/10"
+          iconColor="text-amber-400"
+          borderColor="border-amber-500/20"
+          delay={0}
         />
-        <StatCard
-          icon={<GitBranch className="text-purple-400" size={24} />}
+        <GradientStatCard
+          icon={<GitBranch size={20} />}
           title="Workflows"
           value={workflows.length}
           subtitle="工作流程"
+          gradient="from-purple-500/20 to-violet-500/10"
+          iconColor="text-purple-400"
+          borderColor="border-purple-500/20"
+          delay={1}
         />
-        <StatCard
-          icon={<Monitor className="text-blue-400" size={24} />}
+        <GradientStatCard
+          icon={<Monitor size={20} />}
           title="Targets"
           value={targetCount}
           subtitle="已注册目标"
+          gradient="from-blue-500/20 to-indigo-500/10"
+          iconColor="text-blue-400"
+          borderColor="border-blue-500/20"
+          delay={2}
         />
-        <StatCard
-          icon={
-            readyCount > 0 ? (
-              <CheckCircle className="text-green-400" size={24} />
-            ) : (
-              <XCircle className="text-red-400" size={24} />
-            )
-          }
+        <GradientStatCard
+          icon={readyCount > 0 ? <CheckCircle size={20} /> : <XCircle size={20} />}
           title="在线窗口"
           value={`${readyCount}/${targetCount}`}
           subtitle="就绪 / 总计"
+          gradient={readyCount > 0 ? "from-emerald-500/20 to-green-500/10" : "from-red-500/20 to-rose-500/10"}
+          iconColor={readyCount > 0 ? "text-emerald-400" : "text-red-400"}
+          borderColor={readyCount > 0 ? "border-emerald-500/20" : "border-red-500/20"}
+          delay={3}
         />
       </div>
 
-      {/* §4/§8/§5 Engine Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Engine Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* SLM Status */}
-        <div className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
-          <div className="flex items-center gap-2 mb-3">
-            <Cpu size={18} className="text-orange-400" />
-            <h4 className="text-sm font-semibold">SLM 引擎 (§4)</h4>
+        <div className="glass-card p-5 animate-fade-in-up delay-150">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center">
+              <Cpu size={16} className="text-orange-400" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold">SLM 引擎</h4>
+              <span className="text-[10px] text-slate-600">Local Inference</span>
+            </div>
           </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between"><span className="text-slate-400">已加载模型</span><span>{slmSummary.totalLoaded}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">总推理次数</span><span>{slmSummary.totalInferences}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">CPU 安全模式</span><span className={slmSummary.cpuSafeMode ? "text-yellow-300" : "text-green-300"}>{slmSummary.cpuSafeMode ? "启用" : "正常"}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">平均延迟</span><span>{slmSummary.avgLatencyMs.toFixed(0)} ms</span></div>
+          <div className="space-y-3">
+            <MetricRow label="已加载模型" value={slmSummary.totalLoaded} />
+            <MetricRow label="总推理次数" value={slmSummary.totalInferences} />
+            <MetricRow label="CPU 安全模式" value={slmSummary.cpuSafeMode ? "启用" : "正常"} color={slmSummary.cpuSafeMode ? "text-yellow-400" : "text-emerald-400"} />
+            <MetricRow label="平均延迟" value={`${slmSummary.avgLatencyMs.toFixed(0)} ms`} />
           </div>
         </div>
 
         {/* Self-Heal Status */}
-        <div className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
-          <div className="flex items-center gap-2 mb-3">
-            <HeartPulse size={18} className="text-pink-400" />
-            <h4 className="text-sm font-semibold">自愈引擎 (§8)</h4>
+        <div className="glass-card p-5 animate-fade-in-up delay-200">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-pink-500/15 flex items-center justify-center">
+              <HeartPulse size={16} className="text-pink-400" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold">自愈引擎</h4>
+              <span className="text-[10px] text-slate-600">Self-Heal</span>
+            </div>
           </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between"><span className="text-slate-400">自愈尝试</span><span>{totalHealAttempts}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">错误码目录</span><span>{errorCatalog.length}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">活跃设备</span><span className="text-green-300">{slmSummary.activeDevices.join(", ") || "无"}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">状态</span><span className="text-green-300">就绪</span></div>
+          <div className="space-y-3">
+            <MetricRow label="自愈尝试" value={totalHealAttempts} />
+            <MetricRow label="错误码目录" value={errorCatalog.length} />
+            <MetricRow label="活跃设备" value={slmSummary.activeDevices.join(", ") || "无"} color="text-emerald-400" />
+            <MetricRow label="状态" value="就绪" color="text-emerald-400" />
           </div>
         </div>
 
         {/* Feedback Stats */}
-        <div className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
-          <div className="flex items-center gap-2 mb-3">
-            <BarChart3 size={18} className="text-blue-400" />
-            <h4 className="text-sm font-semibold">路由反馈 (§5)</h4>
+        <div className="glass-card p-5 animate-fade-in-up delay-300">
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center">
+              <BarChart3 size={16} className="text-indigo-400" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold">路由反馈</h4>
+              <span className="text-[10px] text-slate-600">Feedback Loop</span>
+            </div>
           </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between"><span className="text-slate-400">记录总数</span><span>{feedbackCount}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">运行总数</span><span>{runs.length}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">错误码分类</span><span>{[...new Set(errorCatalog.map(e => e.category))].length}</span></div>
-            <div className="flex justify-between"><span className="text-slate-400">状态</span><span className="text-green-300">在线</span></div>
+          <div className="space-y-3">
+            <MetricRow label="记录总数" value={feedbackCount} />
+            <MetricRow label="运行总数" value={runs.length} />
+            <MetricRow label="错误码分类" value={[...new Set(errorCatalog.map(e => e.category))].length} />
+            <MetricRow label="状态" value="在线" color="text-emerald-400" />
           </div>
         </div>
       </div>
 
       {/* Health Status */}
-      <div className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
-        <h3 className="text-lg font-semibold mb-4">Target 健康状态 (§9.3)</h3>
+      <div className="glass-card-static p-6 animate-fade-in-up">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+            <Activity size={16} className="text-emerald-400" />
+          </div>
+          <h3 className="text-base font-semibold">Target 健康状态</h3>
+          <span className="badge badge-slate text-[10px]">{health.length} targets</span>
+        </div>
         <div className="space-y-2">
           {health.length === 0 ? (
-            <p className="text-slate-500 text-sm">暂无 target 配置</p>
+            <p className="text-slate-600 text-sm py-4 text-center">暂无 target 配置</p>
           ) : (
             health.map((h) => (
               <div
                 key={h.target_id}
-                className="flex items-center justify-between px-4 py-2.5 bg-[#0f172a] rounded-lg"
+                className="flex items-center justify-between px-4 py-3 inner-panel rounded-xl transition-all hover:bg-white/[0.02]"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2.5 h-2.5 rounded-full ${statusColor(h.status)}`}
-                  />
-                  <span className="font-medium">{h.target_id}</span>
-                  <span className="text-slate-500 text-sm">({h.provider})</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                    h.status === 'ready' ? 'bg-green-600/20 text-green-300' :
-                    h.status === 'missing' ? 'bg-red-600/20 text-red-300' :
-                    h.status === 'ambiguous' ? 'bg-yellow-600/20 text-yellow-300' :
-                    'bg-orange-600/20 text-orange-300'
+                  <div className={`w-2 h-2 rounded-full ${statusColor(h.status)} ${h.status === 'ready' ? 'shadow-sm shadow-emerald-400/40' : ''}`} />
+                  <span className="font-medium text-sm">{h.target_id}</span>
+                  <span className="text-slate-600 text-xs">({h.provider})</span>
+                  <span className={`badge text-[10px] ${
+                    h.status === 'ready' ? 'badge-green' :
+                    h.status === 'missing' ? 'badge-red' :
+                    h.status === 'ambiguous' ? 'badge-yellow' : 'badge-orange'
                   }`}>
                     {statusLabel(h.status)}
                   </span>
                 </div>
-                <div className="text-sm">
+                <div className="text-xs">
                   {h.matched ? (
-                    <span className="text-green-400">
-                      ✓ {h.matched_title?.substring(0, 40)}
+                    <span className="text-emerald-400">
+                      <CheckCircle size={12} className="inline mr-1" />
+                      {h.matched_title?.substring(0, 40)}
                     </span>
                   ) : (
-                    <span className="text-red-400">✗ 未找到窗口</span>
+                    <span className="text-red-400">
+                      <XCircle size={12} className="inline mr-1" />
+                      未找到窗口
+                    </span>
                   )}
                 </div>
               </div>
@@ -161,46 +191,38 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Skills Overview with v3 badges */}
-      <div className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
-        <h3 className="text-lg font-semibold mb-4">已注册 Skills</h3>
+      {/* Skills Overview */}
+      <div className="glass-card-static p-6 animate-fade-in-up">
+        <div className="flex items-center gap-2.5 mb-5">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+            <Zap size={16} className="text-amber-400" />
+          </div>
+          <h3 className="text-base font-semibold">已注册 Skills</h3>
+          <span className="badge badge-slate text-[10px]">{skills.length} skills</span>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {skills.map((s) => (
             <div
               key={s.id}
-              className="px-4 py-3 bg-[#0f172a] rounded-lg border border-[#334155] hover:border-blue-500/50 transition-colors"
+              className="px-4 py-3.5 inner-panel rounded-xl transition-all hover:bg-white/[0.02] hover:border-indigo-500/20 group"
             >
               <div className="flex items-center justify-between">
-                <div className="font-medium text-sm">{s.title}</div>
-                <span className="text-[10px] px-1.5 py-0.5 bg-slate-700 text-slate-400 rounded">
-                  v{s.version}
-                </span>
+                <div className="font-medium text-sm group-hover:text-indigo-300 transition-colors">{s.title}</div>
+                <span className="badge badge-slate text-[10px]">v{s.version}</span>
               </div>
-              <div className="text-xs text-slate-500 mt-1">{s.id}</div>
-              <div className="flex gap-1 mt-2 flex-wrap">
+              <div className="text-xs text-slate-600 mt-1 font-mono">{s.id}</div>
+              <div className="flex gap-1.5 mt-2.5 flex-wrap">
                 {s.dispatch?.prefer_providers?.map((p) => (
-                  <span
-                    key={p}
-                    className="text-[10px] px-1.5 py-0.5 bg-blue-600/20 text-blue-300 rounded"
-                  >
-                    {p}
-                  </span>
+                  <span key={p} className="badge badge-blue text-[10px]">{p}</span>
                 ))}
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded ${
-                    s.safety_level === "safe"
-                      ? "bg-green-600/20 text-green-300"
-                      : s.safety_level === "caution"
-                      ? "bg-yellow-600/20 text-yellow-300"
-                      : "bg-red-600/20 text-red-300"
-                  }`}
-                >
-                  <Shield size={8} className="inline mr-0.5" />
-                  {s.safety_level}
+                <span className={`badge text-[10px] ${
+                  s.safety_level === "safe" ? "badge-green"
+                  : s.safety_level === "caution" ? "badge-yellow" : "badge-red"
+                }`}>
+                  <Shield size={8} /> {s.safety_level}
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 bg-slate-700/50 text-slate-400 rounded">
-                  <Clock size={8} className="inline mr-0.5" />
-                  {s.latency_class}
+                <span className="badge badge-slate text-[10px]">
+                  <Clock size={8} /> {s.latency_class}
                 </span>
               </div>
             </div>
@@ -210,24 +232,30 @@ export default function Dashboard() {
 
       {/* Recent Runs */}
       {recentRuns.length > 0 && (
-        <div className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
-          <h3 className="text-lg font-semibold mb-4">最近运行</h3>
+        <div className="glass-card-static p-6 animate-fade-in-up">
+          <div className="flex items-center gap-2.5 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
+              <TrendingUp size={16} className="text-blue-400" />
+            </div>
+            <h3 className="text-base font-semibold">最近运行</h3>
+          </div>
           <div className="space-y-2">
             {recentRuns.map((run) => (
               <div
                 key={run.id}
-                className="flex items-center justify-between px-4 py-2.5 bg-[#0f172a] rounded-lg text-sm"
+                className="flex items-center justify-between px-4 py-3 inner-panel rounded-xl text-sm"
               >
                 <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${RUN_STATUS[run.status]?.dot ?? "bg-slate-400"}`}
-                  />
-                  <span>{run.skill_id}</span>
-                  <span className="text-slate-500">→</span>
-                  <span className="text-blue-300">{run.target_id}</span>
-                  <span className={`text-[10px] ${RUN_STATUS[run.status]?.color ?? "text-slate-400"}`}>{RUN_STATUS[run.status]?.label ?? run.status}</span>
+                  <div className={`w-2 h-2 rounded-full ${RUN_STATUS[run.status]?.dot ?? "bg-slate-400"}`} />
+                  <span className="text-slate-200">{run.skill_id}</span>
+                  <span className="text-slate-600">-&gt;</span>
+                  <span className="text-indigo-300">{run.target_id}</span>
+                  <span className={`badge text-[10px] ${
+                    run.status === "completed" ? "badge-green" :
+                    run.status === "error" ? "badge-red" : "badge-slate"
+                  }`}>{RUN_STATUS[run.status]?.label ?? run.status}</span>
                 </div>
-                <span className="text-slate-500 text-xs">
+                <span className="text-slate-600 text-xs font-mono">
                   {new Date(run.ts_start).toLocaleTimeString()}
                 </span>
               </div>
@@ -238,34 +266,61 @@ export default function Dashboard() {
 
       {/* Error Catalog Summary */}
       {errorCatalog.length > 0 && (
-        <div className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
-          <h3 className="text-lg font-semibold mb-2">统一错误码</h3>
-          <p className="text-xs text-slate-500 mb-3">
-            已注册 {errorCatalog.length} 个错误码 ·{" "}
-            {[...new Set(errorCatalog.map((e) => e.category))].length} 个分类
-          </p>
+        <div className="glass-card-static p-6 animate-fade-in-up">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
+              <XCircle size={16} className="text-red-400" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold">统一错误码</h3>
+              <p className="text-xs text-slate-600">
+                {errorCatalog.length} 个错误码 · {[...new Set(errorCatalog.map((e) => e.category))].length} 个分类
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-function StatCard({
-  icon,
-  title,
-  value,
-  subtitle,
+/* ─── Gradient Stat Card ─── */
+function GradientStatCard({
+  icon, title, value, subtitle, gradient, iconColor, borderColor, delay,
 }: {
   icon: React.ReactNode;
   title: string;
   value: number | string;
   subtitle: string;
+  gradient: string;
+  iconColor: string;
+  borderColor: string;
+  delay: number;
 }) {
   return (
-    <div className="bg-[#1e293b] rounded-xl p-5 border border-[#334155]">
-      <div className="flex items-center gap-3 mb-3">{icon}<span className="text-sm text-slate-400">{title}</span></div>
-      <div className="text-3xl font-bold">{value}</div>
-      <div className="text-xs text-slate-500 mt-1">{subtitle}</div>
+    <div className={`relative overflow-hidden rounded-2xl border ${borderColor} bg-gradient-to-br ${gradient} p-5 backdrop-blur-sm transition-all hover:scale-[1.02] hover:shadow-lg animate-fade-in-up`}
+         style={{ animationDelay: `${delay * 80}ms` }}>
+      <div className="absolute inset-0 bg-[#080d1a]/40" />
+      <div className="relative">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className={`w-9 h-9 rounded-xl bg-white/[0.06] flex items-center justify-center ${iconColor}`}>
+            {icon}
+          </div>
+          <span className="text-xs font-medium text-slate-400">{title}</span>
+        </div>
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+        <div className="text-[11px] text-slate-500 mt-1">{subtitle}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Metric Row ─── */
+function MetricRow({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="flex justify-between items-center text-xs py-1">
+      <span className="text-slate-500">{label}</span>
+      <span className={color || "text-slate-300"}>{value}</span>
     </div>
   );
 }

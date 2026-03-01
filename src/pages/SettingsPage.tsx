@@ -101,32 +101,32 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">设置</h2>
-        <p className="text-slate-400 mt-1">系统配置、路由规则、错误码目录</p>
+    <div className="p-8 space-y-6">
+      <div className="animate-fade-in-up">
+        <h2 className="text-2xl font-bold text-gradient">Settings</h2>
+        <p className="text-slate-500 text-sm mt-1">系统配置、路由规则、错误码目录</p>
       </div>
 
       {/* Router Rules */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
+      <div className="glass-card-static p-5">
         <h3 className="text-lg font-semibold mb-4">治理闭环（v2）</h3>
         <div className="flex flex-wrap gap-2">
           <button
-            className="px-3 py-2 text-sm rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
             onClick={handleGovernanceValidate}
             disabled={governanceLoading}
           >
             运行治理校验
           </button>
           <button
-            className="px-3 py-2 text-sm rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-50"
+            className="btn-secondary disabled:opacity-50"
             onClick={handleLoadGovernanceSnapshot}
             disabled={governanceLoading}
           >
             加载治理快照
           </button>
           <button
-            className="px-3 py-2 text-sm rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50"
+            className="px-4 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50"
             onClick={handleEmitTelemetry}
             disabled={governanceLoading}
           >
@@ -141,13 +141,15 @@ export default function SettingsPage() {
             decision={latestReport.decision}, score={latestReport.score_total}, passed={latestReport.passed ? "yes" : "no"}
           </div>
         )}
-        {governanceMsg && <div className="mt-2 text-xs text-blue-300">{governanceMsg}</div>}
+        {governanceMsg && <div className="mt-2 text-xs text-indigo-300">{governanceMsg}</div>}
       </div>
 
       {/* Router Rules */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Route size={20} className="text-green-400" />
+      <div className="glass-card-static p-5">
+        <h3 className="text-base font-semibold mb-4 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+            <Route size={16} className="text-emerald-400" />
+          </div>
           Meta Router 路由规则 v2
         </h3>
         <p className="text-sm text-slate-400 mb-4">
@@ -159,19 +161,17 @@ export default function SettingsPage() {
             {Object.entries(routerRules.intents).map(([intent, rule]) => (
               <div
                 key={intent}
-                className="bg-[#0f172a] rounded-lg p-4 border border-[#334155]"
+                className="inner-panel rounded-xl p-4"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-blue-300 capitalize">
+                  <span className="font-medium text-indigo-300 capitalize">
                     {intent}
                   </span>
                   <div className="flex gap-1">
                     {rule.fanout && (
-                      <span className="text-xs px-2 py-0.5 bg-yellow-600/20 text-yellow-300 rounded">
-                        Fanout 并行
-                      </span>
+                      <span className="badge badge-yellow text-[10px]">Fanout 并行</span>
                     )}
-                    <span className="text-xs px-2 py-0.5 bg-green-600/20 text-green-300 rounded">
+                    <span className="badge badge-green text-[10px]">
                       +{(rule.confidence_boost * 100).toFixed(0)}%
                     </span>
                   </div>
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                       {rule.keywords.map((k) => (
                         <span
                           key={k}
-                          className="px-2 py-0.5 bg-slate-700 rounded text-slate-300"
+                          className="badge badge-slate text-[10px]"
                         >
                           {k}
                         </span>
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                         {rule.patterns.map((p) => (
                           <span
                             key={p}
-                            className="px-2 py-0.5 bg-slate-700 rounded text-slate-300 font-mono text-[10px]"
+                            className="badge badge-purple text-[10px] font-mono"
                           >
                             {p}
                           </span>
@@ -217,64 +217,66 @@ export default function SettingsPage() {
       </div>
 
       {/* Confidence Thresholds */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <SettingsIcon size={20} className="text-slate-400" />
+      <div className="glass-card-static p-5">
+        <h3 className="text-base font-semibold mb-4 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-slate-500/15 flex items-center justify-center">
+            <SettingsIcon size={16} className="text-slate-400" />
+          </div>
           安全默认值 & 阈值
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl">
             <div>
               <div className="text-sm font-medium">auto_enter</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 默认关闭，避免误发到 AI 网页端
               </div>
             </div>
-            <span className="text-xs px-2 py-1 bg-green-600/20 text-green-300 rounded">
+            <span className="badge badge-green text-[10px]">
               {routerRules?.defaults?.auto_enter ? "开启" : "关闭"}
             </span>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl">
             <div>
               <div className="text-sm font-medium">fanout 并行</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 默认关闭，需要时手动在 workflow 中开启
               </div>
             </div>
-            <span className="text-xs px-2 py-1 bg-green-600/20 text-green-300 rounded">
+            <span className="badge badge-green text-[10px]">
               {routerRules?.defaults?.fanout ? "开启" : "关闭"}
             </span>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl">
             <div>
               <div className="text-sm font-medium">自动执行阈值</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 置信度 ≥ 此值时自动选择路由
               </div>
             </div>
-            <span className="text-xs px-2 py-1 bg-blue-600/20 text-blue-300 rounded">
+            <span className="badge badge-indigo text-[10px]">
               {((routerRules?.defaults?.confidence_auto_threshold ?? 0.8) * 100).toFixed(0)}%
             </span>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl">
             <div>
               <div className="text-sm font-medium">确认阈值</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 置信度在 [确认阈值, 自动阈值) 范围内需用户确认
               </div>
             </div>
-            <span className="text-xs px-2 py-1 bg-yellow-600/20 text-yellow-300 rounded">
+            <span className="badge badge-yellow text-[10px]">
               {((routerRules?.defaults?.confidence_confirm_threshold ?? 0.6) * 100).toFixed(0)}%
             </span>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl">
             <div>
               <div className="text-sm font-medium">DOM 注入</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 不注入网页、不读 cookie、不做 iframe
               </div>
             </div>
-            <span className="text-xs px-2 py-1 bg-red-600/20 text-red-300 rounded">
+            <span className="badge badge-red text-[10px]">
               禁用
             </span>
           </div>
@@ -282,42 +284,44 @@ export default function SettingsPage() {
       </div>
 
       {/* NPU / Meta Router Status */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Cpu size={20} className="text-orange-400" />
+      <div className="glass-card-static p-5">
+        <h3 className="text-base font-semibold mb-4 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center">
+            <Cpu size={16} className="text-orange-400" />
+          </div>
           NPU / 小模型路由状态
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl">
             <div>
               <div className="text-sm font-medium">规则路由 v2</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 关键词 + 正则 + 置信度打分，零成本
               </div>
             </div>
-            <span className="text-xs px-2 py-1 bg-green-600/20 text-green-300 rounded">
+            <span className="badge badge-green text-[10px]">
               已启用
             </span>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl">
             <div>
               <div className="text-sm font-medium">Router 小模型 (1.5B)</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 规则不确定时调用，CPU/NPU 推理
               </div>
             </div>
-            <span className="text-xs px-2 py-1 bg-yellow-600/20 text-yellow-300 rounded">
+            <span className="badge badge-yellow text-[10px]">
               待配置
             </span>
           </div>
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0f172a] rounded-lg">
+          <div className="flex items-center justify-between px-4 py-3.5 inner-panel rounded-xl">
             <div>
               <div className="text-sm font-medium">Coder 小模型 (3B)</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-slate-600">
                 按需启用，生成代码时使用
               </div>
             </div>
-            <span className="text-xs px-2 py-1 bg-slate-600/20 text-slate-300 rounded">
+            <span className="badge badge-slate text-[10px]">
               未启用
             </span>
           </div>
@@ -325,13 +329,15 @@ export default function SettingsPage() {
       </div>
 
       {/* Unified Error Catalog (§9) */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
+      <div className="glass-card-static p-5">
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowErrors(!showErrors)}
         >
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <AlertTriangle size={20} className="text-red-400" />
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
+              <AlertTriangle size={16} className="text-red-400" />
+            </div>
             统一错误码目录 ({errorCatalog.length} 条)
           </h3>
           {showErrors ? (
@@ -352,7 +358,7 @@ export default function SettingsPage() {
                   {errors.map((e) => (
                     <div
                       key={e.code}
-                      className="px-3 py-2 bg-[#0f172a] rounded text-xs flex items-start justify-between gap-4"
+                      className="px-3.5 py-2.5 inner-panel rounded-xl text-xs flex items-start justify-between gap-4"
                     >
                       <div className="flex-1">
                         <span className="font-mono text-red-300">{e.code}</span>
@@ -362,12 +368,9 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap ${
-                          e.alert_level === "error"
-                            ? "bg-red-600/20 text-red-300"
-                            : e.alert_level === "warn"
-                            ? "bg-yellow-600/20 text-yellow-300"
-                            : "bg-blue-600/20 text-blue-300"
+                        className={`badge text-[10px] ${
+                          e.alert_level === "error" ? "badge-red"
+                          : e.alert_level === "warn" ? "badge-yellow" : "badge-indigo"
                         }`}
                       >
                         {e.alert_level}
@@ -382,13 +385,15 @@ export default function SettingsPage() {
       </div>
 
       {/* Self-Heal Registry (§8) */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
+      <div className="glass-card-static p-5">
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowSelfHeal(!showSelfHeal)}
         >
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <HeartPulse size={20} className="text-pink-400" />
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-pink-500/15 flex items-center justify-center">
+              <HeartPulse size={16} className="text-pink-400" />
+            </div>
             自愈策略注册表 ({selfHealActions.length} 条)
           </h3>
           {showSelfHeal ? (
@@ -403,22 +408,16 @@ export default function SettingsPage() {
             {selfHealActions.map((a) => (
               <div
                 key={a.strategy_id}
-                className="px-4 py-3 bg-[#0f172a] rounded-lg border border-[#334155]"
+                className="px-4 py-3.5 inner-panel rounded-xl"
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="font-medium text-pink-300 text-sm">
                     {a.strategy_id}
                   </span>
                   <div className="flex gap-2">
-                    <span className="text-[10px] px-1.5 py-0.5 bg-purple-600/20 text-purple-300 rounded">
-                      {a.action_type}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-600/20 text-slate-300 rounded">
-                      max:{a.max_attempts}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-blue-600/20 text-blue-300 rounded">
-                      冷却:{a.cooldown_ms}ms
-                    </span>
+                    <span className="badge badge-purple text-[10px]">{a.action_type}</span>
+                    <span className="badge badge-slate text-[10px]">max:{a.max_attempts}</span>
+                    <span className="badge badge-indigo text-[10px]">cooldown:{a.cooldown_ms}ms</span>
                   </div>
                 </div>
                 <div className="text-xs text-slate-400">{a.description}</div>
@@ -429,13 +428,15 @@ export default function SettingsPage() {
       </div>
 
       {/* §4 SLM Configuration Panel */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
+      <div className="glass-card-static p-5">
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowSlm(!showSlm)}
         >
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Cpu size={20} className="text-orange-400" />
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center">
+              <Cpu size={16} className="text-orange-400" />
+            </div>
             SLM 本地模型配置 (§4)
           </h3>
           {showSlm ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
@@ -444,19 +445,19 @@ export default function SettingsPage() {
         {showSlm && (
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="px-4 py-3 bg-[#0f172a] rounded-lg">
+              <div className="px-4 py-3.5 inner-panel rounded-xl">
                 <div className="text-xs text-slate-500">已加载模型</div>
                 <div className="text-sm font-medium text-orange-300">{slmSummary.totalLoaded}</div>
               </div>
-              <div className="px-4 py-3 bg-[#0f172a] rounded-lg">
+              <div className="px-4 py-3.5 inner-panel rounded-xl">
                 <div className="text-xs text-slate-500">CPU安全模式</div>
                 <div className={`text-sm font-medium ${slmSummary.cpuSafeMode ? "text-yellow-300" : "text-green-300"}`}>{slmSummary.cpuSafeMode ? "已启用" : "正常"}</div>
               </div>
-              <div className="px-4 py-3 bg-[#0f172a] rounded-lg">
+              <div className="px-4 py-3.5 inner-panel rounded-xl">
                 <div className="text-xs text-slate-500">总推理</div>
                 <div className="text-sm font-medium">{slmSummary.totalInferences} 次</div>
               </div>
-              <div className="px-4 py-3 bg-[#0f172a] rounded-lg">
+              <div className="px-4 py-3.5 inner-panel rounded-xl">
                 <div className="text-xs text-slate-500">平均延迟</div>
                 <div className="text-sm font-medium">{slmSummary.avgLatencyMs.toFixed(0)} ms</div>
               </div>
@@ -465,14 +466,14 @@ export default function SettingsPage() {
               <h4 className="text-sm font-medium text-slate-300 mb-2">推荐模型</h4>
               <div className="space-y-1">
                 {(Object.entries(slmModels) as [SlmRole, { paramSize: string; quant: string; preferDevice: string }][]).map(([role, m]) => (
-                  <div key={role} className="flex items-center justify-between px-3 py-2 bg-[#0f172a] rounded text-xs">
+                  <div key={role} className="flex items-center justify-between px-3.5 py-2.5 inner-panel rounded-xl text-xs">
                     <div>
-                      <span className="text-blue-300 font-mono">{role}</span>
+                      <span className="text-indigo-300 font-mono">{role}</span>
                       <span className="text-slate-500 ml-2">{m.paramSize}</span>
                     </div>
                     <div className="flex gap-2">
-                      <span className="text-[10px] px-1.5 py-0.5 bg-slate-700 rounded">{m.quant}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 bg-slate-700 rounded">{m.preferDevice}</span>
+                      <span className="badge badge-slate text-[10px]">{m.quant}</span>
+                      <span className="badge badge-orange text-[10px]">{m.preferDevice}</span>
                     </div>
                   </div>
                 ))}
@@ -483,13 +484,15 @@ export default function SettingsPage() {
       </div>
 
       {/* §5 Feedback Learning Panel */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
+      <div className="glass-card-static p-5">
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowFeedback(!showFeedback)}
         >
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <BarChart3 size={20} className="text-blue-400" />
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
+              <BarChart3 size={16} className="text-blue-400" />
+            </div>
             路由反馈学习 (§5)
           </h3>
           {showFeedback ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
@@ -501,10 +504,10 @@ export default function SettingsPage() {
               <p className="text-sm text-slate-500">暂无反馈数据。当用户纠正路由选择后，反馈记录将自动收集并进行自适应权重调整。</p>
             ) : (
               feedbackStats.map((s) => (
-                <div key={s.intent} className="px-4 py-3 bg-[#0f172a] rounded-lg">
+                <div key={s.intent} className="px-4 py-3.5 inner-panel rounded-xl">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-blue-300 font-medium text-sm">{s.intent}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 bg-slate-700 rounded">总计: {s.total}</span>
+                    <span className="text-indigo-300 font-medium text-sm">{s.intent}</span>
+                    <span className="badge badge-slate text-[10px]">总计: {s.total}</span>
                   </div>
                   <div className="text-xs text-slate-400">
                     接受: {s.accepted} · 拒绝: {s.rejected} · 改选: {s.overridden} · 接受率: {(s.acceptRate * 100).toFixed(1)}%
@@ -517,13 +520,15 @@ export default function SettingsPage() {
       </div>
 
       {/* §9.7 Focus Recipe Editor */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
+      <div className="glass-card-static p-5">
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowFocusRecipe(!showFocusRecipe)}
         >
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Focus size={20} className="text-cyan-400" />
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/15 flex items-center justify-center">
+              <Focus size={16} className="text-cyan-400" />
+            </div>
             Focus Recipe 编辑器 (§9.7)
           </h3>
           {showFocusRecipe ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
@@ -537,26 +542,31 @@ export default function SettingsPage() {
       </div>
 
       {/* §8 Self-Heal Engine Panel */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <HeartPulse size={18} className="text-pink-400" />
+      <div className="glass-card-static p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-pink-500/15 flex items-center justify-center">
+              <HeartPulse size={16} className="text-pink-400" />
+            </div>
             <span className="text-sm font-semibold">自愈引擎状态</span>
           </div>
           <div className="flex gap-2 text-[10px]">
-            <span className="px-2 py-0.5 bg-green-600/20 text-green-300 rounded">策略: {selfHealActions.length}</span>
-            <span className="px-2 py-0.5 bg-blue-600/20 text-blue-300 rounded">状态: 就绪</span>
+            <span className="badge badge-green">策略: {selfHealActions.length}</span>
+            <span className="badge badge-blue">状态: 就绪</span>
           </div>
         </div>
       </div>
 
       {/* State Machine History */}
-      <div className="bg-[#1e293b] rounded-xl border border-[#334155] p-5">
+      <div className="glass-card-static p-5">
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowHistory(!showHistory)}
         >
-          <h3 className="text-lg font-semibold flex items-center gap-2">
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-slate-500/15 flex items-center justify-center">
+              <ChevronRight size={16} className="text-slate-400" />
+            </div>
             状态转换历史 ({stateHistory.length})
           </h3>
           {showHistory ? (
@@ -571,7 +581,7 @@ export default function SettingsPage() {
             {[...stateHistory].reverse().map((t, i) => (
               <div
                 key={i}
-                className="px-3 py-1.5 bg-[#0f172a] rounded text-xs text-slate-400 flex justify-between"
+                className="px-3.5 py-2 inner-panel rounded-xl text-xs text-slate-400 flex justify-between"
               >
                 <span>
                   <span className="text-blue-300">{t.action}</span>:{" "}
