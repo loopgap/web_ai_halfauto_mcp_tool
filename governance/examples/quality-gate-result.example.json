@@ -1,0 +1,18 @@
+{
+  "change_id": "CHG-2026-0001",
+  "hard_gates": {
+    "no_open_p0_p1": true,
+    "security_high_resolved": true,
+    "critical_e2e_passed": true,
+    "rollback_validated": true
+  },
+  "scorecard": {
+    "correctness": 5,
+    "stability": 4,
+    "performance": 4,
+    "ux_consistency": 4,
+    "security": 5,
+    "maintainability": 4,
+    "observability": 4
+  }
+}

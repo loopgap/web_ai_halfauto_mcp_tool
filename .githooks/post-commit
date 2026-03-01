@@ -1,0 +1,40 @@
+#!/bin/sh
+# ============================================================
+# AI Workbench - post-commit hook
+# Auto-generates changelog entry after each commit.
+# ============================================================
+
+COMMIT_MSG=$(git log -1 --pretty=%s)
+COMMIT_HASH=$(git log -1 --pretty=%h)
+COMMIT_DATE=$(git log -1 --pretty=%ci | cut -d' ' -f1)
+AUTHOR=$(git log -1 --pretty=%an)
+
+CHANGELOG="CHANGELOG.md"
+
+# Create changelog if it doesn't exist
+if [ ! -f "$CHANGELOG" ]; then
+    echo "# Changelog" > "$CHANGELOG"
+    echo "" >> "$CHANGELOG"
+    echo "All notable changes to AI Workbench." >> "$CHANGELOG"
+    echo "" >> "$CHANGELOG"
+fi
+
+# Extract type from conventional commit
+TYPE=$(echo "$COMMIT_MSG" | sed -n 's/^\([a-z]*\).*/\1/p')
+
+# Map type to section
+case "$TYPE" in
+    feat)     SECTION="Added" ;;
+    fix)      SECTION="Fixed" ;;
+    docs)     SECTION="Documentation" ;;
+    refactor) SECTION="Changed" ;;
+    perf)     SECTION="Performance" ;;
+    test)     SECTION="Tests" ;;
+    *)        SECTION="Other" ;;
+esac
+
+# Append entry (we don't modify existing entries, just append)
+# A proper release script would reorganize these
+echo "- [$COMMIT_DATE] **$SECTION**: $COMMIT_MSG (\`$COMMIT_HASH\`)" >> "$CHANGELOG.tmp"
+
+echo "[post-commit] Changelog updated: $COMMIT_MSG"

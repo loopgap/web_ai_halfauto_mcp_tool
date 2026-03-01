@@ -1,0 +1,11 @@
+{
+  "change_id": "CHG-2026-0001",
+  "decision": "Go",
+  "approver": "release-owner",
+  "timestamp_utc": "2026-02-27T12:00:00Z",
+  "evidence": [
+    "governance/examples/quality-gate-result.example.json",
+    "governance/checklists/release-checklist.md"
+  ],
+  "notes": "All hard gates passed and scorecard >= 30."
+}

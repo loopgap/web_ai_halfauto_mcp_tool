@@ -1,0 +1,36 @@
+{
+  "version": "2.0",
+  "levels": [
+    {
+      "id": "L1",
+      "name": "baseline_closure",
+      "requirements": [
+        "lifecycle_connected",
+        "unit_tests_for_core_logic",
+        "critical_path_smoke",
+        "rollback_plan_verified"
+      ]
+    },
+    {
+      "id": "L2",
+      "name": "stable_closure",
+      "requirements": [
+        "contract_coverage",
+        "automated_quality_gates",
+        "resilience_drill",
+        "governance_scorecard"
+      ]
+    },
+    {
+      "id": "L3",
+      "name": "autonomous_closure",
+      "requirements": [
+        "release_guardrails",
+        "predictive_risk_signals",
+        "adaptive_policy_tuning",
+        "self_serve_audit_pack"
+      ]
+    }
+  ],
+  "promotion_rule": "must_pass_previous_level"
+}

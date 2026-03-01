@@ -1,0 +1,42 @@
+{
+  "version": "2.0",
+  "hard_gates": [
+    {
+      "id": "no_open_p0_p1",
+      "description": "No unresolved P0/P1 defects before release",
+      "blocking": true
+    },
+    {
+      "id": "security_high_resolved",
+      "description": "No unresolved high severity security issue",
+      "blocking": true
+    },
+    {
+      "id": "critical_e2e_passed",
+      "description": "All critical path E2E checks must pass",
+      "blocking": true
+    },
+    {
+      "id": "rollback_validated",
+      "description": "Rollback procedure validated in staging/canary",
+      "blocking": true
+    }
+  ],
+  "scorecard": {
+    "dimensions": [
+      "correctness",
+      "stability",
+      "performance",
+      "ux_consistency",
+      "security",
+      "maintainability",
+      "observability"
+    ],
+    "min_per_dimension": 0,
+    "max_per_dimension": 5,
+    "decision_thresholds": {
+      "go": 30,
+      "go_with_risk_min": 24
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "change_id": "CHG-2026-0001",
+  "title": "Improve target dispatch reliability and governance closure",
+  "owner": "ai-workbench",
+  "scope": "preflight and dispatch trace governance integration",
+  "risk_level": "medium",
+  "run_id": "run-20260227-001",
+  "step_id": "dispatch-stage",
+  "trace_id": "trace-20260227-001",
+  "acceptance_criteria": [
+    "hard gates are evaluable",
+    "scorecard decision is generated",
+    "evidence pack is produced"
+  ],
+  "rollback_plan": "restore previous governance scripts and package scripts"
+}

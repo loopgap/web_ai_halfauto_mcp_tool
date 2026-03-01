@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/* ═══ §47 Design Token — 语义色 + 间距 + 层级 ═══ */
+:root {
+  /* 背景 */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --bg-elevated: #263548;
+  --bg-deep: #0c1222;
+  /* 边框 */
+  --border: #334155;
+  --border-focus: #3b82f6;
+  /* 文字 */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-placeholder: #475569;
+  /* 语义色 */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.15);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.15);
+  --color-danger: #ef4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.15);
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.15);
+  /* 间距阶梯 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  /* Z-Index 层级表 §49 */
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-popover: 200;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+#root {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* §50 溢出防护 — 全局 */
+* {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 代码块/日志使用固定行高和滚动容器 */
+pre, code {
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: pre-wrap;
+}
+
+/* §52 A11y — 焦点可见 */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* §49 布局与响应式稳定性 */
+.main-content-area {
+  min-width: 320px;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* §49 表格/日志横向滚动容器 */
+.overflow-x-safe {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* §49 弹窗/抽屉最大高度 + 内部滚动 */
+.dialog-body {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+/* §50 长文本可折叠截断 */
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.text-truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

@@ -1,0 +1,67 @@
+#!/bin/sh
+# ============================================================
+# AI Workbench - commit-msg hook
+# Enforces conventional commit message format.
+#
+# Format: <type>(<scope>): <description>
+# Types: feat, fix, docs, style, refactor, test, chore, ci, perf, build
+#
+# Examples:
+#   feat(workflow): add parallel execution engine
+#   fix(ui): resolve dark mode toggle
+#   docs: update README
+#   chore(deps): bump vite to 7.3
+# ============================================================
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Allow merge commits
+if echo "$COMMIT_MSG" | grep -qE "^Merge "; then
+    exit 0
+fi
+
+# Allow revert commits
+if echo "$COMMIT_MSG" | grep -qE "^Revert "; then
+    exit 0
+fi
+
+# Conventional commit pattern: type(scope): description  OR  type: description
+PATTERN="^(feat|fix|docs|style|refactor|test|chore|ci|perf|build|revert)(\(.+\))?: .{1,100}"
+
+if ! echo "$COMMIT_MSG" | grep -qE "$PATTERN"; then
+    echo ""
+    echo "== [commit-msg] Invalid commit message format =="
+    echo ""
+    echo "  Your message: $COMMIT_MSG"
+    echo ""
+    echo "  Expected format: <type>(<scope>): <description>"
+    echo ""
+    echo "  Valid types:"
+    echo "    feat     - New feature"
+    echo "    fix      - Bug fix"
+    echo "    docs     - Documentation only"
+    echo "    style    - Code style (formatting, semicolons)"
+    echo "    refactor - Code refactoring (no feature/fix)"
+    echo "    test     - Tests"
+    echo "    chore    - Maintenance (deps, configs)"
+    echo "    ci       - CI/CD changes"
+    echo "    perf     - Performance improvement"
+    echo "    build    - Build system changes"
+    echo ""
+    echo "  Examples:"
+    echo "    feat(workflow): add parallel execution"
+    echo "    fix(ui): resolve dark mode toggle"
+    echo "    docs: update installation guide"
+    echo "    chore(deps): bump vite to 7.3"
+    echo ""
+    exit 1
+fi
+
+# Warn if description is too short
+DESC=$(echo "$COMMIT_MSG" | sed 's/^[^:]*: //')
+if [ ${#DESC} -lt 10 ]; then
+    echo "[WARN] Commit description is very short (<10 chars). Consider being more descriptive."
+fi
+
+exit 0
