@@ -1,3 +1,4 @@
+import React from 'react';
 // ═══════════════════════════════════════════════════════════
 // §45 阶段进度条 — 调度全链路可视化
 // preflight → route → stage → confirm → capture → archive
@@ -13,7 +14,7 @@ interface StepProgressProps {
   visible?: boolean;
 }
 
-export default function StepProgress({ pageState, visible }: StepProgressProps) {
+export default React.memo(function StepProgress({ pageState, visible }: StepProgressProps) {
   const activeIndex = getDispatchStageIndex(pageState);
 
   // 非调度流程中不显示
@@ -56,4 +57,4 @@ export default function StepProgress({ pageState, visible }: StepProgressProps) 
       })}
     </div>
   );
-}
+});

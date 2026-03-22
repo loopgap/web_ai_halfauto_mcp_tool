@@ -1482,9 +1482,88 @@ fn governance_emit_telemetry(
     Ok(())
 }
 
+/// §99 Vault 统计 — 返回存档目录大小和文件数量
+#[tauri::command]
+fn get_vault_stats(app_handle: tauri::AppHandle) -> CmdResult<serde_json::Value> {
+    let vault = config::vault_dir(&app_handle);
+    let mut total_bytes: u64 = 0;
+    let mut file_count: u64 = 0;
+    let mut by_subdir: HashMap<String, u64> = HashMap::new();
+
+    if vault.exists() {
+        for entry in fs::read_dir(&vault).unwrap_or_else(|_| fs::read_dir(std::env::temp_dir()).unwrap()) {
+            if let Ok(e) = entry {
+                let path = e.path();
+                let dir_name = e.file_name().to_string_lossy().to_string();
+                let mut dir_bytes: u64 = 0;
+                if path.is_dir() {
+                    if let Ok(subentries) = fs::read_dir(&path) {
+                        for sub in subentries.flatten() {
+                            if let Ok(meta) = sub.path().metadata() {
+                                let len = meta.len();
+                                dir_bytes += len;
+                                total_bytes += len;
+                                file_count += 1;
+                            }
+                        }
+                    }
+                } else if let Ok(meta) = path.metadata() {
+                    dir_bytes = meta.len();
+                    total_bytes += dir_bytes;
+                    file_count += 1;
+                }
+                by_subdir.insert(dir_name, dir_bytes);
+            }
+        }
+    }
+
+    Ok(serde_json::json!({
+        "vault_path": vault.to_string_lossy(),
+        "total_bytes": total_bytes,
+        "total_kb": total_bytes / 1024,
+        "file_count": file_count,
+        "by_subdir": by_subdir,
+    }))
+}
+
+/// §100 Vault 清理 — 删除超过指定天数的 Run 记录
+#[tauri::command]
+fn cleanup_vault(app_handle: tauri::AppHandle, older_than_days: u32) -> CmdResult<u32> {
+    if older_than_days == 0 {
+        return Err(err("INVALID_ARG", "older_than_days must be > 0", None));
+    }
+    let max_age_ms = older_than_days as u64 * 86_400_000;
+    let now = now_ms() as u64;
+    let runs_dir = config::vault_dir(&app_handle).join("runs");
+    let mut deleted = 0u32;
+
+    if runs_dir.exists() {
+        if let Ok(entries) = fs::read_dir(&runs_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().and_then(|e| e.to_str()) != Some("json") {
+                    continue;
+                }
+                if let Ok(content) = fs::read_to_string(&path) {
+                    if let Ok(run) = serde_json::from_str::<config::RunRecord>(&content) {
+                        if now.saturating_sub(run.ts_start as u64) > max_age_ms {
+                            let _ = fs::remove_file(&path);
+                            deleted += 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    tracing::info!("vault_cleanup: deleted {} runs older than {} days", deleted, older_than_days);
+    Ok(deleted)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             config::ensure_config_dir(app.handle())?;
@@ -1521,6 +1600,8 @@ pub fn run() {
             governance_validate,
             governance_latest,
             governance_emit_telemetry,
+            get_vault_stats,
+            cleanup_vault,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

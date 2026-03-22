@@ -902,7 +902,7 @@ export async function captureOutput(
   dispatch: Dispatch<AppAction>,
   /** §28 quality gates — 传入当前 skill 的 gates 用于验收 */
   qualityGates?: QualityGate[],
-): Promise<{ success: boolean; text?: string; error?: ApiError; boundRunId?: string; boundStepId?: string; qualityResult?: QualityCheckResult }> {
+): Promise<{ success: boolean; text?: string; error?: ApiError; boundRunId?: string; boundStepId?: string; qualityResult?: QualityCheckResult; securityWarnings?: string[] }> {
   try {
     const rawText = await api.clipboardGetText();
 
@@ -924,10 +924,13 @@ export async function captureOutput(
     const effectiveRunId = watermark?.runId ?? runId;
     const effectiveStepId = watermark?.stepId;
 
+    const securityWarnings: string[] = [];
+
     // 输出安全校验
     const outputInjection = detectPromptInjection(cleanText);
     if (outputInjection.detected) {
       console.warn("[Security] Output contains suspicious patterns:", outputInjection.patterns);
+      securityWarnings.push(`检测到输出可疑模式: ${outputInjection.patterns.slice(0, 2).join(", ")}`);
     }
 
     // §35 创建 Artifact
@@ -963,12 +966,15 @@ export async function captureOutput(
     });
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "archived" } });
 
+    api.notify("AI Workbench", "输出已成功拉取并归档").catch(() => {});
+
     return {
       success: true,
       text: cleanText,
       boundRunId: watermark ? effectiveRunId : undefined,
       boundStepId: effectiveStepId ?? undefined,
       qualityResult,
+      securityWarnings,
     };
   } catch (e) {
     const error = e as ApiError;

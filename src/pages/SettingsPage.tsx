@@ -1,34 +1,44 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAppState } from "../store/AppStore";
 import { getSelfHealRegistry, governanceEmitTelemetry, governanceLatest, governanceValidate } from "../api";
+import { getVaultStats, cleanupVault } from "../api";
+import type { VaultStats } from "../api";
 import { SkeletonList } from "../components/Skeleton";
 import type { GovernanceValidationReport, SelfHealAction } from "../types";
 import { defaultRuntimeState, getSlmSummary, recommendedModels, type SlmRole } from "../domain/slm";
 import { computeIntentStats } from "../domain/feedback-learning";
+import { exportConfigBundle, serializeBundle, downloadAsFile, validateConfigBundle, readFileAsText, exportRunsToMarkdown } from "../domain/config-export";
 import FocusRecipeEditor from "../components/FocusRecipeEditor";
-import { Settings as SettingsIcon, Route, Cpu, AlertTriangle, ChevronDown, ChevronRight, HeartPulse, BarChart3, Focus } from "lucide-react";
+import { Settings as SettingsIcon, Route, Cpu, AlertTriangle, ChevronDown, ChevronRight, HeartPulse, BarChart3, Focus, Download, Upload, FileText, Database, Trash2 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { routerRules, errorCatalog, initialized, stateHistory, governanceChanges } = useAppState();
+  const { routerRules, errorCatalog, initialized, stateHistory, governanceChanges, skills, workflows, targets, runs } = useAppState();
   const [showErrors, setShowErrors] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSelfHeal, setShowSelfHeal] = useState(false);
   const [showSlm, setShowSlm] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showFocusRecipe, setShowFocusRecipe] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [focusRecipe, setFocusRecipe] = useState<string[]>([]);
   const [selfHealActions, setSelfHealActions] = useState<SelfHealAction[]>([]);
   const [governanceLoading, setGovernanceLoading] = useState(false);
   const [governanceMsg, setGovernanceMsg] = useState("");
   const [latestReport, setLatestReport] = useState<GovernanceValidationReport | null>(null);
+  const [importMsg, setImportMsg] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [vaultStats, setVaultStats] = useState<VaultStats | null>(null);
+  const [vaultLoading, setVaultLoading] = useState(false);
+  const [vaultMsg, setVaultMsg] = useState("");
+  const [showVault, setShowVault] = useState(false);
 
-  // §4 SLM
-  const slmRuntime = defaultRuntimeState();
-  const slmSummary = getSlmSummary(slmRuntime);
-  const slmModels = recommendedModels();
+  // §4 SLM — 缓存计算结果
+  const slmRuntime = useMemo(() => defaultRuntimeState(), []);
+  const slmSummary = useMemo(() => getSlmSummary(slmRuntime), [slmRuntime]);
+  const slmModels = useMemo(() => recommendedModels(), []);
 
-  // §5 Feedback
-  const feedbackStats = computeIntentStats([]);
+  // §5 Feedback — 缓存统计
+  const feedbackStats = useMemo(() => computeIntentStats([]), []);
 
   useEffect(() => {
     getSelfHealRegistry().then(setSelfHealActions).catch((e) => console.error('[SettingsPage] getSelfHealRegistry failed:', e));
@@ -86,6 +96,67 @@ export default function SettingsPage() {
       setGovernanceMsg(`读取治理快照失败: ${(e as Error).message}`);
     } finally {
       setGovernanceLoading(false);
+    }
+  }
+
+  function handleExportConfig() {
+    const bundle = exportConfigBundle(targets, skills, workflows, routerRules);
+    const json = serializeBundle(bundle);
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    downloadAsFile(json, `ai-workbench-config-${ts}.json`);
+    setImportMsg("配置已导出");
+  }
+
+  function handleExportRuns() {
+    const md = exportRunsToMarkdown(runs);
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    downloadAsFile(md, `ai-workbench-runs-${ts}.md`, "text/markdown");
+    setImportMsg(`已导出 ${runs.length} 条 Run 记录`);
+  }
+
+  async function handleImportConfig(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await readFileAsText(file);
+      const data = JSON.parse(text) as unknown;
+      const { valid, errors } = validateConfigBundle(data);
+      if (!valid) {
+        setImportMsg(`❌ 导入失败: ${errors.join(", ")}`);
+      } else {
+        setImportMsg("✅ 文件格式验证通过。请在 Targets / Skills / Workflows 页面应用导入配置（当前为只读预览）。");
+      }
+    } catch (err) {
+      setImportMsg(`❌ 解析失败: ${(err as Error).message}`);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleLoadVaultStats() {
+    setVaultLoading(true);
+    setVaultMsg("");
+    try {
+      const stats = await getVaultStats();
+      setVaultStats(stats);
+    } catch (e) {
+      setVaultMsg(`获取统计失败: ${(e as Error).message}`);
+    } finally {
+      setVaultLoading(false);
+    }
+  }
+
+  async function handleCleanupVault(days: number) {
+    setVaultLoading(true);
+    setVaultMsg("");
+    try {
+      const deleted = await cleanupVault(days);
+      setVaultMsg(`已清理 ${deleted} 条超过 ${days} 天的记录`);
+      await handleLoadVaultStats();
+    } catch (e) {
+      setVaultMsg(`清理失败: ${(e as Error).message}`);
+    } finally {
+      setVaultLoading(false);
     }
   }
 
@@ -555,6 +626,118 @@ export default function SettingsPage() {
             <span className="badge badge-blue">状态: 就绪</span>
           </div>
         </div>
+      </div>
+
+      {/* 配置导出/导入 */}
+      <div className="glass-card-static p-5">
+        <button
+          className="w-full flex items-center justify-between"
+          onClick={() => setShowExport(!showExport)}
+        >
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/15 flex items-center justify-center">
+              <Download size={16} className="text-teal-400" />
+            </div>
+            配置备份 & 导出
+          </h3>
+          {showExport ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
+        </button>
+        {showExport && (
+          <div className="mt-4 space-y-3">
+            <p className="text-xs text-slate-500">将当前 targets、skills、workflows、router_rules 导出为 JSON，或将 Run 记录导出为 Markdown。</p>
+            <div className="flex flex-wrap gap-2">
+              <button className="btn-primary text-sm" onClick={handleExportConfig}>
+                <Download size={14} className="inline mr-1" />
+                导出配置 JSON
+              </button>
+              <button className="btn-secondary text-sm" onClick={handleExportRuns}>
+                <FileText size={14} className="inline mr-1" />
+                导出 Runs Markdown ({runs.length})
+              </button>
+              <label className="px-4 py-2 text-sm rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium transition-all cursor-pointer flex items-center gap-1.5">
+                <Upload size={14} />
+                导入配置
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleImportConfig}
+                />
+              </label>
+            </div>
+            {importMsg && (
+              <div className={`text-xs p-2.5 rounded-lg ${importMsg.startsWith("❌") ? "bg-red-500/10 text-red-300" : "bg-teal-500/10 text-teal-300"}`}>
+                {importMsg}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Vault 存储管理 */}
+      <div className="glass-card-static p-5">
+        <button
+          className="w-full flex items-center justify-between"
+          onClick={() => { setShowVault(!showVault); if (!showVault && !vaultStats) handleLoadVaultStats(); }}
+        >
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-slate-500/15 flex items-center justify-center">
+              <Database size={16} className="text-slate-400" />
+            </div>
+            Vault 存储管理
+          </h3>
+          {showVault ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
+        </button>
+        {showVault && (
+          <div className="mt-4 space-y-3">
+            {vaultStats && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="px-4 py-3 inner-panel rounded-xl">
+                  <div className="text-xs text-slate-500">总存储</div>
+                  <div className="text-sm font-medium">{vaultStats.total_kb} KB</div>
+                </div>
+                <div className="px-4 py-3 inner-panel rounded-xl">
+                  <div className="text-xs text-slate-500">文件数</div>
+                  <div className="text-sm font-medium">{vaultStats.file_count}</div>
+                </div>
+              </div>
+            )}
+            {vaultStats && Object.keys(vaultStats.by_subdir).length > 0 && (
+              <div className="space-y-1">
+                {Object.entries(vaultStats.by_subdir).map(([dir, bytes]) => (
+                  <div key={dir} className="flex justify-between px-3.5 py-2 inner-panel rounded-xl text-xs">
+                    <span className="text-slate-400">{dir}/</span>
+                    <span className="text-slate-300">{Math.round((bytes as number) / 1024)} KB</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button className="btn-secondary text-sm" onClick={handleLoadVaultStats} disabled={vaultLoading}>
+                刷新统计
+              </button>
+              <button
+                className="px-4 py-2 text-sm rounded-lg bg-amber-600/80 hover:bg-amber-500 text-white font-medium transition-all disabled:opacity-50"
+                onClick={() => handleCleanupVault(30)}
+                disabled={vaultLoading}
+              >
+                <Trash2 size={14} className="inline mr-1" />
+                清理 30 天前记录
+              </button>
+              <button
+                className="px-4 py-2 text-sm rounded-lg bg-red-600/80 hover:bg-red-500 text-white font-medium transition-all disabled:opacity-50"
+                onClick={() => handleCleanupVault(7)}
+                disabled={vaultLoading}
+              >
+                清理 7 天前记录
+              </button>
+            </div>
+            {vaultMsg && (
+              <div className="text-xs p-2.5 rounded-lg bg-slate-500/10 text-slate-300">{vaultMsg}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* State Machine History */}

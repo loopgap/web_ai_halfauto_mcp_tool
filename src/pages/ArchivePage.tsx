@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAppState } from "../store/AppStore";
 import { SkeletonList } from "../components/Skeleton";
 import { RUN_STATUS } from "../domain/dictionary";
 import { useVirtualScroll } from "../hooks/useVirtualScroll";
-import { Archive, Search, Download } from "lucide-react";
+import { computeRunStats, formatDuration } from "../domain/run-statistics";
+import { downloadAsFile, exportRunsToMarkdown } from "../domain/config-export";
+import { Archive, Search, Download, TrendingUp, CheckCircle, XCircle, Clock } from "lucide-react";
 
 export default function ArchivePage() {
   const { runs, initialized } = useAppState();
   const [search, setSearch] = useState("");
+
+  const stats = useMemo(() => computeRunStats(runs), [runs]);
 
   const filtered = runs.filter(
     (r) =>
@@ -29,20 +33,8 @@ export default function ArchivePage() {
   });
 
   const handleExportMarkdown = () => {
-    const md = filtered
-      .map(
-        (r) =>
-          `## Run ${r.id}\n- Skill: ${r.skill_id}\n- Target: ${r.target_id} (${r.provider})\n- Status: ${r.status}\n- Time: ${new Date(r.ts_start).toLocaleString()}\n- TraceID: ${r.trace_id}\n\n### Prompt\n\`\`\`\n${r.prompt}\n\`\`\`\n${r.output ? `\n### Output\n\`\`\`\n${r.output}\n\`\`\`` : ""}\n`
-      )
-      .join("\n---\n\n");
-
-    const blob = new Blob([md], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `runs-export-${Date.now()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const md = exportRunsToMarkdown(filtered);
+    downloadAsFile(md, `runs-export-${Date.now()}.md`, "text/markdown");
   };
 
   if (!initialized) {
@@ -67,6 +59,48 @@ export default function ArchivePage() {
           导出 Markdown
         </button>
       </div>
+
+      {/* Stats Row */}
+      {runs.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in-up">
+          <div className="glass-card p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
+              <TrendingUp size={15} className="text-blue-400" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">总运行</div>
+              <div className="text-lg font-bold">{stats.total}</div>
+            </div>
+          </div>
+          <div className="glass-card p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+              <CheckCircle size={15} className="text-emerald-400" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">成功率</div>
+              <div className="text-lg font-bold text-emerald-400">{(stats.successRate * 100).toFixed(1)}%</div>
+            </div>
+          </div>
+          <div className="glass-card p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
+              <XCircle size={15} className="text-red-400" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">错误数</div>
+              <div className="text-lg font-bold text-red-400">{stats.errors}</div>
+            </div>
+          </div>
+          <div className="glass-card p-4 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center">
+              <Clock size={15} className="text-amber-400" />
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">平均耗时</div>
+              <div className="text-lg font-bold">{formatDuration(stats.avgDurationMs)}</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative">

@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Zap,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAppState, useAppDispatch } from "../store/AppStore";
 import { initializeApp } from "../domain/actions";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import CommandPalette from "./CommandPalette";
 
 const navItems = [
@@ -40,12 +41,27 @@ export default function Layout() {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [cmdOpen, setCmdOpen] = useState(false);
 
   useEffect(() => {
     if (!state.initialized) {
       initializeApp(dispatch);
     }
   }, [state.initialized, dispatch]);
+
+  // 全局快捷键
+  useKeyboardShortcuts([
+    { key: "ctrl+k",       handler: () => setCmdOpen(true) },
+    { key: "ctrl+shift+k", handler: () => setCmdOpen(true) },
+    { key: "ctrl+1",       handler: () => navigate("/") },
+    { key: "ctrl+2",       handler: () => navigate("/skills") },
+    { key: "ctrl+3",       handler: () => navigate("/workflows") },
+    { key: "ctrl+4",       handler: () => navigate("/console") },
+    { key: "ctrl+5",       handler: () => navigate("/archive") },
+    { key: "ctrl+6",       handler: () => navigate("/targets") },
+    { key: "ctrl+,",       handler: () => navigate("/settings") },
+  ]);
 
   if (!state.initialized && state.pageStates.dashboard === "loading") {
     return (
@@ -67,8 +83,12 @@ export default function Layout() {
 
   return (
     <div className="flex min-h-screen w-full">
+      {/* Skip link for keyboard users */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-4 focus:py-2 focus:bg-indigo-600 focus:text-white focus:rounded-lg">
+        跳转到主内容
+      </a>
       {/* ── 现代 Sidebar ── */}
-      <aside className="w-[240px] flex flex-col border-r border-white/[0.06] bg-[#060a14]/80 backdrop-blur-xl shrink-0">
+      <aside role="navigation" aria-label="主导航" className="w-[240px] flex flex-col border-r border-white/[0.06] bg-[#060a14]/80 backdrop-blur-xl shrink-0">
         {/* Logo */}
         <div className="px-5 py-5">
           <div className="flex items-center gap-3">
@@ -91,8 +111,9 @@ export default function Layout() {
               key={item.to}
               to={item.to}
               end={item.to === "/"}
+              aria-label={`${item.label} - ${item.desc}`}
               className={({ isActive }) =>
-                `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                `group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ${
                   isActive
                     ? "bg-indigo-500/10 text-indigo-300"
                     : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
@@ -139,7 +160,7 @@ export default function Layout() {
       </aside>
 
       {/* ── 主区域 ── */}
-      <main className="flex-1 overflow-auto bg-gradient-to-b from-[#080d1a] to-[#0a1020]">
+      <main id="main-content" className="flex-1 overflow-auto bg-gradient-to-b from-[#080d1a] to-[#0a1020]">
         {/* Header Bar */}
         <div className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#080d1a]/70 backdrop-blur-xl">
           <div className="flex items-center justify-between px-6 h-14">
@@ -154,19 +175,50 @@ export default function Layout() {
               )}
             </div>
             <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-500 text-xs cursor-pointer hover:bg-white/[0.06] transition-colors">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-500 text-xs cursor-pointer hover:bg-white/[0.06] transition-colors"
+                   onClick={() => setCmdOpen(true)}
+                   role="button"
+                   tabIndex={0}
+                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setCmdOpen(true); }}>
                 <Search size={13} />
                 <span>搜索命令...</span>
                 <kbd className="ml-4 px-1.5 py-0.5 rounded bg-white/[0.06] text-[10px] text-slate-500 font-mono">Ctrl K</kbd>
               </div>
-              <CommandPalette />
+              <CommandPalette
+                externalOpen={cmdOpen}
+                onExternalOpenChange={setCmdOpen}
+              />
             </div>
           </div>
         </div>
         <div className="main-content-area p-0">
-          <Outlet />
+          <PageTransition pathname={location.pathname}>
+            <Outlet />
+          </PageTransition>
         </div>
       </main>
+    </div>
+  );
+}
+
+/** 页面切换过渡动画 — 路由变化时触发 page-enter 动画 */
+function PageTransition({ pathname, children }: { pathname: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const prevPath = useRef(pathname);
+
+  useEffect(() => {
+    if (prevPath.current !== pathname && ref.current) {
+      ref.current.classList.remove("page-enter");
+      // force reflow
+      void ref.current.offsetWidth;
+      ref.current.classList.add("page-enter");
+      prevPath.current = pathname;
+    }
+  }, [pathname]);
+
+  return (
+    <div ref={ref} className="page-enter">
+      {children}
     </div>
   );
 }

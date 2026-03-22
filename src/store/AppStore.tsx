@@ -2,8 +2,9 @@
 // Global Store — route.md §3 前端闭环: Store 全局状态与 reducer
 // ═══════════════════════════════════════════════════════════
 
-import { createContext, useContext, useReducer, type Dispatch, type ReactNode } from "react";
+import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type Dispatch, type ReactNode } from "react";
 import { useEventBus } from "../hooks/useEventBus";
+import { restoreUIState, createPersistMiddleware } from "../domain/persistence";
 import type {
   Skill,
   Workflow,
@@ -44,6 +45,19 @@ export interface AppState {
   governanceReports: GovernanceValidationReport[];
 }
 
+const defaultPageStates: Record<string, PageState> = {
+  dashboard: "idle",
+  skills: "idle",
+  workflows: "idle",
+  console: "idle",
+  archive: "idle",
+  targets: "idle",
+  settings: "idle",
+};
+
+// 从 localStorage 恢复 UI 状态
+const restored = restoreUIState();
+
 const initialState: AppState = {
   skills: [],
   workflows: [],
@@ -52,15 +66,7 @@ const initialState: AppState = {
   routerRules: null,
   runs: [],
   errorCatalog: [],
-  pageStates: {
-    dashboard: "idle",
-    skills: "idle",
-    workflows: "idle",
-    console: "idle",
-    archive: "idle",
-    targets: "idle",
-    settings: "idle",
-  },
+  pageStates: { ...defaultPageStates, ...restored.pageStates },
   stateHistory: [],
   lastError: null,
   initialized: false,
@@ -69,6 +75,9 @@ const initialState: AppState = {
   governanceDecisions: [],
   governanceReports: [],
 };
+
+// 持久化中间件
+const persistMiddleware = createPersistMiddleware(2000);
 
 // ───────── Actions ─────────
 
@@ -194,7 +203,25 @@ const AppStateContext = createContext<AppState>(initialState);
 const AppDispatchContext = createContext<Dispatch<AppAction>>(() => {});
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  const [state, rawDispatch] = useReducer(appReducer, initialState);
+
+  // §100 性能优化: dispatch 稳定引用，不依赖 state，避免级联重渲染
+  const dispatch: Dispatch<AppAction> = useCallback((action: AppAction) => {
+    rawDispatch(action);
+  }, []);
+
+  // 持久化: 通过 useEffect + useRef 节流写入，不影响 dispatch 稳定性
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    persistMiddleware(state, { type: "SET_INITIALIZED", payload: state.initialized });
+  }, [state]);
+
   // §38 订阅后端 workbench-event 事件
   useEventBus(dispatch);
   return (

@@ -1,28 +1,215 @@
-# Tauri + React + Typescript
+# AI Workbench
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+本地优先、安全优先的 AI 工作台桌面应用。支持多模型网页端调度、规则引擎路由、Skill/Workflow 编排、全链路审计与治理闭环。
 
-## Recommended IDE Setup
+> 完整技术规格见 [route.md](route.md)（§1–§100）
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+---
 
-## Governance Closed Loop v2
+## 技术架构
 
-- Check local environment:
-  - `npm run env:check`
-- Windows one-shot bootstrap:
-  - `powershell -ExecutionPolicy Bypass -File scripts/bootstrap-environment.ps1`
-- Validate governance assets:
-  - `npm run governance:validate`
-- Governance API contract test:
-  - `npm run test:governance:api`
-- Governance Rust test:
-  - `npm run test:governance:rust`
-- Generate example evidence pack:
-  - `npm run governance:evidence:example`
-- Run CI-equivalent governance pipeline locally:
-  - `npm run ci:governance`
+```
+┌────────────────────────────────────────────┐
+│              Tauri v2 窗口                 │
+│  ┌──────────────────────────────────────┐  │
+│  │         React 19 + TypeScript 5.8   │  │
+│  │  ┌──────┐ ┌────────┐ ┌──────────┐   │  │
+│  │  │Pages │ │Components│ │  Hooks  │   │  │
+│  │  └──┬───┘ └────┬───┘ └────┬─────┘   │  │
+│  │     └──────┬───┘──────────┘          │  │
+│  │         Store (AppStore)             │  │
+│  │         Domain (业务逻辑)             │  │
+│  └──────────────┬───────────────────────┘  │
+│          Tauri IPC (invoke)                │
+│  ┌──────────────┴───────────────────────┐  │
+│  │         Rust 后端 (lib.rs)            │  │
+│  │   config · vault · os-automation     │  │
+│  └──────────────────────────────────────┘  │
+└────────────────────────────────────────────┘
+```
 
-Assets are under `governance/`.
+| 技术栈 | 版本 |
+|--------|------|
+| Tauri | v2.10+ |
+| React | 19.1 |
+| TypeScript | ~5.8 (strict) |
+| Rust | 2021 edition |
+| Vite | 7.x |
+| Tailwind CSS | v4 |
 
-Environment template: copy from `.env.example` if needed.
+---
+
+## 项目结构
+
+```
+ai-workbench/
+├── src/                        # 前端源码
+│   ├── main.tsx                # 应用入口
+│   ├── App.tsx                 # 路由定义
+│   ├── api.ts                  # Tauri IPC 封装
+│   ├── types.ts                # 全局 TypeScript 类型
+│   ├── domain/                 # 业务逻辑层
+│   │   ├── actions.ts          #   核心调度动作
+│   │   ├── workflow-engine.ts  #   DAG 工作流引擎
+│   │   ├── self-heal.ts        #   自愈引擎
+│   │   ├── injection.ts        #   指令注入引擎
+│   │   ├── slm.ts              #   本地 SLM 管理
+│   │   ├── feedback-learning.ts#   路由反馈学习
+│   │   ├── api-retry.ts        #   §96 IPC 重试退避
+│   │   ├── persistence.ts      #   §97 UI 状态持久化
+│   │   ├── config-export.ts    #   §93 配置导出/导入
+│   │   ├── run-statistics.ts   #   §94 运行统计分析
+│   │   └── dictionary.ts       #   UI 文案字典
+│   ├── store/
+│   │   └── AppStore.tsx        # 全局状态 (Context + Reducer)
+│   ├── hooks/                  # React Hooks
+│   │   ├── usePerformanceMonitor.ts  # §91 性能监控
+│   │   ├── useKeyboardShortcuts.ts   # §92 全局快捷键
+│   │   ├── useEventBus.ts            # Tauri 事件订阅
+│   │   ├── useDebounce.ts            # 防抖
+│   │   ├── useFocusTrap.ts           # 焦点锁定
+│   │   ├── useVirtualScroll.ts       # 虚拟滚动
+│   │   └── useThrottle.ts            # 节流
+│   ├── components/             # 可复用组件
+│   │   ├── Layout.tsx          #   主布局 + 导航 + 快捷键
+│   │   ├── CommandPalette.tsx  #   Ctrl+K 命令面板
+│   │   ├── PerformancePanel.tsx#   §91 性能面板
+│   │   ├── ErrorBoundary.tsx   #   错误边界 (a11y)
+│   │   └── ...
+│   └── pages/                  # 页面组件
+│       ├── Dashboard.tsx       #   仪表盘
+│       ├── TargetsPage.tsx     #   目标管理
+│       ├── SkillsPage.tsx      #   技能管理
+│       ├── WorkflowsPage.tsx   #   工作流编排
+│       ├── ConsolePage.tsx     #   调度控制台
+│       ├── ArchivePage.tsx     #   历史归档 + 统计
+│       └── SettingsPage.tsx    #   设置 + 配置导出 + Vault
+├── src-tauri/                  # Rust 后端
+│   ├── src/
+│   │   ├── lib.rs              #   Tauri 命令 (~2400 行)
+│   │   ├── config.rs           #   配置管理 (~2200 行)
+│   │   └── main.rs             #   入口
+│   ├── Cargo.toml              #   Rust 依赖
+│   └── tauri.conf.json         #   Tauri 配置
+├── scripts/                    # 跨平台脚本 (Node.js .mjs)
+│   ├── dev.mjs                 #   §99 开发服务器
+│   ├── setup.mjs               #   §99 环境初始化
+│   ├── doctor.mjs              #   §99 环境诊断
+│   ├── build.mjs               #   §99 构建
+│   └── clean.mjs               #   §99 清理
+├── governance/                 # 治理规范 v2
+│   ├── standard-v2.md
+│   ├── quality-gates.json
+│   ├── maturity-model.json
+│   ├── checklists/
+│   ├── templates/
+│   └── examples/
+├── docs/                       # 文档
+│   ├── GUIDE.md                #   完整使用指南
+│   └── README-SCRIPTS.md       #   脚本说明
+└── .github/workflows/          # CI/CD
+    ├── ci.yml                  #   持续集成
+    ├── governance.yml          #   治理验证
+    └── release.yml             #   §99 标准发布流程
+```
+
+---
+
+## 快速开始
+
+### 前置条件
+
+| 工具 | 最低版本 | 安装 |
+|------|----------|------|
+| Node.js | ≥18 | https://nodejs.org |
+| Rust | ≥1.70 | https://rustup.rs |
+| Linux 系统依赖 | — | `sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev` |
+
+### 安装与运行
+
+```bash
+# 克隆项目
+cd ai-workbench
+
+# 一键初始化 (跨平台)
+node scripts/setup.mjs
+
+# 启动开发服务器 (Tauri 全栈)
+npm run start
+
+# 仅前端开发 (http://localhost:1420)
+npm run start:fe
+
+# 构建发布版
+npm run build:app
+```
+
+### 环境诊断
+
+```bash
+npm run doctor            # 运行诊断
+npm run doctor -- --fix   # 诊断并自动修复
+npm run doctor -- --report # 生成诊断报告
+```
+
+---
+
+## npm 脚本速查
+
+| 命令 | 说明 |
+|------|------|
+| `npm run start` | 启动 Tauri 全栈开发 |
+| `npm run start:fe` | 仅前端 (Vite) |
+| `npm run build:app` | 构建 Release 版 |
+| `npm run build:app -- --debug` | 构建 Debug 版 |
+| `npm run setup` | 环境初始化 |
+| `npm run doctor` | 环境诊断 |
+| `npm run check` | TypeScript 类型检查 |
+| `npm run check:all` | TypeScript + Rust 检查 |
+| `npm run clean` | 清理增量缓存 |
+| `npm run clean:hard` | 清理所有构建产物 |
+| `npm run test:all` | TS + Governance + Rust 全部测试 |
+
+---
+
+## 发布
+
+使用 Git tag 触发 GitHub Actions 自动构建和发布：
+
+```bash
+# 发布所有平台
+git tag v0.1.0
+git push origin v0.1.0
+
+# 仅发布 Linux
+git tag v0.1.0-linux
+git push origin v0.1.0-linux
+
+# 仅发布 Windows
+git tag v0.1.0-windows
+git push origin v0.1.0-windows
+```
+
+产物格式：
+- **Linux**: `.deb` (Debian/Ubuntu) + `.AppImage` (通用)
+- **Windows**: `.msi` (Windows Installer) + `.exe` (NSIS)
+
+详见 [release.yml](../.github/workflows/release.yml)。
+
+---
+
+## 文档
+
+| 文档 | 说明 |
+|------|------|
+| [route.md](../route.md) | 完整技术路线 (§1–§99)，包含类型定义、状态机、API 设计 |
+| [docs/GUIDE.md](docs/GUIDE.md) | 使用指南 |
+| [docs/README-SCRIPTS.md](docs/README-SCRIPTS.md) | 脚本使用说明 |
+| [governance/README.md](governance/README.md) | 治理规范说明 |
+| [CHANGELOG.md](CHANGELOG.md) | 变更日志 |
+
+---
+
+## 许可证
+
+Private — 内部使用。

@@ -17,48 +17,69 @@ echo ""
 export PATH="/c/Program Files/nodejs:$HOME/.cargo/bin:$APPDATA/npm:$PATH"
 
 FAILED=0
+SKIPPED=0
 
 # -- 1. TypeScript --
 echo "[1/4] TypeScript..."
-npx tsc --noEmit 2>&1
-if [ $? -ne 0 ]; then
-    echo "[FAIL] TypeScript errors"
-    FAILED=1
+if command -v npx >/dev/null 2>&1; then
+    npx tsc --noEmit 2>&1
+    if [ $? -ne 0 ]; then
+        echo "[FAIL] TypeScript errors"
+        FAILED=1
+    else
+        echo "[OK]  TypeScript: 0 errors"
+    fi
 else
-    echo "[OK]  TypeScript: 0 errors"
+    echo "[SKIP] npx not found (CI will verify)"
+    SKIPPED=$((SKIPPED + 1))
 fi
 
 # -- 2. Governance API --
 echo ""
 echo "[2/4] Governance API contract tests..."
-node scripts/test-governance-api-contract.mjs 2>&1
-if [ $? -ne 0 ]; then
-    echo "[FAIL] Governance API tests failed"
-    FAILED=1
+if command -v node >/dev/null 2>&1; then
+    node scripts/test-governance-api-contract.mjs 2>&1
+    if [ $? -ne 0 ]; then
+        echo "[FAIL] Governance API tests failed"
+        FAILED=1
+    else
+        echo "[OK]  Governance API tests passed"
+    fi
 else
-    echo "[OK]  Governance API tests passed"
+    echo "[SKIP] node not found (CI will verify)"
+    SKIPPED=$((SKIPPED + 1))
 fi
 
 # -- 3. Rust tests --
 echo ""
 echo "[3/4] Rust tests..."
-cargo test --manifest-path src-tauri/Cargo.toml 2>&1
-if [ $? -ne 0 ]; then
-    echo "[FAIL] Rust tests failed"
-    FAILED=1
+if command -v cargo >/dev/null 2>&1; then
+    cargo test --manifest-path src-tauri/Cargo.toml 2>&1
+    if [ $? -ne 0 ]; then
+        echo "[FAIL] Rust tests failed"
+        FAILED=1
+    else
+        echo "[OK]  Rust tests passed"
+    fi
 else
-    echo "[OK]  Rust tests passed"
+    echo "[SKIP] cargo not found (CI will verify)"
+    SKIPPED=$((SKIPPED + 1))
 fi
 
 # -- 4. Governance validation --
 echo ""
 echo "[4/4] Governance schema validation..."
-node scripts/validate-governance.mjs 2>&1
-if [ $? -ne 0 ]; then
-    echo "[FAIL] Governance validation failed"
-    FAILED=1
+if command -v node >/dev/null 2>&1; then
+    node scripts/validate-governance.mjs 2>&1
+    if [ $? -ne 0 ]; then
+        echo "[FAIL] Governance validation failed"
+        FAILED=1
+    else
+        echo "[OK]  Governance schemas valid"
+    fi
 else
-    echo "[OK]  Governance schemas valid"
+    echo "[SKIP] node not found (CI will verify)"
+    SKIPPED=$((SKIPPED + 1))
 fi
 
 echo ""
@@ -68,6 +89,10 @@ if [ $FAILED -ne 0 ]; then
     exit 1
 fi
 
-echo "== [pre-push] All tests passed. Pushing... =="
+if [ $SKIPPED -gt 0 ]; then
+    echo "== [pre-push] $SKIPPED check(s) skipped (tools not in PATH). CI will verify. =="
+else
+    echo "== [pre-push] All tests passed. Pushing... =="
+fi
 echo ""
 exit 0

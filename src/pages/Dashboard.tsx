@@ -1,16 +1,21 @@
+import { useMemo, memo } from "react";
 import { useAppState } from "../store/AppStore";
 import { SkeletonCard, SkeletonList } from "../components/Skeleton";
 import { TARGET_STATUS, RUN_STATUS } from "../domain/dictionary";
 import { defaultRuntimeState, getSlmSummary } from "../domain/slm";
+import { usePerformanceMonitor } from "../hooks/usePerformanceMonitor";
+import PerformancePanel from "../components/PerformancePanel";
 import { Zap, GitBranch, Monitor, CheckCircle, XCircle, Shield, Clock, Cpu, HeartPulse, BarChart3, TrendingUp, Activity } from "lucide-react";
 
 export default function Dashboard() {
   const { skills, workflows, targets, health, runs, errorCatalog, initialized } = useAppState();
 
-  const slmRuntime = defaultRuntimeState();
-  const slmSummary = getSlmSummary(slmRuntime);
+  // §100 性能优化: 缓存 SLM 计算结果，避免每次渲染重算
+  const slmRuntime = useMemo(() => defaultRuntimeState(), []);
+  const slmSummary = useMemo(() => getSlmSummary(slmRuntime), [slmRuntime]);
   const totalHealAttempts = 0;
   const feedbackCount = 0;
+  const perfMetrics = usePerformanceMonitor(3000);
 
   if (!initialized) {
     return (
@@ -23,9 +28,10 @@ export default function Dashboard() {
     );
   }
 
-  const targetCount = targets ? Object.keys(targets.targets).length : 0;
-  const readyCount = health.filter((h) => h.status === "ready").length;
-  const recentRuns = runs.slice(0, 5);
+  const targetCount = useMemo(() => targets ? Object.keys(targets.targets).length : 0, [targets]);
+  const readyCount = useMemo(() => health.filter((h) => h.status === "ready").length, [health]);
+  const recentRuns = useMemo(() => runs.slice(0, 5), [runs]);
+  const errorCategories = useMemo(() => [...new Set(errorCatalog.map(e => e.category))], [errorCatalog]);
 
   const statusColor = (status: string) => TARGET_STATUS[status]?.dot ?? "bg-slate-600";
   const statusLabel = (status: string) => TARGET_STATUS[status]?.label ?? status;
@@ -83,7 +89,7 @@ export default function Dashboard() {
       </div>
 
       {/* Engine Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* SLM Status */}
         <div className="glass-card p-5 animate-fade-in-up delay-150">
           <div className="flex items-center gap-2.5 mb-4">
@@ -136,10 +142,13 @@ export default function Dashboard() {
           <div className="space-y-3">
             <MetricRow label="记录总数" value={feedbackCount} />
             <MetricRow label="运行总数" value={runs.length} />
-            <MetricRow label="错误码分类" value={[...new Set(errorCatalog.map(e => e.category))].length} />
+            <MetricRow label="错误码分类" value={errorCategories.length} />
             <MetricRow label="状态" value="在线" color="text-emerald-400" />
           </div>
         </div>
+
+        {/* Performance Monitor */}
+        <PerformancePanel metrics={perfMetrics} />
       </div>
 
       {/* Health Status */}
@@ -274,7 +283,7 @@ export default function Dashboard() {
             <div>
               <h3 className="text-base font-semibold">统一错误码</h3>
               <p className="text-xs text-slate-600">
-                {errorCatalog.length} 个错误码 · {[...new Set(errorCatalog.map((e) => e.category))].length} 个分类
+                {errorCatalog.length} 个错误码 · {errorCategories.length} 个分类
               </p>
             </div>
           </div>
@@ -284,8 +293,8 @@ export default function Dashboard() {
   );
 }
 
-/* ─── Gradient Stat Card ─── */
-function GradientStatCard({
+/* ─── Gradient Stat Card (memo) ─── */
+const GradientStatCard = memo(function GradientStatCard({
   icon, title, value, subtitle, gradient, iconColor, borderColor, delay,
 }: {
   icon: React.ReactNode;
@@ -313,14 +322,14 @@ function GradientStatCard({
       </div>
     </div>
   );
-}
+});
 
-/* ─── Metric Row ─── */
-function MetricRow({ label, value, color }: { label: string; value: string | number; color?: string }) {
+/* ─── Metric Row (memo) ─── */
+const MetricRow = memo(function MetricRow({ label, value, color }: { label: string; value: string | number; color?: string }) {
   return (
     <div className="flex justify-between items-center text-xs py-1">
       <span className="text-slate-500">{label}</span>
       <span className={color || "text-slate-300"}>{value}</span>
     </div>
   );
-}
+});

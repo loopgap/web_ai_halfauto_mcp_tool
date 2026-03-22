@@ -41,7 +41,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center p-8 inner-panel rounded-xl border border-red-500/20 m-4">
+        <div role="alert" className="flex flex-col items-center justify-center p-8 inner-panel rounded-xl border border-red-500/20 m-4">
           <AlertTriangle size={48} className="text-red-400 mb-4" />
           <h3 className="text-lg font-semibold text-red-300 mb-2">
             组件渲染异常
@@ -54,7 +54,8 @@ export default class ErrorBoundary extends Component<Props, State> {
           </p>
           <button
             onClick={this.handleReset}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg text-sm transition-colors"
+            aria-label="重试加载此组件"
+            className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
           >
             <RotateCcw size={14} />
             重试

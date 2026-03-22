@@ -10,8 +10,8 @@ import {
   getRecoveryActions,
 } from "../domain/actions";
 import type { InjectionMode, RouteDecision } from "../types";
-import { RUN_STATUS } from "../domain/dictionary";
 import StepProgress from "../components/StepProgress";
+import RunHistoryList from "../components/RunHistoryList";
 import { useToast } from "../components/Toast";
 import { useDebouncedAction } from "../hooks/useDebounce";
 import {
@@ -164,6 +164,12 @@ export default function ConsolePage() {
     const result = await captureOutput(lastRunId, dispatch, currentSkill?.quality_gates);
     if (result.success && result.text) {
       setOutput(result.text);
+      
+      // 显示安全/输出警告
+      if (result.securityWarnings && result.securityWarnings.length > 0) {
+        toast("warning", `安全提示: ${result.securityWarnings[0]}`);
+      }
+
       if (result.qualityResult && !result.qualityResult.passed) {
         toast("warning", `\u8d28\u91cf\u95e8\u672a\u901a\u8fc7: ${result.qualityResult.failures[0]}`);
       } else {
@@ -181,7 +187,7 @@ export default function ConsolePage() {
   const [debouncedConfirmSend, confirmLoading] = useDebouncedAction(handleConfirmSend, 400);
 
   const hasInputErrors = Object.keys(inputErrors).length > 0;
-  const sessionRuns = runs.slice(0, 10);
+  const sessionRuns = useMemo(() => runs.slice(0, 10), [runs]);
 
   return (
     <div className="p-8 space-y-8">
@@ -481,6 +487,21 @@ export default function ConsolePage() {
                           setErrorMsg("");
                           setLastErrorCode("");
                           dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "ready" } });
+                        } else if (ra.action === "cancel") {
+                          setErrorMsg("");
+                          setLastErrorCode("");
+                          dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
+                          toast("info", "已强行中断 Agent 执行，阻止循环");
+                        } else if (ra.action === "delay_retry") {
+                          toast("warning", "已触发速率限制，正在执行冷却...");
+                          setTimeout(() => {
+                            setErrorMsg("");
+                            setLastErrorCode("");
+                            dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
+                            toast("success", "冷却结束，可以重试");
+                          }, 5000);
+                        } else if (ra.action === "detail") {
+                          toast("info", "详细信息：此功能在 Agent 日志中记录了拦截详情。");
                         }
                       }}
                       className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
@@ -591,38 +612,7 @@ export default function ConsolePage() {
       </div>
 
       {/* Recent Runs (from store) */}
-      {sessionRuns.length > 0 && (
-        <div className="glass-card-static p-6">
-          <h3 className="text-base font-semibold mb-4">{"\u8fd0\u884c\u8bb0\u5f55"}</h3>
-          <div className="space-y-2">
-            {sessionRuns.map((run) => (
-              <div
-                key={run.id}
-                className="flex items-center justify-between px-4 py-3 inner-panel rounded-xl text-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-2 h-2 rounded-full ${
-                      RUN_STATUS[run.status]?.dot ?? "bg-slate-400"
-                    }`}
-                  />
-                  <span>{run.skill_id}</span>
-                  <span className="text-slate-500">{"\u2192"}</span>
-                  <span className="text-blue-300">{run.target_id}</span>
-                  {run.trace_id && (
-                    <span className="text-[10px] text-slate-600 font-mono">
-                      {run.trace_id.substring(0, 12)}
-                    </span>
-                  )}
-                </div>
-                <span className="text-slate-500 text-xs">
-                  {new Date(run.ts_start).toLocaleTimeString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <RunHistoryList runs={sessionRuns} />
     </div>
   );
 }

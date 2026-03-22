@@ -1,14 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + React + Typescript</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <!-- 渲染优化 -->
+    <meta name="renderer" content="webkit" />
+    <meta name="force-rendering" content="webkit" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <!-- 预连接 Tauri IPC -->
+    <link rel="preconnect" href="https://ipc.localhost" />
+    <!-- 关键 CSS 内联 — 消除首屏白屏 -->
+    <style>
+      body{margin:0;background:#080d1a;color:#f1f5f9;font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+      #root{display:flex;min-height:100vh}
+      .app-splash{display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}
+      .app-splash-icon{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;animation:pulse-g 2s ease-in-out infinite}
+      .app-splash-text{color:#64748b;font-size:13px}
+      @keyframes pulse-g{0%,100%{box-shadow:0 0 8px rgba(99,102,241,.3)}50%{box-shadow:0 0 20px rgba(99,102,241,.5)}}
+    </style>
+    <title>AI Workbench</title>
   </head>
-
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- 首屏加载占位 — JS 接管前可见 -->
+      <div class="app-splash">
+        <div class="app-splash-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+        </div>
+        <span class="app-splash-text">正在加载 AI Workbench …</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

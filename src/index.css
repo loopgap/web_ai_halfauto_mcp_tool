@@ -364,3 +364,63 @@ pre, code {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   outline: none;
 }
+
+/* ═══ 页面切换过渡 ═══ */
+.page-enter {
+  animation: page-in 0.3s ease-out both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ═══ CSS 渲染性能 ═══ */
+/* content-visibility: 让浏览器跳过屏幕外区域的布局/绘制 */
+.glass-card-static {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
+
+/* 为动画元素声明 will-change 以启用 GPU 合成层 */
+.glass-card {
+  will-change: transform, box-shadow;
+}
+
+.animate-pulse-glow {
+  will-change: box-shadow;
+}
+
+/* ═══ 交互增强 ═══ */
+/* 按钮波纹反馈 */
+.btn-primary:active,
+.btn-secondary:active {
+  transform: scale(0.97);
+  transition-duration: 0.1s;
+}
+
+/* 卡片按压态 */
+.glass-card:active {
+  transform: translateY(0) scale(0.995);
+  transition-duration: 0.1s;
+}
+
+/* ═══ 响应式适配 ═══ */
+@media (max-width: 768px) {
+  .main-content-area {
+    min-width: 0;
+  }
+}
+
+/* ═══ 打印样式 ═══ */
+@media print {
+  body { background: white; color: black; }
+  .glass-card, .glass-card-static { background: white; border: 1px solid #ccc; box-shadow: none; backdrop-filter: none; }
+  aside[role="navigation"] { display: none; }
+}

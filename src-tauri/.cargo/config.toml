@@ -1,0 +1,26 @@
+# ═══════════════════════════════════════════════
+# Cargo 构建优化配置
+# ═══════════════════════════════════════════════
+
+[build]
+# 限制并行编译作业数（防止内存占用过高）
+jobs = 2
+
+# Windows: 使用 LLD 链接器 + 链接优化
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"
+rustflags = [
+    "-C", "link-arg=/OPT:REF",
+    "-C", "link-arg=/OPT:ICF",
+    "-C", "debuginfo=0",
+]
+
+# Linux: 减少调试信息，尝试使用 mold 链接器
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "debuginfo=0"]
+
+[net]
+git-fetch-with-cli = true
+
+[registries.crates-io]
+protocol = "sparse"

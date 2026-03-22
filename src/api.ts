@@ -266,3 +266,33 @@ export async function saveRouteFeedback(args: {
 export async function detectBrowsers(): Promise<BrowserDetectionResult> {
   return invokeSafe("detect_browsers");
 }
+
+// ───────── §99-§100 Vault Stats & Cleanup ─────────
+
+export interface VaultStats {
+  vault_path: string;
+  total_bytes: number;
+  total_kb: number;
+  file_count: number;
+  by_subdir: Record<string, number>;
+}
+
+/** §99 获取 Vault 存储统计 */
+export async function getVaultStats(): Promise<VaultStats> {
+  return invokeSafe("get_vault_stats");
+}
+
+/** §100 清理超过指定天数的 Run 存档，返回删除数量 */
+export async function cleanupVault(olderThanDays: number): Promise<number> {
+  return invokeSafe("cleanup_vault", { olderThanDays });
+}
+
+import { sendNotification } from '@tauri-apps/plugin-notification';
+export async function notify(title: string, body: string) {
+  try {
+    sendNotification({ title, body });
+  } catch (e) {
+    console.warn('Notification failed:', e);
+  }
+}
+

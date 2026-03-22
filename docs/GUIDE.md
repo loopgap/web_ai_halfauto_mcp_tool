@@ -51,7 +51,7 @@ AI Workbench 是一个 **本地优先、安全优先** 的 AI 工作台桌面应
 |------|----------|----------|
 | **Node.js** | v18+ | https://nodejs.org |
 | **Rust** | 1.70+ | https://rustup.rs |
-| **系统** | Windows 10/11 x64 | — |
+| **系统** | Windows 10/11 x64 或 Linux (Debian/Ubuntu) | — |
 
 ### 推荐安装
 
@@ -60,19 +60,22 @@ AI Workbench 是一个 **本地优先、安全优先** 的 AI 工作台桌面应
 | VS Code | 编辑器 |
 | Tauri VS Code 扩展 | 调试支持 |
 | rust-analyzer 扩展 | Rust 代码补全 |
-| PowerShell 7 | 更好的终端体验 |
+| PowerShell 7 (Windows) | 更好的终端体验 |
 
 ### 快速检查环境
 
-```powershell
+```bash
 cd ai-workbench
 npm run env:check
+
+# 或使用跨平台诊断脚本
+node scripts/doctor.mjs
 ```
 
-如果检查不通过，可执行一键引导脚本：
+一键初始化（Linux / macOS / Windows 通用）：
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/bootstrap-environment.ps1
+```bash
+node scripts/setup.mjs
 ```
 
 ---
@@ -81,24 +84,26 @@ powershell -ExecutionPolicy Bypass -File scripts/bootstrap-environment.ps1
 
 ### 3.1 克隆 & 安装依赖
 
-```powershell
-cd C:\Users\Administrator\Desktop\web_workflow\ai-workbench
+```bash
+cd ai-workbench
 
-# 安装前端依赖
+# 一键初始化（推荐，跨平台）
+node scripts/setup.mjs
+
+# 或手动安装
 npm install
-
 # Rust 依赖会在首次 build 时自动下载
 ```
 
 ### 3.2 开发模式运行
 
-```powershell
+```bash
 # 方式一：仅前端 (Vite dev server，浏览器中查看 UI)
-npm run dev
+npm run start:fe
 # 访问 http://localhost:1420
 
 # 方式二：完整 Tauri 桌面应用 (包含 Rust 后端)
-npm run tauri dev
+npm run start
 ```
 
 > **说明：** `npm run dev` 只启动前端开发服务器，Tauri invoke 调用会失败（无后端）。  
@@ -106,11 +111,13 @@ npm run tauri dev
 
 ### 3.3 构建生产版本
 
-```powershell
-npm run tauri build
+```bash
+npm run build:app
 ```
 
-生成的安装包在 `src-tauri/target/release/bundle/` 目录下。
+生成的安装包在 `src-tauri/target/release/bundle/` 目录下：
+- **Linux**: `.deb` + `.AppImage`
+- **Windows**: `.msi` + `.exe` (NSIS)
 
 ---
 
@@ -178,13 +185,17 @@ ai-workbench/
 │   └── examples/               # 示例记录
 │
 ├── scripts/                    # 工具脚本
+│   ├── dev.mjs                 # §99 跨平台开发服务器
+│   ├── setup.mjs               # §99 跨平台环境初始化
+│   ├── doctor.mjs              # §99 跨平台环境诊断
+│   ├── build.mjs               # §99 跨平台构建
+│   ├── clean.mjs               # §99 跨平台清理
 │   ├── check-environment.mjs   # 环境检查
 │   ├── validate-governance.mjs # 治理资产校验
 │   ├── test-governance-api-contract.mjs  # 治理 API 合约测试 (32 条)
-│   ├── build-evidence-pack.mjs # 证据包生成
-│   └── bootstrap-environment.ps1 # 一键环境引导
+│   └── build-evidence-pack.mjs # 证据包生成
 │
-└── route.md                    # 技术路线蓝图 (90 节, 1824 行)
+└── route.md                    # 技术路线蓝图 (99 节)
 ```
 
 ---
@@ -542,14 +553,32 @@ Rust Backend (lib.rs / config.rs)
 - 所有动作走 `precheck → execute → verify → persist → feedback`
 - 所有错误映射到统一错误码 + trace_id
 
-### 10.5 快捷键
+### 10.5 快捷键（§92）
 
 | 快捷键 | 功能 |
 |--------|------|
 | `Ctrl+K` | 打开命令面板 |
+| `Alt+P` | 切换性能监控面板 |
+| `Ctrl+/` | 查看快捷键列表 |
 | `↑ / ↓` | 命令面板中上下选择 |
 | `Enter` | 执行选中命令 |
 | `Escape` | 关闭命令面板/弹窗 |
+
+### 10.6 性能监控（§91）
+
+开发/诊断时可开启实时性能面板，显示 FPS / 内存 / DOM 节点数。通过 `Alt+P` 或 Dashboard 中的开关激活。
+
+### 10.7 配置导出/导入（§93）
+
+在 Settings 页面可一键导出 Targets/Skills/Workflows 配置为 JSON 文件，并支持从文件导入恢复。
+
+### 10.8 运行统计（§94）
+
+在 Archive 页面顶部查看聚合统计：总运行次数、成功率、平均耗时、P95 耗时、模型使用分布。
+
+### 10.9 Vault 存储管理（§95）
+
+在 Settings 页面查看 Vault 磁盘占用，可清理 N 天前的运行记录释放空间。
 
 ---
 
@@ -565,10 +594,14 @@ Rust Backend (lib.rs / config.rs)
 
 ### Q: 找不到 cargo 或 node 命令？
 
-设置 PATH：
-
+**Windows (PowerShell):**
 ```powershell
 $env:Path = "C:\Program Files\nodejs;$env:USERPROFILE\.cargo\bin;$env:APPDATA\npm;$env:Path"
+```
+
+**Linux / macOS:**
+```bash
+export PATH="$HOME/.cargo/bin:$PATH"
 ```
 
 ### Q: Target 显示"未找到窗口"？
@@ -613,7 +646,7 @@ npm run dev
 
 ## 技术路线图
 
-完整技术路线详见项目根目录的 [route.md](../../route.md)，共 90 个章节、1824 行，涵盖：
+完整技术路线详见项目根目录的 [route.md](../route.md)，共 100 个章节，涵盖：
 
 - §1-§3: 目标/架构/前端闭环
 - §4: 本地 SLM 体系
@@ -622,3 +655,13 @@ npm run dev
 - §8: 自愈引擎
 - §9: Dispatch 流程
 - §10-§90: 安全/审计/性能/测试/发布 等全方位规范
+- §91: 性能监控系统
+- §92: 全局快捷键系统
+- §93: 配置导出/导入
+- §94: 运行统计分析
+- §95: Vault 存储管理
+- §96: API 重试与退避
+- §97: UI 状态持久化
+- §98: 无障碍增强
+- §99: 跨平台脚本与发布工作流
+- §100: 性能优化与 UX 增强（dispatch 稳定性、useMemo 缓存、首屏优化、CSS 渲染性能、页面过渡动画）

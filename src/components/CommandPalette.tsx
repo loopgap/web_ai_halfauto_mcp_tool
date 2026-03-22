@@ -24,15 +24,25 @@ interface CommandPaletteProps {
   extraCommands?: CommandItem[];
   /** 关闭回调 */
   onClose?: () => void;
+  /** 外部控制打开状态 */
+  externalOpen?: boolean;
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
-export default function CommandPalette({ extraCommands = [], onClose }: CommandPaletteProps) {
+export default function CommandPalette({ extraCommands = [], onClose, externalOpen, onExternalOpenChange }: CommandPaletteProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  // 同步外部 open 状态
+  useEffect(() => {
+    if (externalOpen !== undefined && externalOpen !== open) {
+      setOpen(externalOpen);
+    }
+  }, [externalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ───── 内置命令 ─────
   const builtinCommands: CommandItem[] = useMemo(
@@ -114,8 +124,9 @@ export default function CommandPalette({ extraCommands = [], onClose }: CommandP
     );
   }, [allCommands, query]);
 
-  // ───── 快捷键 Ctrl+K ─────
+  // ───── 快捷键 Ctrl+K (仅当没有外部控制时处理) ─────
   useEffect(() => {
+    if (externalOpen !== undefined) return; // 外部控制时不处理
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
@@ -128,7 +139,7 @@ export default function CommandPalette({ extraCommands = [], onClose }: CommandP
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open]);
+  }, [open, externalOpen, handleClose]);
 
   useEffect(() => {
     if (open) {
@@ -140,9 +151,10 @@ export default function CommandPalette({ extraCommands = [], onClose }: CommandP
 
   const handleClose = useCallback(() => {
     setOpen(false);
+    onExternalOpenChange?.(false);
     setQuery("");
     onClose?.();
-  }, [onClose]);
+  }, [onClose, onExternalOpenChange]);
 
   const handleSelect = useCallback(
     (cmd: CommandItem) => {
@@ -186,7 +198,7 @@ export default function CommandPalette({ extraCommands = [], onClose }: CommandP
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); onExternalOpenChange?.(true); }}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-400 text-xs hover:bg-slate-700/50 transition-colors"
         aria-label="打开命令面板 (Ctrl+K)"
         title="Ctrl+K"

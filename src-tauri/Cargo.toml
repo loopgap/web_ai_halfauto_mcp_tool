@@ -29,4 +29,32 @@ os-win = { path = "crates/os-win" }
 serde_yaml = "0.9"
 regex = "1"
 tracing = "0.1"
+tauri-plugin-notification = "2.3.3"
+
+[profile.dev]
+opt-level = 0
+debug = false
+strip = "debuginfo"          # 剔除调试符号防止内存撑爆
+split-debuginfo = "unpacked"
+incremental = true            # 开启增量编译加速开发迭代
+
+# 第三方依赖开启高等优化，减小包体并提高运行速度
+[profile.dev.package."*"]
+opt-level = 2                 # 第三方用 O2 平衡编译速度和运行性能
+debug = false
+
+[profile.release]
+opt-level = "s"               # 专门针对体积进行优化
+lto = "thin"                  # thin LTO 在体积和编译速度间取得平衡
+codegen-units = 1             # 单线程生成代码（最大化优化效果）
+panic = "abort"               # 遇到 panic 直接退出（不展开调用栈，节省体积）
+strip = true                  # 发布模式直接剥离所有符号表
+incremental = false           # release 关闭增量编译以获得更好优化
+
+# ── CI 专用 profile：平衡编译速度与产物质量 ──
+[profile.ci]
+inherits = "release"
+lto = "thin"
+codegen-units = 4             # CI 多线程编译加速
+opt-level = 2                 # O2 比 Os 编译更快
 
