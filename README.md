@@ -135,40 +135,40 @@ cd ai-workbench
 node scripts/setup.mjs
 
 # 启动开发服务器 (Tauri 全栈)
-npm run start
+pnpm start
 
 # 仅前端开发 (http://localhost:1420)
-npm run start:fe
+pnpm start:fe
 
 # 构建发布版
-npm run build:app
+pnpm build:app
 ```
 
 ### 环境诊断
 
 ```bash
-npm run doctor            # 运行诊断
-npm run doctor -- --fix   # 诊断并自动修复
-npm run doctor -- --report # 生成诊断报告
+pnpm doctor            # 运行诊断
+pnpm doctor -- --fix   # 诊断并自动修复
+pnpm doctor -- --report # 生成诊断报告
 ```
 
 ---
 
-## npm 脚本速查
+## pnpm 脚本速查
 
 | 命令 | 说明 |
 |------|------|
-| `npm run start` | 启动 Tauri 全栈开发 |
-| `npm run start:fe` | 仅前端 (Vite) |
-| `npm run build:app` | 构建 Release 版 |
-| `npm run build:app -- --debug` | 构建 Debug 版 |
-| `npm run setup` | 环境初始化 |
-| `npm run doctor` | 环境诊断 |
-| `npm run check` | TypeScript 类型检查 |
-| `npm run check:all` | TypeScript + Rust 检查 |
-| `npm run clean` | 清理增量缓存 |
-| `npm run clean:hard` | 清理所有构建产物 |
-| `npm run test:all` | TS + Governance + Rust 全部测试 |
+| `pnpm start` | 启动 Tauri 全栈开发 |
+| `pnpm start:fe` | 仅前端 (Vite) |
+| `pnpm build:app` | 构建 Release 版 |
+| `pnpm build:app -- --debug` | 构建 Debug 版 |
+| `pnpm setup` | 环境初始化 |
+| `pnpm doctor` | 环境诊断 |
+| `pnpm check` | TypeScript 类型检查 |
+| `pnpm check:all` | TypeScript + Rust 检查 |
+| `pnpm clean` | 清理增量缓存 |
+| `pnpm clean:hard` | 清理所有构建产物 |
+| `pnpm test:all` | TS + Governance + Rust 全部测试 |
 
 ---
 

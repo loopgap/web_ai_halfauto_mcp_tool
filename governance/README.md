@@ -14,11 +14,11 @@ This folder implements the "Enterprise Closed Loop v2" as executable assets.
 ## Commands
 
 - Environment baseline check:
-  - `npm run env:check`
+  - `pnpm env:check`
 - Validate governance assets:
-  - `npm run governance:validate`
+  - `pnpm governance:validate`
 - Generate an evidence package from JSON inputs:
-  - `npm run governance:evidence:example`
+  - `pnpm governance:evidence`
 
 ## Integration rule
 

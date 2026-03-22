@@ -39,7 +39,7 @@ case "$LEVEL" in
     rm -rf node_modules
     rm -f *.tsbuildinfo
     rm -f doctor-report.txt
-    echo "✅ 完全重置完成 — 需运行 npm install"
+    echo "✅ 完全重置完成 — 需运行 pnpm install"
     ;;
   *)
     echo "用法: clean.sh [soft|hard|full]"

@@ -64,7 +64,7 @@ switch (level) {
       if (f.endsWith('.tsbuildinfo')) safeRemove(f);
     }
     safeRemove('doctor-report.txt');
-    console.log('\n✅ 完全重置完成 — 需运行 npm install');
+    console.log('\n✅ 完全重置完成 — 需运行 pnpm install');
     break;
 
   default:

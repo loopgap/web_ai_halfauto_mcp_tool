@@ -7,16 +7,16 @@
 node scripts/setup.mjs
 
 # 启动 Tauri 全栈开发
-npm run start
+pnpm start
 
 # 仅前端开发 (http://localhost:1420)
-npm run start:fe
+pnpm start:fe
 
 # 构建发布版
-npm run build:app
+pnpm build:app
 
 # 环境诊断
-npm run doctor
+pnpm doctor
 ```
 
 ---
@@ -25,13 +25,13 @@ npm run doctor
 
 所有核心脚本均使用 Node.js `.mjs` 编写，仅依赖 Node.js 内置模块，**无需额外安装任何依赖**，Linux / macOS / Windows 通用。
 
-| 脚本 | npm alias | 说明 |
+| 脚本 | pnpm alias | 说明 |
 |------|-----------|------|
-| `scripts/dev.mjs` | `npm run start` | 开发服务器启动 |
-| `scripts/setup.mjs` | `npm run setup` | 环境初始化 |
-| `scripts/doctor.mjs` | `npm run doctor` | 环境诊断 |
-| `scripts/build.mjs` | `npm run build:app` | 构建前端 + Rust |
-| `scripts/clean.mjs` | `npm run clean` | 清理构建缓存 |
+| `scripts/dev.mjs` | `pnpm start` | 开发服务器启动 |
+| `scripts/setup.mjs` | `pnpm setup` | 环境初始化 |
+| `scripts/doctor.mjs` | `pnpm doctor` | 环境诊断 |
+| `scripts/build.mjs` | `pnpm build:app` | 构建前端 + Rust |
+| `scripts/clean.mjs` | `pnpm clean` | 清理构建缓存 |
 
 ### dev.mjs — 开发服务器
 
@@ -49,9 +49,9 @@ node scripts/setup.mjs
 ```
 
 自动执行：
-- ✅ 检查 Node.js / npm / Cargo / Rust 工具链
+- ✅ 检查 Node.js / pnpm / Cargo / Rust 工具链
 - ✅ Linux 系统包检查 (libwebkit2gtk 等)
-- ✅ npm install
+- ✅ pnpm install
 - ✅ cargo check
 - ✅ 创建 `~/.ai-workbench/` 配置目录层级
 
@@ -65,7 +65,7 @@ node scripts/doctor.mjs --report   # 生成 doctor-report.txt
 
 检查项：
 - 💻 系统信息（平台/架构/内存）
-- 🔧 工具链（Node.js/npm/Cargo/Rust/Git）
+- 🔧 工具链（Node.js/pnpm/Cargo/Rust/Git）
 - 📦 项目状态（package.json/node_modules/lock file）
 - 📝 TypeScript（tsc --noEmit）
 - 🦀 Cargo（cargo check）
@@ -106,47 +106,47 @@ Windows 用户仍可使用根目录下的 `.bat` 文件双击启动（通过 Pow
 
 ---
 
-## npm 脚本速查
+## pnpm 脚本速查
 
 ```bash
 # ── 开发 ──
-npm run start                # Tauri 全栈开发
-npm run start:fe             # 仅前端 (Vite)
-npm run start:build          # 构建发布版
-npm run dev                  # Vite dev server (裸)
+pnpm start                # Tauri 全栈开发
+pnpm start:fe             # 仅前端 (Vite)
+pnpm start:build          # 构建发布版
+pnpm dev                  # Vite dev server (裸)
 
 # ── 环境 ──
-npm run setup                # 环境初始化
-npm run doctor               # 环境诊断
-npm run doctor:report        # 生成诊断报告
-npm run doctor:fix           # 诊断并自动修复
+pnpm setup                # 环境初始化
+pnpm doctor               # 环境诊断
+pnpm doctor:report        # 生成诊断报告
+pnpm doctor:fix           # 诊断并自动修复
 
 # ── 构建 ──
-npm run build:app            # Release 构建
-npm run build:app:debug      # Debug 构建
-npm run build:app:clean      # 清理后构建
-npm run build                # tsc + vite build (仅前端)
+pnpm build:app            # Release 构建
+pnpm build:app:debug      # Debug 构建
+pnpm build:app:clean      # 清理后构建
+pnpm build                # tsc + vite build (仅前端)
 
 # ── 清理 ──
-npm run clean                # 增量缓存
-npm run clean:hard           # 所有构建产物
-npm run clean:full           # 完全重置
+pnpm clean                # 增量缓存
+pnpm clean:hard           # 所有构建产物
+pnpm clean:full           # 完全重置
 
 # ── 检查 ──
-npm run check                # TypeScript 类型检查
-npm run check:rust           # Cargo check
-npm run check:all            # TS + Rust
+pnpm check                # TypeScript 类型检查
+pnpm check:rust           # Cargo check
+pnpm check:all            # TS + Rust
 
 # ── 测试 ──
-npm run test:governance:api  # 治理 API 合约
-npm run test:governance:rust # Rust 治理测试
-npm run test:all             # TS + Governance + Rust
+pnpm test:governance:api  # 治理 API 合约
+pnpm test:governance:rust # Rust 治理测试
+pnpm test:all             # TS + Governance + Rust
 
 # ── 治理 ──
-npm run env:check            # 环境检查
-npm run governance:validate  # 治理资产校验
-npm run governance:evidence  # 证据包生成
-npm run ci:governance        # CI 治理流水线
+pnpm env:check            # 环境检查
+pnpm governance:validate  # 治理资产校验
+pnpm governance:evidence  # 证据包生成
+pnpm ci:governance        # CI 治理流水线
 ```
 
 ---
@@ -177,12 +177,12 @@ git tag v0.1.0-windows && git push origin v0.1.0-windows
 1. 右键 → "以管理员身份运行"
 2. 或在命令提示符中手动运行：`start.bat`
 
-### Q: "npm 不是内部命令"
+### Q: "pnpm 不是内部命令"
 运行 `setup.bat` 或手动安装 Node.js: https://nodejs.org
 
 ### Q: TypeScript 编译错误
 ```powershell
-npx tsc --noEmit  # 查看具体错误
+pnpm exec tsc --noEmit  # 查看具体错误
 ```
 
 ### Q: Rust 编译错误

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 function checkNode() {
   const execPath = process.execPath;
@@ -12,14 +13,14 @@ function checkNode() {
   };
 }
 
-function checkNpm() {
-  const npmExecPath = process.env.npm_execpath;
-  const ok = Boolean(npmExecPath && fs.existsSync(npmExecPath));
+function checkPnpm() {
+  const result = spawnSync("pnpm", ["--version"], { encoding: "utf8", shell: true });
+  const ok = result.status === 0;
   return {
     ok,
-    name: "npm",
+    name: "pnpm",
     required: true,
-    line: ok ? `active via npm_execpath (${npmExecPath})` : "npm runtime is unavailable",
+    line: ok ? `version ${result.stdout.trim()}` : "pnpm runtime is unavailable",
   };
 }
 
@@ -36,7 +37,7 @@ function checkOptional(name, filePath) {
 const user = process.env.USERPROFILE || "C:\\Users\\Administrator";
 const checks = [
   checkNode(),
-  checkNpm(),
+  checkPnpm(),
   checkOptional("cargo", path.join(user, ".cargo", "bin", "cargo.exe")),
   checkOptional("rustc", path.join(user, ".cargo", "bin", "rustc.exe")),
 ];

@@ -127,12 +127,12 @@ function Check-Tools {
         Add-CheckResult "Tools" "Node.js" "Fail" "not found" "Run .\scripts\setup.ps1 or visit https://nodejs.org"
     }
 
-    $npm = Get-Command npm -ErrorAction SilentlyContinue
-    if ($npm) {
-        $npmVer = (& npm --version 2>&1).ToString().Trim()
-        Add-CheckResult "Tools" "npm" "Pass" "v$npmVer ($($npm.Source))"
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if ($pnpm) {
+        $pnpmVer = (& pnpm --version 2>&1).ToString().Trim()
+        Add-CheckResult "Tools" "pnpm" "Pass" "v$pnpmVer ($($pnpm.Source))"
     } else {
-        Add-CheckResult "Tools" "npm" "Fail" "not found" "Comes with Node.js. Check PATH if Node is installed"
+        Add-CheckResult "Tools" "pnpm" "Fail" "not found" "Run corepack enable; corepack prepare pnpm@latest --activate"
     }
 
     $cargo = Get-Command cargo -ErrorAction SilentlyContinue
@@ -167,7 +167,7 @@ function Check-Path {
     $checkPaths = @(
         @{ Name = "Node.js";      Dir = "C:\Program Files\nodejs" },
         @{ Name = "Cargo";        Dir = (Join-Path $env:USERPROFILE ".cargo\bin") },
-        @{ Name = "npm global";   Dir = (Join-Path $env:APPDATA "npm") },
+        @{ Name = "pnpm global";  Dir = (Join-Path $env:APPDATA "npm") },
         @{ Name = "PowerShell 7"; Dir = "C:\Program Files\PowerShell\7" }
     )
 
@@ -224,15 +224,15 @@ function Check-Project {
         if ($Fix) {
             Write-Host "     Installing dependencies..." -ForegroundColor Cyan
             Push-Location $projectRoot
-            & npm install 2>&1 | Out-Null
+            & pnpm install 2>&1 | Out-Null
             Pop-Location
             if (Test-Path $nodeModules) {
                 Add-CheckResult "Project" "node_modules" "Pass" "auto-installed"
             } else {
-                Add-CheckResult "Project" "node_modules" "Fail" "install failed" "Run npm install manually"
+                Add-CheckResult "Project" "node_modules" "Fail" "install failed" "Run pnpm install manually"
             }
         } else {
-            Add-CheckResult "Project" "node_modules" "Fail" "not installed" "Run npm install or .\scripts\dev.ps1"
+            Add-CheckResult "Project" "node_modules" "Fail" "not installed" "Run pnpm install or .\scripts\dev.ps1"
         }
     }
 
@@ -241,7 +241,7 @@ function Check-Project {
         $tauriVer = (& cmd /c "`"$tauriBin`" --version 2>&1").ToString().Trim()
         Add-CheckResult "Project" "Tauri CLI" "Pass" "v$tauriVer (local)"
     } else {
-        Add-CheckResult "Project" "Tauri CLI" "Warn" "not installed" "Run npm install"
+        Add-CheckResult "Project" "Tauri CLI" "Warn" "not installed" "Run pnpm install"
     }
 
     $srcTauri = Join-Path $projectRoot "src-tauri"
@@ -266,7 +266,7 @@ function Check-Project {
         if ($errorLines.Count -eq 0) {
             Add-CheckResult "Project" "TypeScript" "Pass" "0 errors"
         } else {
-            Add-CheckResult "Project" "TypeScript" "Warn" "$($errorLines.Count) error(s)" "Run: npx tsc --noEmit"
+            Add-CheckResult "Project" "TypeScript" "Warn" "$($errorLines.Count) error(s)" "Run: pnpm exec tsc --noEmit"
         }
     }
 }

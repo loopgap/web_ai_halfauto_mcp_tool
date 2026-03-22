@@ -37,7 +37,7 @@ console.log('');
 console.log('🔧 工具链检查:');
 const tools = [
   { name: 'node',  cmd: 'node --version' },
-  { name: 'npm',   cmd: 'npm --version' },
+  { name: 'pnpm',  cmd: 'pnpm --version' },
   { name: 'cargo', cmd: 'cargo --version' },
   { name: 'rustc', cmd: 'rustc --version' },
 ];
@@ -85,9 +85,9 @@ if (isLinux) {
   }
 }
 
-// ── 3. npm 依赖 ──
-console.log('\n📦 安装 npm 依赖...');
-run('npm install --no-fund --no-audit');
+// ── 3. pnpm 依赖 ──
+console.log('\n📦 安装 pnpm 依赖...');
+run('pnpm install');
 
 // ── 4. Cargo check ──
 console.log('\n🦀 检查 Rust 编译...');

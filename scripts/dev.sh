@@ -11,9 +11,9 @@ command -v cargo >/dev/null 2>&1 || { echo "❌ 未找到 Cargo/Rust"; exit 1; }
 
 # 安装依赖（如果 node_modules 不存在）
 if [ ! -d "node_modules" ]; then
-  echo "📦 安装 npm 依赖..."
-  npm install
+  echo "📦 安装 pnpm 依赖..."
+  pnpm install
 fi
 
 echo "🚀 启动开发服务器..."
-exec npm run start:fe
+exec pnpm start:fe

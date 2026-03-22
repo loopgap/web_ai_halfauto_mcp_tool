@@ -60,20 +60,20 @@ if (checkOnly) {
 
 // ── 依赖安装 ──
 if (!existsSync(resolve(ROOT, 'node_modules'))) {
-  console.log('\n📦 安装 npm 依赖...');
-  run('npm install --no-fund --no-audit');
+  console.log('\n📦 安装 pnpm 依赖...');
+  run('pnpm install');
 }
 
 // ── 构建 / 启动 ──
 if (buildMode) {
   console.log('\n🏗️  构建生产版本...');
-  run('npm run tauri build');
+  run('pnpm tauri build');
 } else if (frontendOnly) {
   console.log('\n🚀 启动前端开发服务器 (http://localhost:1420)...');
-  const child = spawn('npx', ['vite'], { stdio: 'inherit', cwd: ROOT, shell: true });
+  const child = spawn('pnpm', ['exec', 'vite'], { stdio: 'inherit', cwd: ROOT, shell: true });
   child.on('exit', code => process.exit(code ?? 0));
 } else {
   console.log('\n🚀 启动 Tauri 开发服务器...');
-  const child = spawn('npx', ['tauri', 'dev'], { stdio: 'inherit', cwd: ROOT, shell: true });
+  const child = spawn('pnpm', ['tauri', 'dev'], { stdio: 'inherit', cwd: ROOT, shell: true });
   child.on('exit', code => process.exit(code ?? 0));
 }

@@ -50,19 +50,19 @@ echo "📦 依赖检查:"
 if [ -d "node_modules" ]; then
   log_ok "node_modules 已安装"
 else
-  log_warn "node_modules 不存在 — 运行 npm install"
+  log_warn "node_modules 不存在 — 运行 pnpm install"
 fi
 
-if [ -f "package-lock.json" ]; then
-  log_ok "package-lock.json 存在"
+if [ -f "pnpm-lock.yaml" ]; then
+  log_ok "pnpm-lock.yaml 存在"
 else
-  log_warn "package-lock.json 缺失"
+  log_warn "pnpm-lock.yaml 缺失"
 fi
 
 # ── TypeScript ──
 echo ""
 echo "📝 TypeScript 检查:"
-if npx tsc --noEmit 2>/dev/null; then
+if pnpm exec tsc --noEmit 2>/dev/null; then
   log_ok "TypeScript 无类型错误"
 else
   log_warn "TypeScript 存在类型错误"

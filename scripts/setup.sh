@@ -12,7 +12,7 @@ echo "════════════════════════�
 # ── 检查必要工具 ──
 MISSING=()
 command -v node   >/dev/null 2>&1 || MISSING+=("node")
-command -v npm    >/dev/null 2>&1 || MISSING+=("npm")
+command -v pnpm   >/dev/null 2>&1 || MISSING+=("pnpm")
 command -v cargo  >/dev/null 2>&1 || MISSING+=("cargo")
 command -v rustc  >/dev/null 2>&1 || MISSING+=("rustc")
 
@@ -23,7 +23,7 @@ if [ ${#MISSING[@]} -gt 0 ]; then
 fi
 
 echo "✅ Node.js $(node --version)"
-echo "✅ npm $(npm --version)"
+echo "✅ pnpm $(pnpm --version)"
 echo "✅ Rust $(rustc --version)"
 echo "✅ Cargo $(cargo --version)"
 
@@ -46,10 +46,10 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   fi
 fi
 
-# ── 安装 npm 依赖 ──
+# ── 安装 pnpm 依赖 ──
 echo ""
-echo "📦 安装 npm 依赖..."
-npm install
+echo "📦 安装 pnpm 依赖..."
+pnpm install
 
 # ── 检查 Rust 编译 ──
 echo ""
@@ -66,6 +66,6 @@ mkdir -p ~/.ai-workbench/{config,vault/{runs,artifacts,governance,events,traces}
 echo ""
 echo "═══════════════════════════════════════"
 echo "  ✅ 初始化完成！"
-echo "  运行 'npm run dev' 启动前端"
-echo "  运行 'npm run start' 启动 Tauri 应用"
+echo "  运行 'pnpm dev' 启动前端"
+echo "  运行 'pnpm start' 启动 Tauri 应用"
 echo "═══════════════════════════════════════"

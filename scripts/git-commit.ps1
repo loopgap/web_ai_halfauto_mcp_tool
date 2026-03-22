@@ -96,7 +96,7 @@ if (-not $SkipChecks -and -not $Amend) {
     
     # TypeScript
     Write-Host "  [1/2] TypeScript..." -ForegroundColor Gray
-    $tsResult = cmd /c "npx tsc --noEmit 2>&1"
+    $tsResult = cmd /c "pnpm exec tsc --noEmit 2>&1"
     $tsErrors = @($tsResult | Where-Object { $_ -match "error TS\d+" })
     if ($tsErrors.Count -gt 0) {
         Write-Host "  [FAIL] TypeScript: $($tsErrors.Count) error(s)" -ForegroundColor Red

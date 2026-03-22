@@ -124,6 +124,13 @@ export default function CommandPalette({ extraCommands = [], onClose, externalOp
     );
   }, [allCommands, query]);
 
+  const handleClose = useCallback(() => {
+    setOpen(false);
+    onExternalOpenChange?.(false);
+    setQuery("");
+    onClose?.();
+  }, [onClose, onExternalOpenChange]);
+
   // ───── 快捷键 Ctrl+K (仅当没有外部控制时处理) ─────
   useEffect(() => {
     if (externalOpen !== undefined) return; // 外部控制时不处理
@@ -148,13 +155,6 @@ export default function CommandPalette({ extraCommands = [], onClose, externalOp
       setSelectedIndex(0);
     }
   }, [open]);
-
-  const handleClose = useCallback(() => {
-    setOpen(false);
-    onExternalOpenChange?.(false);
-    setQuery("");
-    onClose?.();
-  }, [onClose, onExternalOpenChange]);
 
   const handleSelect = useCallback(
     (cmd: CommandItem) => {

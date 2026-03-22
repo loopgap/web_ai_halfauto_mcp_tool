@@ -66,7 +66,7 @@ AI Workbench 是一个 **本地优先、安全优先** 的 AI 工作台桌面应
 
 ```bash
 cd ai-workbench
-npm run env:check
+pnpm env:check
 
 # 或使用跨平台诊断脚本
 node scripts/doctor.mjs
@@ -91,7 +91,7 @@ cd ai-workbench
 node scripts/setup.mjs
 
 # 或手动安装
-npm install
+pnpm install
 # Rust 依赖会在首次 build 时自动下载
 ```
 
@@ -99,20 +99,20 @@ npm install
 
 ```bash
 # 方式一：仅前端 (Vite dev server，浏览器中查看 UI)
-npm run start:fe
+pnpm start:fe
 # 访问 http://localhost:1420
 
 # 方式二：完整 Tauri 桌面应用 (包含 Rust 后端)
-npm run start
+pnpm start
 ```
 
-> **说明：** `npm run dev` 只启动前端开发服务器，Tauri invoke 调用会失败（无后端）。  
-> 完整功能需要 `npm run tauri dev` 启动 Tauri 应用。
+> **说明：** `pnpm dev` 只启动前端开发服务器，Tauri invoke 调用会失败（无后端）。  
+> 完整功能需要 `pnpm tauri dev` 启动 Tauri 应用。
 
 ### 3.3 构建生产版本
 
 ```bash
-npm run build:app
+pnpm build:app
 ```
 
 生成的安装包在 `src-tauri/target/release/bundle/` 目录下：
@@ -438,22 +438,22 @@ Quality Gate 校验 → 归档到 Vault
 
 ```powershell
 # 检查环境
-npm run env:check
+pnpm env:check
 
 # 校验治理资产
-npm run governance:validate
+pnpm governance:validate
 
 # 运行治理 API 合约测试
-npm run test:governance:api
+pnpm test:governance:api
 
 # 运行 Rust 治理测试
-npm run test:governance:rust
+pnpm test:governance:rust
 
 # 生成证据包
-npm run governance:evidence:example
+pnpm governance:evidence
 
 # 完整 CI 治理流水线
-npm run ci:governance
+pnpm ci:governance
 ```
 
 ### 8.2 治理资产
@@ -484,7 +484,7 @@ npm run ci:governance
 ### 9.1 TypeScript 类型检查
 
 ```powershell
-npx tsc --noEmit
+pnpm exec tsc --noEmit
 ```
 
 期望输出：无错误。
@@ -510,7 +510,7 @@ node scripts/test-governance-api-contract.mjs
 
 ```powershell
 # 在 ai-workbench 目录下
-npx tsc --noEmit; cd src-tauri; cargo test; cd ..; node scripts/test-governance-api-contract.mjs
+pnpm exec tsc --noEmit; cd src-tauri; cargo test; cd ..; node scripts/test-governance-api-contract.mjs
 ```
 
 ---
@@ -528,7 +528,7 @@ npx tsc --noEmit; cd src-tauri; cargo test; cd ..; node scripts/test-governance-
 1. 在 `src-tauri/src/lib.rs` 添加 `#[tauri::command]` 函数
 2. 在 `invoke_handler` 中注册
 3. 在 `src/api.ts` 中添加 TypeScript 包装
-4. 运行 `cargo test` + `npx tsc --noEmit` 验证
+4. 运行 `cargo test` + `pnpm exec tsc --noEmit` 验证
 
 ### 10.3 添加新页面
 
@@ -584,12 +584,12 @@ Rust Backend (lib.rs / config.rs)
 
 ## 11. 常见问题
 
-### Q: `npm run tauri dev` 启动失败？
+### Q: `pnpm tauri dev` 启动失败？
 
 确保：
 1. Rust 已安装：`rustc --version`
 2. Node.js 已安装：`node --version`
-3. 依赖已安装：`npm install`
+3. 依赖已安装：`pnpm install`
 4. Windows WebView2 已安装（Win 10/11 通常自带）
 
 ### Q: 找不到 cargo 或 node 命令？
@@ -620,7 +620,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 ### Q: 如何只运行前端（不需要 Tauri）？
 
 ```powershell
-npm run dev
+pnpm dev
 ```
 
 但 Tauri invoke 调用会报错，仅适合 UI 开发/调试。

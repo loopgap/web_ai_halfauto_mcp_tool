@@ -95,7 +95,7 @@ if ($dirty) {
 Write-Host "  -- Running Tests --" -ForegroundColor Cyan
 
 Write-Host "  [1/3] TypeScript..." -ForegroundColor Gray
-$tsResult = cmd /c "npx tsc --noEmit 2>&1"
+$tsResult = cmd /c "pnpm exec tsc --noEmit 2>&1"
 $tsErrors = @($tsResult | Where-Object { $_ -match "error TS\d+" })
 if ($tsErrors.Count -gt 0) {
     Write-Host "  [FAIL] TypeScript: $($tsErrors.Count) errors" -ForegroundColor Red

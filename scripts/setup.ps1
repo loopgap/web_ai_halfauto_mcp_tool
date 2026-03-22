@@ -13,7 +13,7 @@
 [CmdletBinding()]
 param(
     [switch]$SkipRust,
-    [switch]$SkipNpmInstall,
+    [switch]$SkipPnpmInstall,
     [switch]$Force
 )
 
@@ -233,13 +233,13 @@ function Install-TauriCLI {
         Write-Ok "Tauri CLI (global): $ver"
         return $true
     }
-    Write-Warn "Tauri CLI will be installed via npm install"
+    Write-Warn "Tauri CLI will be installed via pnpm install"
     return $true
 }
 
-# -- npm install ------------------------------------------------------------
-function Invoke-NpmInstall {
-    Write-Step "Installing project dependencies (npm install)"
+# -- pnpm install -----------------------------------------------------------
+function Invoke-PnpmInstall {
+    Write-Step "Installing project dependencies (pnpm install)"
     $projectRoot = Split-Path $PSScriptRoot -Parent
     $nodeModules = Join-Path $projectRoot "node_modules"
 
@@ -251,13 +251,13 @@ function Invoke-NpmInstall {
     Push-Location $projectRoot
     try {
         Write-Info "Installing ... this may take 1-3 minutes on first run."
-        & npm install 2>&1 | ForEach-Object { Write-Verbose $_ }
+        & pnpm install 2>&1 | ForEach-Object { Write-Verbose $_ }
         if ($LASTEXITCODE -eq 0) {
-            Write-Ok "npm install done"; $script:Fixed += "npm deps installed"; return $true
+            Write-Ok "pnpm install done"; $script:Fixed += "pnpm deps installed"; return $true
         } else {
-            Write-Err "npm install failed (exit $LASTEXITCODE)"
-            Write-Info "  Try: Remove-Item -Recurse -Force node_modules; npm install"
-            $script:Errors += "npm install failed"; return $false
+            Write-Err "pnpm install failed (exit $LASTEXITCODE)"
+            Write-Info "  Try: Remove-Item -Recurse -Force node_modules; pnpm install"
+            $script:Errors += "pnpm install failed"; return $false
         }
     } finally { Pop-Location }
 }
@@ -333,7 +333,7 @@ Write-Host "    AI Workbench - Environment Setup" -ForegroundColor Cyan
 Write-Host "  =============================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  This script will auto-detect and configure:" -ForegroundColor White
-Write-Host "    - Node.js + npm" -ForegroundColor White
+Write-Host "    - Node.js + pnpm" -ForegroundColor White
 Write-Host "    - Rust + Cargo" -ForegroundColor White
 Write-Host "    - Tauri CLI" -ForegroundColor White
 Write-Host "    - WebView2 runtime" -ForegroundColor White
@@ -347,11 +347,11 @@ Repair-Path
 Write-Step "Checking Node.js"
 $hasNode = Test-Tool "node" "Node.js" -Required
 if (-not $hasNode) { $hasNode = Install-NodeJS }
-# 4. npm
+# 4. pnpm
 if ($hasNode) {
-    Write-Step "Checking npm"
-    $hasNpm = Test-Tool "npm" "npm" -Required
-    if (-not $hasNpm) { Write-Warn "npm usually comes with Node.js; may need reinstall"; $script:Errors += "npm not found" }
+    Write-Step "Checking pnpm"
+    $hasPnpm = Test-Tool "pnpm" "pnpm" -Required
+    if (-not $hasPnpm) { Write-Warn "Install pnpm first (recommend: corepack enable)"; $script:Errors += "pnpm not found" }
 }
 # 5. Rust
 if (-not $SkipRust) {
@@ -363,8 +363,8 @@ if (-not $SkipRust) {
 } else { Write-Info "Skipping Rust (-SkipRust)" }
 # 6. WebView2
 Test-WebView2 | Out-Null
-# 7. npm install
-if ($hasNode -and (-not $SkipNpmInstall)) { Invoke-NpmInstall | Out-Null }
+# 7. pnpm install
+if ($hasNode -and (-not $SkipPnpmInstall)) { Invoke-PnpmInstall | Out-Null }
 # 8. Tauri CLI
 if ($hasNode) { Install-TauriCLI | Out-Null }
 # 9. Persist PATH

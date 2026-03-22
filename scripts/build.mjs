@@ -61,8 +61,8 @@ process.env.NODE_OPTIONS = process.env.NODE_OPTIONS || '--max-old-space-size=409
 // ── 前端构建 ──
 console.log('\n📦 构建前端...');
 const feStart = Date.now();
-run('npx tsc --noEmit');
-run('npx vite build');
+run('pnpm exec tsc --noEmit');
+run('pnpm exec vite build');
 const feTime = ((Date.now() - feStart) / 1000).toFixed(1);
 console.log(`  ✅ 前端构建完成 (${feTime}s)`);
 

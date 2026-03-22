@@ -31,8 +31,8 @@ fi
 echo ""
 echo "📦 构建前端..."
 START=$(date +%s)
-npx tsc --noEmit
-npx vite build
+pnpm exec tsc --noEmit
+pnpm exec vite build
 FE_TIME=$(( $(date +%s) - START ))
 echo "✅ 前端构建完成 (${FE_TIME}s)"
 

@@ -74,8 +74,8 @@ if (nodeVer) {
   else warn(`Node.js ${nodeVer} (建议 ≥18)`);
 } else err('Node.js 未安装');
 
-const npmVer = getVersion('npm --version');
-if (npmVer) ok(`npm ${npmVer}`); else err('npm 未安装');
+const pnpmVer = getVersion('pnpm --version');
+if (pnpmVer) ok(`pnpm ${pnpmVer}`); else err('pnpm 未安装');
 
 const cargoVer = getVersion('cargo --version');
 if (cargoVer) ok(cargoVer); else err('Cargo 未安装');
@@ -91,24 +91,24 @@ console.log('\n📦 项目状态:');
 if (existsSync(resolve(ROOT, 'package.json'))) ok('package.json 存在');
 else err('package.json 缺失');
 
-if (existsSync(resolve(ROOT, 'package-lock.json'))) ok('package-lock.json 存在');
-else warn('package-lock.json 缺失');
+if (existsSync(resolve(ROOT, 'pnpm-lock.yaml'))) ok('pnpm-lock.yaml 存在');
+else warn('pnpm-lock.yaml 缺失');
 
 if (existsSync(resolve(ROOT, 'node_modules'))) {
   ok('node_modules 已安装');
 } else {
   warn('node_modules 不存在');
   if (doFix) {
-    console.log('  🔧 正在修复: npm install...');
-    try { execSync('npm install --no-fund --no-audit', { stdio: 'inherit', cwd: ROOT, shell: true }); ok('npm install 完成'); }
-    catch { err('npm install 失败'); }
+    console.log('  🔧 正在修复: pnpm install...');
+    try { execSync('pnpm install', { stdio: 'inherit', cwd: ROOT, shell: true }); ok('pnpm install 完成'); }
+    catch { err('pnpm install 失败'); }
   }
 }
 
 // ── 4. TypeScript ──
 console.log('\n📝 TypeScript:');
 try {
-  execSync('npx tsc --noEmit', { cwd: ROOT, stdio: 'ignore', shell: true, timeout: 60000 });
+  execSync('pnpm exec tsc --noEmit', { cwd: ROOT, stdio: 'ignore', shell: true, timeout: 60000 });
   ok('tsc --noEmit 通过');
 } catch { warn('TypeScript 存在类型错误'); }
 

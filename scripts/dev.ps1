@@ -58,13 +58,13 @@ function Quick-Check {
         Write-Host "  [OK]   Node.js $nodeVer" -ForegroundColor Green
     }
 
-    $npm = Get-Command npm -ErrorAction SilentlyContinue
-    if (-not $npm) {
-        Write-Host "  [FAIL] npm not found" -ForegroundColor Red
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if (-not $pnpm) {
+        Write-Host "  [FAIL] pnpm not found" -ForegroundColor Red
         $ok = $false
     } else {
-        $npmVer = & npm --version 2>&1
-        Write-Host "  [OK]   npm $npmVer" -ForegroundColor Green
+        $pnpmVer = & pnpm --version 2>&1
+        Write-Host "  [OK]   pnpm $pnpmVer" -ForegroundColor Green
     }
 
     if (-not $FrontendOnly) {
@@ -81,8 +81,8 @@ function Quick-Check {
     $projectRoot = Split-Path $PSScriptRoot -Parent
     $nodeModules = Join-Path $projectRoot "node_modules"
     if (-not (Test-Path $nodeModules)) {
-        Write-Host "  [WARN] node_modules missing, need npm install" -ForegroundColor Yellow
-        return "npm-install"
+        Write-Host "  [WARN] node_modules missing, need pnpm install" -ForegroundColor Yellow
+        return "pnpm-install"
     }
 
     return $(if ($ok) { "ok" } else { "fail" })
@@ -122,13 +122,13 @@ if ($status -eq "fail" -and -not $SkipSetup) {
     }
 }
 
-if ($status -eq "npm-install") {
+if ($status -eq "pnpm-install") {
     Write-Host ""
     Write-Host "  Installing dependencies..." -ForegroundColor Cyan
-    & npm install
+    & pnpm install
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "  [FAIL] npm install failed" -ForegroundColor Red
-        Write-Host "  Try: Remove-Item -Recurse -Force node_modules; npm install" -ForegroundColor Yellow
+        Write-Host "  [FAIL] pnpm install failed" -ForegroundColor Red
+        Write-Host "  Try: Remove-Item -Recurse -Force node_modules; pnpm install" -ForegroundColor Yellow
         exit 1
     }
     Write-Host "  [OK]   Dependencies installed" -ForegroundColor Green
@@ -145,7 +145,7 @@ Write-Host ""
 if ($Build) {
     Write-Host "  Building production release..." -ForegroundColor Cyan
     Write-Host ""
-    & npm run tauri build
+    & pnpm tauri build
     if ($LASTEXITCODE -eq 0) {
         Write-Host ""
         Write-Host "  [OK]   Build complete! Output: src-tauri\target\release" -ForegroundColor Green
@@ -154,7 +154,7 @@ if ($Build) {
         Write-Host "  [FAIL] Build failed (exit $LASTEXITCODE)" -ForegroundColor Red
         Write-Host ""
         Write-Host "  Troubleshooting:" -ForegroundColor Yellow
-        Write-Host "    1. TS errors  : npx tsc --noEmit" -ForegroundColor Gray
+        Write-Host "    1. TS errors  : pnpm exec tsc --noEmit" -ForegroundColor Gray
         Write-Host "    2. Rust errors: cd src-tauri && cargo check" -ForegroundColor Gray
         Write-Host "    3. Clean build: cd src-tauri && cargo clean" -ForegroundColor Gray
         exit 1
@@ -164,7 +164,7 @@ if ($Build) {
     Write-Host "    URL: http://localhost:1420" -ForegroundColor White
     Write-Host "    Press Ctrl+C to stop" -ForegroundColor Gray
     Write-Host ""
-    & npm run dev
+    & pnpm dev
 } else {
     Write-Host "  Starting Tauri dev server..." -ForegroundColor Cyan
     Write-Host "    Frontend: http://localhost:1420" -ForegroundColor White
@@ -179,5 +179,5 @@ if ($Build) {
         Write-Host ""
     }
 
-    & npm run tauri dev
+    & pnpm tauri dev
 }

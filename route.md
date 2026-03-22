@@ -1,4 +1,4 @@
-﻿# AI Workbench 技术路线 v0.3（逻辑闭环统一版）
+# AI Workbench 技术路线 v0.3（逻辑闭环统一版）
 
 ## 1. 目标、边界、闭环原则
 
@@ -1196,8 +1196,8 @@ Z-index 规则：
 
 执行命令：
 
-- `npm run governance:validate`：校验硬门禁定义、评分卡阈值、模板完整性。
-- `npm run governance:evidence:example`：从示例 JSON 生成证据包 Markdown。
+- `pnpm governance:validate`：校验硬门禁定义、评分卡阈值、模板完整性。
+- `pnpm governance:evidence`：从示例 JSON 生成证据包 Markdown。
 
 ## 56. 公共契约落地（前后端同构）
 
@@ -1249,7 +1249,7 @@ Z-index 规则：
 1. 填写需求模板（Demand）。
 2. 填写设计模板（Design）。
 3. 执行测试模板并记录证据（Test）。
-4. 运行 `npm run governance:validate`。
+4. 运行 `pnpm governance:validate`。
 5. 生成证据包（Evidence Pack）。
 6. 完成发布模板与发布检查清单（Release）。
 7. 若出现 P1+ 事件，必须输出 Incident + CAPA。
@@ -1258,14 +1258,14 @@ Z-index 规则：
 
 本地环境补全：
 
-- 执行 `npm run env:check` 检查 `node/npm`（必需）与 `cargo/rustc`（可选）可用性。
+- 执行 `pnpm env:check` 检查 `node/pnpm`（必需）与 `cargo/rustc`（可选）可用性。
 - 使用 `.env.example` 作为本地环境模板。
-- 执行 `npm run ci:governance` 可本地复刻治理流水线。
+- 执行 `pnpm ci:governance` 可本地复刻治理流水线。
 
 CI 流水线（GitHub Actions）：
 
 - 新增 `.github/workflows/governance.yml`。
-- 统一流程：`npm ci -> env:check -> governance:validate -> governance:evidence:example`。
+- 统一流程：`pnpm install --frozen-lockfile -> env:check -> governance:validate -> governance:evidence`。
 - 自动上传证据包 `governance/examples/evidence-pack.generated.md` 作为构建产物。
 
 ## 60. 浏览器智能检测与选择（自由度 + 兼容性 + 友好性）
@@ -1753,9 +1753,9 @@ UI 必须展示：
 
 ## 89. 审查执行清单（每次迭代必须附证据）
 
-- [ ] `npx tsc --noEmit` 通过。
+- [ ] `pnpm exec tsc --noEmit` 通过。
 - [ ] `cargo test --manifest-path src-tauri/Cargo.toml` 通过。
-- [ ] `npm run ci:governance` 通过并生成证据包。
+- [ ] `pnpm ci:governance` 通过并生成证据包。
 - [ ] 错误码契约测试通过（后端错误码、catalog、前端恢复映射三方一致）。
 - [ ] 归档一致性检查通过（run/artifact/dispatch_trace 可互相追溯）。
 - [ ] 三个关键页面文案与状态快照通过（Console/Targets/Settings）。
@@ -2101,13 +2101,13 @@ interface PersistedState {
 
 ### 99.2 跨平台脚本清单
 
-| 脚本 | npm alias | 说明 |
+| 脚本 | pnpm alias | 说明 |
 |---|---|---|
-| `scripts/dev.mjs` | `npm run start` | 开发服务器启动（`--frontend` 仅前端 / `--build` 构建） |
-| `scripts/setup.mjs` | `npm run setup` | 环境初始化（检查工具链、安装依赖、创建配置目录） |
-| `scripts/doctor.mjs` | `npm run doctor` | 环境诊断（`--report` 生成报告 / `--fix` 自动修复） |
-| `scripts/build.mjs` | `npm run build:app` | 构建前端 + Rust（`--debug` 调试 / `--clean` 清理后构建） |
-| `scripts/clean.mjs` | `npm run clean` | 清理（`soft` / `hard` / `full` 三级） |
+| `scripts/dev.mjs` | `pnpm start` | 开发服务器启动（`--frontend` 仅前端 / `--build` 构建） |
+| `scripts/setup.mjs` | `pnpm setup` | 环境初始化（检查工具链、安装依赖、创建配置目录） |
+| `scripts/doctor.mjs` | `pnpm doctor` | 环境诊断（`--report` 生成报告 / `--fix` 自动修复） |
+| `scripts/build.mjs` | `pnpm build:app` | 构建前端 + Rust（`--debug` 调试 / `--clean` 清理后构建） |
+| `scripts/clean.mjs` | `pnpm clean` | 清理（`soft` / `hard` / `full` 三级） |
 
 所有脚本仅依赖 Node.js 内置模块（`child_process`, `fs`, `os`, `path`），无任何外部依赖。
 
@@ -2155,7 +2155,7 @@ Tauri v2 遵循各操作系统原生安装包标准：
 | `scripts/clean.mjs` | 新增 — 跨平台清理脚本 |
 | `.github/workflows/release.yml` | 新增 — 标准 Tauri 发布流程 |
 | `.github/workflows/ci.yml` | 移除 ESLint/vitest 步骤 |
-| `package.json` | 统一 npm scripts（无平台后缀） |
+| `package.json` | 统一 pnpm scripts（无平台后缀） |
 | ConsolePage.tsx | browserWarning 状态、AlertTriangle/Globe 图标、琥珀色告警卡片 |
 | config.rs | BrowserCandidate.class_name、BrowserProfile、BrowserDetectionResult、known_browser_signatures() |
 | lib.rs | detect_browsers 命令（~100 行）、invoke_handler 30 命令 |
@@ -2164,7 +2164,7 @@ Tauri v2 遵循各操作系统原生安装包标准：
 
 ### 90.8 闭环验证要点
 
-- [ ] `npx tsc --noEmit` → 0 errors。
+- [ ] `pnpm exec tsc --noEmit` → 0 errors。
 - [ ] `cargo test` → 全部通过。
 - [ ] 非预设浏览器打开时，ConsolePage 显示琥珀色告警。
 - [ ] 告警提供"继续使用"和"进入绑定向导"两个可操作按钮。
