@@ -1,0 +1,46 @@
+name: Governance Pipeline
+
+on:
+  push:
+    paths:
+      - "governance/**"
+      - "scripts/**"
+      - "package.json"
+      - ".github/workflows/governance.yml"
+  pull_request:
+    paths:
+      - "governance/**"
+      - "scripts/**"
+      - "package.json"
+      - ".github/workflows/governance.yml"
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Environment check
+        run: npm run env:check
+
+      - name: Governance validate
+        run: npm run governance:validate
+
+      - name: Generate evidence pack
+        run: npm run governance:evidence:example
+
+      - name: Upload evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-evidence-pack
+          path: governance/examples/evidence-pack.generated.md
