@@ -2049,7 +2049,7 @@ pub fn load_runs(app: &tauri::AppHandle) -> Result<Vec<RunRecord>, Box<dyn std::
             .filter_map(|e| e.ok())
             .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
             .collect();
-        entries.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+        entries.sort_by_key(|b| std::cmp::Reverse(b.file_name()));
         for entry in entries.iter().take(200) {
             let content = fs::read_to_string(entry.path())?;
             if let Ok(run) = serde_json::from_str::<RunRecord>(&content) {

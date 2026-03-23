@@ -801,13 +801,11 @@ fn dispatch_stage(app_handle: tauri::AppHandle, args: DispatchStageArgs) -> CmdR
     // §9.6 Clipboard Transaction + §9.7 Focus Recipe
     let result = os_win::clipboard_transaction(move || {
         // Activate first
-        window::activate_window(req.hwnd, req.activate_retry, req.activate_settle_delay_ms)
-            .map_err(|e| e)?;
+        window::activate_window(req.hwnd, req.activate_retry, req.activate_settle_delay_ms)?;
 
         // §9.7 Focus Recipe: run keystroke sequence after activation
         if !args.focus_recipe.is_empty() {
-            os_win::input::send_key_sequence(&args.focus_recipe, 80)
-                .map_err(|e| e)?;
+            os_win::input::send_key_sequence(&args.focus_recipe, 80)?;
         }
 
         // §9.5 Soft Lock: verify window is still foreground
@@ -1491,29 +1489,30 @@ fn get_vault_stats(app_handle: tauri::AppHandle) -> CmdResult<serde_json::Value>
     let mut by_subdir: HashMap<String, u64> = HashMap::new();
 
     if vault.exists() {
-        for entry in fs::read_dir(&vault).unwrap_or_else(|_| fs::read_dir(std::env::temp_dir()).unwrap()) {
-            if let Ok(e) = entry {
-                let path = e.path();
-                let dir_name = e.file_name().to_string_lossy().to_string();
-                let mut dir_bytes: u64 = 0;
-                if path.is_dir() {
-                    if let Ok(subentries) = fs::read_dir(&path) {
-                        for sub in subentries.flatten() {
-                            if let Ok(meta) = sub.path().metadata() {
-                                let len = meta.len();
-                                dir_bytes += len;
-                                total_bytes += len;
-                                file_count += 1;
-                            }
+        for e in fs::read_dir(&vault)
+            .unwrap_or_else(|_| fs::read_dir(std::env::temp_dir()).unwrap())
+            .flatten()
+        {
+            let path = e.path();
+            let dir_name = e.file_name().to_string_lossy().to_string();
+            let mut dir_bytes: u64 = 0;
+            if path.is_dir() {
+                if let Ok(subentries) = fs::read_dir(&path) {
+                    for sub in subentries.flatten() {
+                        if let Ok(meta) = sub.path().metadata() {
+                            let len = meta.len();
+                            dir_bytes += len;
+                            total_bytes += len;
+                            file_count += 1;
                         }
                     }
-                } else if let Ok(meta) = path.metadata() {
-                    dir_bytes = meta.len();
-                    total_bytes += dir_bytes;
-                    file_count += 1;
                 }
-                by_subdir.insert(dir_name, dir_bytes);
+            } else if let Ok(meta) = path.metadata() {
+                dir_bytes = meta.len();
+                total_bytes += dir_bytes;
+                file_count += 1;
             }
+            by_subdir.insert(dir_name, dir_bytes);
         }
     }
 
