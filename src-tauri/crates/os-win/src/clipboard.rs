@@ -1,4 +1,5 @@
 use crate::error::{OsWinError, OsWinResult};
+#[cfg(windows)]
 use std::time::{Duration, Instant};
 
 #[cfg(windows)]
