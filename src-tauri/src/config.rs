@@ -2027,7 +2027,7 @@ steps:
 
 // ───────── Vault I/O (§2 统一数据面) ─────────
 
-fn vault_dir(app: &tauri::AppHandle) -> PathBuf {
+pub(crate) fn vault_dir(app: &tauri::AppHandle) -> PathBuf {
     let base = app.path().app_config_dir().unwrap_or_else(|_| PathBuf::from("."));
     base.join("vault")
 }
