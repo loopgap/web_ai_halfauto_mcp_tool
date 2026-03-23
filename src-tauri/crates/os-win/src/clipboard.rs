@@ -1,6 +1,4 @@
 use crate::error::{OsWinError, OsWinResult};
-#[cfg(windows)]
-use std::time::{Duration, Instant};
 
 #[cfg(windows)]
 use windows::Win32::{
@@ -108,16 +106,16 @@ pub fn clipboard_get_text() -> OsWinResult<String> {
 fn retry_clipboard_open(timeout_ms: u64, interval_ms: u64) -> OsWinResult<()> {
     use windows::Win32::Foundation::HWND;
 
-    let start = Instant::now();
+    let start = std::time::Instant::now();
     loop {
         let opened = unsafe { OpenClipboard(HWND::default()) };
         if opened.is_ok() {
             return Ok(());
         }
 
-        if start.elapsed() >= Duration::from_millis(timeout_ms) {
+        if start.elapsed() >= std::time::Duration::from_millis(timeout_ms) {
             return Err(OsWinError::Timeout(timeout_ms));
         }
-        std::thread::sleep(Duration::from_millis(interval_ms));
+        std::thread::sleep(std::time::Duration::from_millis(interval_ms));
     }
 }
