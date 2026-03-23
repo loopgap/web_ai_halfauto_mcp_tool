@@ -134,6 +134,9 @@ cd ai-workbench
 # 一键初始化 (跨平台)
 node scripts/setup.mjs
 
+# 或使用 pnpm 别名
+pnpm setup
+
 # 启动开发服务器 (Tauri 全栈)
 pnpm start
 
@@ -142,6 +145,18 @@ pnpm start:fe
 
 # 构建发布版
 pnpm build:app
+
+# 本地完整 CI 预检
+pnpm ci:local
+
+# 本地快速门禁（pre-commit 同款）
+pnpm ci:local:fast
+
+# Linux 预演（优先真实执行器，否则静态一致性检查）
+pnpm ci:linux
+
+# 发布前预检（当前平台）
+pnpm release:preflight
 ```
 
 ### 环境诊断
@@ -150,6 +165,7 @@ pnpm build:app
 pnpm doctor            # 运行诊断
 pnpm doctor -- --fix   # 诊断并自动修复
 pnpm doctor -- --report # 生成诊断报告
+pnpm hooks:install     # 安装并启用 Git hooks
 ```
 
 ---
@@ -163,9 +179,16 @@ pnpm doctor -- --report # 生成诊断报告
 | `pnpm build:app` | 构建 Release 版 |
 | `pnpm build:app -- --debug` | 构建 Debug 版 |
 | `pnpm setup` | 环境初始化 |
+| `pnpm hooks:install` | 安装并启用 Git hooks |
 | `pnpm doctor` | 环境诊断 |
 | `pnpm check` | TypeScript 类型检查 |
 | `pnpm check:all` | TypeScript + Rust 检查 |
+| `pnpm check:clippy` | Rust Clippy 严格检查 |
+| `pnpm ci:local:fast` | 本地快速门禁（pre-commit 同款） |
+| `pnpm ci:local` | 本地完整 CI 预检（尽量对齐 GitHub Actions） |
+| `pnpm ci:local:clean` | 清理后运行本地完整 CI |
+| `pnpm ci:linux` | Linux 预演（优先真实执行器，否则静态一致性检查） |
+| `pnpm release:preflight` | 当前平台发布前预检 |
 | `pnpm clean` | 清理增量缓存 |
 | `pnpm clean:hard` | 清理所有构建产物 |
 | `pnpm test:all` | TS + Governance + Rust 全部测试 |

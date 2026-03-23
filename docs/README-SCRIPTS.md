@@ -32,6 +32,10 @@ pnpm doctor
 | `scripts/doctor.mjs` | `pnpm doctor` | 环境诊断 |
 | `scripts/build.mjs` | `pnpm build:app` | 构建前端 + Rust |
 | `scripts/clean.mjs` | `pnpm clean` | 清理构建缓存 |
+| `scripts/install-hooks.mjs` | `pnpm hooks:install` | 安装并启用 Git hooks |
+| `scripts/ci-linux.mjs` | `pnpm ci:linux` | Linux 预演 |
+| `scripts/ci-local.mjs` | `pnpm ci:local` | 本地完整 CI 预检 |
+| `scripts/release-preflight.mjs` | `pnpm release:preflight` | 发布前预检 |
 
 ### dev.mjs — 开发服务器
 
@@ -51,7 +55,8 @@ node scripts/setup.mjs
 自动执行：
 - ✅ 检查 Node.js / pnpm / Cargo / Rust 工具链
 - ✅ Linux 系统包检查 (libwebkit2gtk 等)
-- ✅ pnpm install
+- ✅ pnpm install --frozen-lockfile
+- ✅ 安装并启用 Git hooks
 - ✅ cargo check
 - ✅ 创建 `~/.ai-workbench/` 配置目录层级
 
@@ -66,6 +71,7 @@ node scripts/doctor.mjs --report   # 生成 doctor-report.txt
 检查项：
 - 💻 系统信息（平台/架构/内存）
 - 🔧 工具链（Node.js/pnpm/Cargo/Rust/Git）
+- 🪝 Git hooks 是否启用
 - 📦 项目状态（package.json/node_modules/lock file）
 - 📝 TypeScript（tsc --noEmit）
 - 🦀 Cargo（cargo check）
@@ -82,6 +88,57 @@ node scripts/build.mjs --clean     # 清理后构建
 ```
 
 自动检测 CPU 核心数并优化并行编译 (使用核心数的一半)。
+
+### install-hooks.mjs — 安装 Git hooks
+
+```bash
+node scripts/install-hooks.mjs
+```
+
+自动执行：
+- ✅ 设置 `git config core.hooksPath .githooks`
+- ✅ 标记仓库内 hooks 为可执行
+
+### ci-local.mjs — 本地完整 CI 预检
+
+```bash
+node scripts/ci-local.mjs
+node scripts/ci-local.mjs --fast
+node scripts/ci-local.mjs --clean
+```
+
+自动执行：
+- ✅ `pnpm install --frozen-lockfile`（full 模式）
+- ✅ `pnpm install --frozen-lockfile`
+- ✅ TypeScript check
+- ✅ Vite build（full 模式）
+- ✅ cargo check
+- ✅ cargo clippy（full 模式）
+- ✅ cargo test / cargo check --tests fallback（full 模式）
+- ✅ governance 检查与 API contract test
+
+### ci-linux.mjs — Linux 预演
+
+```bash
+node scripts/ci-linux.mjs
+```
+
+自动执行：
+- ✅ 校验 CI workflow 中的 Linux runner / 依赖声明
+- ✅ 校验 release workflow 中的 Linux 构建路径
+- ✅ 检测 Docker / WSL / act 可用性
+- ✅ 无 Linux 执行器时降级为静态一致性检查，并明确提示由远端 GitHub Actions 完成真实 Linux 验证
+
+### release-preflight.mjs — 发布前预检
+
+```bash
+node scripts/release-preflight.mjs
+node scripts/release-preflight.mjs --debug
+```
+
+自动执行：
+- ✅ 先跑完整 `ci-local`
+- ✅ 再做当前平台 Tauri bundle 构建
 
 ### clean.mjs — 清理
 
@@ -117,6 +174,7 @@ pnpm dev                  # Vite dev server (裸)
 
 # ── 环境 ──
 pnpm setup                # 环境初始化
+pnpm hooks:install        # 启用 Git hooks
 pnpm doctor               # 环境诊断
 pnpm doctor:report        # 生成诊断报告
 pnpm doctor:fix           # 诊断并自动修复
@@ -136,6 +194,8 @@ pnpm clean:full           # 完全重置
 pnpm check                # TypeScript 类型检查
 pnpm check:rust           # Cargo check
 pnpm check:all            # TS + Rust
+pnpm check:clippy         # Rust clippy 严格检查
+pnpm ci:local:fast        # 本地快速门禁
 
 # ── 测试 ──
 pnpm test:governance:api  # 治理 API 合约
@@ -147,6 +207,13 @@ pnpm env:check            # 环境检查
 pnpm governance:validate  # 治理资产校验
 pnpm governance:evidence  # 证据包生成
 pnpm ci:governance        # CI 治理流水线
+
+# ── 本地 CI / 发布 ──
+pnpm ci:linux             # Linux 预演
+pnpm ci:local             # 本地完整 CI 预检
+pnpm ci:local:clean       # 清理后跑本地完整 CI
+pnpm release:preflight    # 当前平台发布前预检
+pnpm release:preflight:debug # Debug 模式发布前预检
 ```
 
 ---

@@ -87,9 +87,18 @@ if (isLinux) {
 
 // ── 3. pnpm 依赖 ──
 console.log('\n📦 安装 pnpm 依赖...');
-run('pnpm install');
+run('pnpm install --frozen-lockfile');
 
-// ── 4. Cargo check ──
+// ── 4. Git hooks ──
+console.log('\n🪝 安装 Git hooks...');
+try {
+  run('node scripts/install-hooks.mjs');
+  console.log('  ✅ Git hooks 已启用');
+} catch {
+  console.log('  ⚠️  Git hooks 安装失败（可手动运行 pnpm hooks:install）');
+}
+
+// ── 5. Cargo check ──
 console.log('\n🦀 检查 Rust 编译...');
 try {
   run('cargo check --jobs 2', { cwd: resolve(ROOT, 'src-tauri') });
@@ -98,7 +107,7 @@ try {
   console.log('  ⚠️  Cargo check 出现问题（可能缺少系统依赖）');
 }
 
-// ── 5. 初始化配置目录 ──
+// ── 6. 初始化配置目录 ──
 console.log('\n📂 初始化配置目录...');
 const configBase = join(homedir(), '.ai-workbench');
 const dirs = [
@@ -126,4 +135,6 @@ console.log('  ✅ 初始化完成！');
 console.log('  运行 node scripts/dev.mjs           启动开发服务器');
 console.log('  运行 node scripts/dev.mjs --frontend 仅启动前端');
 console.log('  运行 node scripts/dev.mjs --build    构建发布版');
+console.log('  运行 pnpm ci:local                  本地完整 CI 预检');
+console.log('  运行 pnpm release:preflight         发布前预检');
 console.log('═══════════════════════════════════════');

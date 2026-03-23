@@ -86,6 +86,23 @@ if (rustcVer) ok(rustcVer); else err('rustc 未安装');
 const gitVer = getVersion('git --version');
 if (gitVer) ok(gitVer); else warn('Git 未安装');
 
+// ── 2.1 Git hooks ──
+console.log('\n🪝 Git Hooks:');
+const hooksPath = getVersion('git config --get core.hooksPath');
+if (hooksPath === '.githooks') {
+  ok('core.hooksPath = .githooks');
+} else if (gitVer) {
+  warn(`core.hooksPath 未启用${hooksPath ? ` (当前: ${hooksPath})` : ''}`);
+  if (doFix) {
+    try {
+      execSync('node scripts/install-hooks.mjs', { stdio: 'inherit', cwd: ROOT, shell: true, timeout: 30000 });
+      ok('Git hooks 已安装');
+    } catch {
+      err('Git hooks 安装失败');
+    }
+  }
+}
+
 // ── 3. 项目状态 ──
 console.log('\n📦 项目状态:');
 if (existsSync(resolve(ROOT, 'package.json'))) ok('package.json 存在');
@@ -139,7 +156,12 @@ if (existsSync(configBase)) {
 } else {
   warn(`${configBase} 不存在`);
   if (doFix) {
-    console.log('  🔧 运行 node scripts/setup.mjs 创建...');
+    const { mkdirSync } = await import('node:fs');
+    for (const sub of ['', 'config', 'vault', 'vault/runs', 'vault/artifacts', 'vault/governance', 'vault/events', 'vault/traces', 'health']) {
+      const dir = sub ? join(configBase, sub) : configBase;
+      mkdirSync(dir, { recursive: true });
+    }
+    ok(`已创建 ${configBase} 目录树`);
   }
 }
 
