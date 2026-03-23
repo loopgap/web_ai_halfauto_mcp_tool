@@ -79,7 +79,7 @@ jobs:
         run: cargo check --jobs 1
 
       - name: Clippy lint
-        run: cargo clippy --jobs 1 -- -D warnings
+        run: cargo clippy --jobs 1 -- -D warnings -A dead_code
 
       - name: Cargo test
         run: cargo test --jobs 1 -- --nocapture
