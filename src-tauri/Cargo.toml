@@ -40,7 +40,7 @@ incremental = true            # 开启增量编译加速开发迭代
 
 # 第三方依赖开启高等优化，减小包体并提高运行速度
 [profile.dev.package."*"]
-opt-level = 2                 # 第三方用 O2 平衡编译速度和运行性能
+opt-level = 0                 # CI/debug 优先保证稳定可编译，避免依赖树 OOM
 debug = false
 
 [profile.release]

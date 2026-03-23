@@ -31,8 +31,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -78,13 +76,13 @@ jobs:
           cache-on-failure: true
 
       - name: Cargo check
-        run: cargo check --jobs 2
+        run: cargo check --jobs 1
 
       - name: Clippy lint
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --jobs 1 -- -D warnings
 
       - name: Cargo test
-        run: cargo test -- --nocapture
+        run: cargo test --jobs 1 -- --nocapture
 
   # ── 治理验证 ──
   governance:
@@ -95,8 +93,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -135,8 +131,6 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

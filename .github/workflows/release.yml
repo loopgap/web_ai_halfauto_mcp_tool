@@ -41,34 +41,15 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           generate_release_notes: true
 
-  build-tauri:
+  build-tauri-linux:
     needs: create-release
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            tag_suffix: linux
-          - platform: windows-latest
-            target: x86_64-pc-windows-msvc
-            tag_suffix: windows
-    # 根据 tag 名称决定是否跳过该平台
-    # v0.1.0       → 构建全部
-    # v0.1.0-linux → 仅构建 linux
-    # v0.1.0-windows → 仅构建 windows
-    if: >-
-      (!contains(github.ref_name, '-linux') && !contains(github.ref_name, '-windows'))
-      || (matrix.tag_suffix == 'linux' && contains(github.ref_name, '-linux'))
-      || (matrix.tag_suffix == 'windows' && contains(github.ref_name, '-windows'))
-    runs-on: ${{ matrix.platform }}
+    if: ${{ !contains(github.ref_name, '-windows') }}
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -78,7 +59,6 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install system dependencies (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -91,7 +71,7 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-unknown-linux-gnu
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
@@ -117,8 +97,51 @@ jobs:
           # Windows: .msi, .exe (NSIS)
           # macOS: .dmg, .app (如果添加 macOS matrix)
 
+  build-tauri-windows:
+    needs: create-release
+    if: ${{ !contains(github.ref_name, '-linux') }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-on-failure: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        with:
+          projectPath: .
+          tagName: ${{ github.ref_name }}
+          releaseName: "AI Workbench ${{ github.ref_name }}"
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+
   publish-release:
-    needs: [create-release, build-tauri]
+    if: ${{ always() && needs.create-release.result == 'success' && needs['build-tauri-linux'].result != 'failure' && needs['build-tauri-windows'].result != 'failure' && needs['build-tauri-linux'].result != 'cancelled' && needs['build-tauri-windows'].result != 'cancelled' }}
+    needs: [create-release, build-tauri-linux, build-tauri-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Publish release
