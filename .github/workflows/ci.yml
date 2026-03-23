@@ -69,18 +69,18 @@ jobs:
         with:
           components: clippy
 
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-           cache-on-failure: false
-          cache-on-failure: true
+      # Rust cache disabled to diagnose clippy failure
+      # - name: Rust cache
+      #   uses: Swatinem/rust-cache@v2
+      #   with:
+      #     workspaces: src-tauri
+      #     cache-on-failure: true
 
       - name: Cargo check
         run: cargo check --jobs 1
 
       - name: Clippy lint
-         run: cargo clippy --all-targets --jobs 1 -- -D warnings -A dead_code
+        run: cargo clippy --all-targets --jobs 1 -- -D warnings -A dead_code
 
       - name: Cargo test
         run: cargo test --jobs 1 -- --nocapture
