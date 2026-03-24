@@ -364,6 +364,78 @@ export function mergeResults(
 }
 
 /**
+ * §67 执行补偿事务 — 当步骤失败时，按逆序执行已完成步骤的 compensation
+ * 返回需要补偿的步骤 ID 列表和补偿结果
+ */
+export function getCompensationPlan(
+  execution: WorkflowExecution,
+  workflow: Workflow,
+  failedStepId: string,
+): { stepsToCompensate: string[]; compensations: Array<{ stepId: string; compensation: string }> } {
+  const dag = analyzeDag(workflow);
+  const stepsToCompensate: string[] = [];
+  const compensations: Array<{ stepId: string; compensation: string }> = [];
+
+  // 收集已完成（captured）且是 failedStep 的前驱的步骤
+  // 按拓扑逆序排列以确保先补偿后执行的步骤
+  const topoReversed = [...dag.topoOrder].reverse();
+
+  for (const stepId of topoReversed) {
+    if (stepId === failedStepId) continue;
+    const state = execution.steps.get(stepId);
+    if (!state || state.status !== "captured") continue;
+
+    const stepDef = workflow.steps.find((s) => (s.id ?? s.use) === stepId);
+    if (stepDef?.compensation) {
+      stepsToCompensate.push(stepId);
+      compensations.push({ stepId, compensation: stepDef.compensation });
+    }
+  }
+
+  return { stepsToCompensate, compensations };
+}
+
+/**
+ * §67 标记步骤进入补偿状态
+ */
+export function markCompensating(
+  execution: WorkflowExecution,
+  stepIds: string[],
+): WorkflowExecution {
+  const newSteps = new Map(execution.steps);
+  for (const id of stepIds) {
+    const step = newSteps.get(id);
+    if (step) {
+      newSteps.set(id, { ...step, status: "failed" as StepStatus, lastError: "compensation_triggered" });
+    }
+  }
+  return { ...execution, steps: newSteps, status: "failed" };
+}
+
+/**
+ * §39 暂停工作流执行
+ */
+export function pauseExecution(execution: WorkflowExecution): WorkflowExecution {
+  if (execution.status !== "running") return execution;
+  return { ...execution, status: "paused" };
+}
+
+/**
+ * §39 恢复工作流执行
+ */
+export function resumeExecution(execution: WorkflowExecution): WorkflowExecution {
+  if (execution.status !== "paused") return execution;
+  return { ...execution, status: "running" };
+}
+
+/**
+ * §39 取消工作流执行
+ */
+export function cancelExecution(execution: WorkflowExecution): WorkflowExecution {
+  return { ...execution, status: "cancelled" };
+}
+
+/**
  * §32 生成工作流执行回放数据
  */
 export function generateReplayData(
@@ -373,4 +445,25 @@ export function generateReplayData(
   const endTimes = steps.map((s) => s.completedAt ?? 0);
   const totalDuration = Math.max(...endTimes, 0) - execution.startedAt;
   return { steps, totalDuration, status: execution.status };
+}
+
+/**
+ * §7 工作流执行进度摘要
+ */
+export function getExecutionProgress(execution: WorkflowExecution): {
+  total: number;
+  completed: number;
+  failed: number;
+  running: number;
+  pending: number;
+  percent: number;
+} {
+  const steps = Array.from(execution.steps.values());
+  const total = steps.length;
+  const completed = steps.filter((s) => s.status === "captured").length;
+  const failed = steps.filter((s) => s.status === "failed").length;
+  const running = steps.filter((s) => s.status === "dispatched" || s.status === "awaiting_send" || s.status === "waiting_output").length;
+  const pending = steps.filter((s) => s.status === "pending").length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return { total, completed, failed, running, pending, percent };
 }

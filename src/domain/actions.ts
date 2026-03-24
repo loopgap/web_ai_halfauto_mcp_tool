@@ -26,6 +26,9 @@ import type {
 } from "../types";
 import * as api from "../api";
 import * as injection from "./injection";
+import { createLogger } from "./logging";
+
+const logger = createLogger("actions");
 
 const MAX_TEXT_LEN = 120_000;
 const MAX_INPUT_LEN = 50_000;
@@ -455,8 +458,10 @@ export async function initializeApp(dispatch: Dispatch<AppAction>): Promise<void
     }
     dispatch({ type: "SET_INITIALIZED", payload: true });
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "dashboard", state: "ready" } });
+    logger.info("app_initialized", { skills: skills.length, workflows: workflows.length, runs: runs.length });
   } catch (e) {
     const error = e as ApiError;
+    logger.error("init_failed", { code: error.code, message: sanitizeForLog(error.message ?? "") });
     console.error("Init error:", sanitizeForLog(JSON.stringify(error)));
     dispatch({ type: "SET_ERROR", payload: error });
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "dashboard", state: "error" } });
@@ -507,9 +512,12 @@ export async function executeDispatchFlow(
   const traceId = `t${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const runId = crypto.randomUUID();
 
+  logger.info("dispatch_start", { skill: params.skill.id, target: params.targetId }, traceId);
+
   // ─── 0. 安全预检 ───
   // 速率限制检查
   if (!checkRateLimit("dispatch", 15)) {
+    logger.warn("rate_limit_exceeded", { action: "dispatch" }, traceId);
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
     return { success: false, error: { code: "SECURITY_RATE_LIMIT_EXCEEDED", message: "操作频率超出安全阈值，请稍后重试", trace_id: traceId } };
   }
@@ -533,6 +541,7 @@ export async function executeDispatchFlow(
   // Prompt 注入检测
   const injectionCheck = detectPromptInjection(renderedPrompt);
   if (injectionCheck.detected) {
+    logger.warn("prompt_injection_blocked", { patterns: injectionCheck.patterns }, traceId);
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
     return {
       success: false,
@@ -547,7 +556,7 @@ export async function executeDispatchFlow(
   // PII 检测（仅警告，不阻止）
   const piiCheck = detectPII(renderedPrompt);
   if (piiCheck.detected) {
-    console.warn(`[Security] PII detected in prompt: ${piiCheck.types.join(", ")}. Consider redacting.`);
+    logger.warn("pii_detected_in_prompt", { types: piiCheck.types }, traceId);
   }
 
   const { finalPrompt, audit: injectionAudit } = buildInjectedPrompt(
@@ -731,6 +740,8 @@ export async function executeDispatchFlow(
     step.status = "failed";
     step.error_code = error.code;
     step.ts_end = Date.now();
+
+    logger.error("dispatch_failed", { error_code: error.code, run_id: runId }, traceId);
 
     dispatch({ type: "ADD_RUN", payload: run });
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });

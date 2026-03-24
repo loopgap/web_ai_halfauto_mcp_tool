@@ -9,7 +9,8 @@ import { defaultRuntimeState, getSlmSummary, recommendedModels, type SlmRole } f
 import { computeIntentStats } from "../domain/feedback-learning";
 import { exportConfigBundle, serializeBundle, downloadAsFile, validateConfigBundle, readFileAsText, exportRunsToMarkdown } from "../domain/config-export";
 import FocusRecipeEditor from "../components/FocusRecipeEditor";
-import { Settings as SettingsIcon, Route, Cpu, AlertTriangle, ChevronDown, ChevronRight, HeartPulse, BarChart3, Focus, Download, Upload, FileText, Database, Trash2 } from "lucide-react";
+import { Settings as SettingsIcon, Route, Cpu, AlertTriangle, ChevronDown, ChevronRight, HeartPulse, BarChart3, Focus, Download, Upload, FileText, Database, Trash2, Stethoscope, ClipboardCopy } from "lucide-react";
+import { runHealthCheck, exportDiagnosticBundle, type HealthReport } from "../domain/health-check";
 
 export default function SettingsPage() {
   const { routerRules, errorCatalog, initialized, stateHistory, governanceChanges, skills, workflows, targets, runs } = useAppState();
@@ -31,6 +32,10 @@ export default function SettingsPage() {
   const [vaultLoading, setVaultLoading] = useState(false);
   const [vaultMsg, setVaultMsg] = useState("");
   const [showVault, setShowVault] = useState(false);
+  const [showDiag, setShowDiag] = useState(false);
+  const [diagReport, setDiagReport] = useState<HealthReport | null>(null);
+  const [diagLoading, setDiagLoading] = useState(false);
+  const [diagCopied, setDiagCopied] = useState(false);
 
   // §4 SLM — 缓存计算结果
   const slmRuntime = useMemo(() => defaultRuntimeState(), []);
@@ -131,6 +136,27 @@ export default function SettingsPage() {
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  }
+
+  async function handleRunDiagnostics() {
+    setDiagLoading(true);
+    try {
+      const report = await runHealthCheck();
+      setDiagReport(report);
+    } catch {
+      // health check itself should not fail
+    } finally {
+      setDiagLoading(false);
+    }
+  }
+
+  function handleCopyDiagBundle() {
+    if (!diagReport) return;
+    const text = exportDiagnosticBundle(diagReport);
+    navigator.clipboard.writeText(text).then(() => {
+      setDiagCopied(true);
+      setTimeout(() => setDiagCopied(false), 2000);
+    });
   }
 
   async function handleLoadVaultStats() {
@@ -735,6 +761,64 @@ export default function SettingsPage() {
             </div>
             {vaultMsg && (
               <div className="text-xs p-2.5 rounded-lg bg-slate-500/10 text-slate-300">{vaultMsg}</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* §101 Health Check & Diagnostics */}
+      <div className="glass-card-static p-5">
+        <button
+          className="w-full flex items-center justify-between"
+          onClick={() => { setShowDiag(!showDiag); if (!showDiag && !diagReport) handleRunDiagnostics(); }}
+        >
+          <h3 className="text-base font-semibold flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+              <Stethoscope size={16} className="text-emerald-400" />
+            </div>
+            运行时诊断
+          </h3>
+          <div className="flex items-center gap-2">
+            {diagReport && (
+              <span className={`badge text-[10px] ${
+                diagReport.overall === "pass" ? "badge-green" : diagReport.overall === "warn" ? "badge-yellow" : "badge-red"
+              }`}>
+                {diagReport.overall === "pass" ? "健康" : diagReport.overall === "warn" ? "警告" : "异常"}
+              </span>
+            )}
+            {showDiag ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
+          </div>
+        </button>
+        {showDiag && (
+          <div className="mt-4 space-y-3">
+            {diagLoading && <p className="text-xs text-slate-500 animate-pulse">正在运行诊断检查...</p>}
+            {diagReport && (
+              <>
+                <div className="space-y-1.5">
+                  {diagReport.checks.map((c) => (
+                    <div key={c.name} className="flex items-center justify-between px-3.5 py-2.5 inner-panel rounded-xl text-xs">
+                      <div className="flex items-center gap-2">
+                        <span>{c.status === "pass" ? "✅" : c.status === "warn" ? "⚠️" : "❌"}</span>
+                        <span className="text-slate-300">{c.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-400">{c.message}</span>
+                        <span className="text-slate-600">{Math.round(c.durationMs)}ms</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-xs text-slate-500">
+                  DOM {diagReport.environment.domNodes} 节点 · {diagReport.environment.onLine ? "在线" : "离线"} · {diagReport.environment.memoryMB ?? "N/A"} MB 内存
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn-secondary text-sm" onClick={handleRunDiagnostics} disabled={diagLoading}>重新检查</button>
+                  <button className="btn-secondary text-sm flex items-center gap-1" onClick={handleCopyDiagBundle}>
+                    <ClipboardCopy size={12} />
+                    {diagCopied ? "已复制!" : "复制诊断报告"}
+                  </button>
+                </div>
+              </>
             )}
           </div>
         )}

@@ -55,12 +55,23 @@ console.log(`  AI Workbench — 本地 CI 预检${isHook ? ' (hook)' : ''}`);
 console.log(`  模式: ${isFast ? 'fast' : 'full'}`);
 console.log('═══════════════════════════════════════');
 
-const rustHost = output('rustc -vV', { cwd: resolve(ROOT, 'src-tauri') })
-  .split(/\r?\n/)
-  .find((line) => line.startsWith('host:'))
-  ?.split(':')[1]
-  ?.trim() || 'unknown';
+const rustHost = (() => {
+  try {
+    return output('rustc -vV', { cwd: resolve(ROOT, 'src-tauri') })
+      .split(/\r?\n/)
+      .find((line) => line.startsWith('host:'))
+      ?.split(':')[1]
+      ?.trim() || 'unknown';
+  } catch {
+    return 'not-installed';
+  }
+})();
+const hasRust = rustHost !== 'not-installed';
 const useRustTestFallback = isWindows && rustHost.endsWith('windows-gnu');
+
+if (!hasRust) {
+  console.log('\nℹ Rust 工具链未安装，跳过 Rust 相关检查 (CI 将执行完整验证)');
+}
 
 if (doClean) {
   runStep('清理构建缓存', 'node scripts/clean.mjs hard');
@@ -73,14 +84,16 @@ runStep('TypeScript 检查', 'pnpm exec tsc --noEmit');
 if (!isFast) {
   runStep('前端构建', 'pnpm exec vite build');
 }
-runStep('Rust cargo check', 'cargo check --jobs 1', { cwd: resolve(ROOT, 'src-tauri') });
-if (!isFast) {
-  runStep('Rust clippy', 'cargo clippy --jobs 1 -- -D warnings -A dead_code', { cwd: resolve(ROOT, 'src-tauri') });
-  if (useRustTestFallback) {
-    console.log(`\nℹ 检测到本机 Rust host 为 ${rustHost}，跳过会在 Windows GNU 本机失真的 cargo test 运行，改为检查测试目标可编译。`);
-    runStep('Rust tests (check fallback)', 'cargo check --tests --jobs 1', { cwd: resolve(ROOT, 'src-tauri') });
-  } else {
-    runStep('Rust tests', 'cargo test --jobs 1 -- --nocapture', { cwd: resolve(ROOT, 'src-tauri') });
+if (hasRust) {
+  runStep('Rust cargo check', 'cargo check --jobs 1', { cwd: resolve(ROOT, 'src-tauri') });
+  if (!isFast) {
+    runStep('Rust clippy', 'cargo clippy --jobs 1 -- -D warnings -A dead_code', { cwd: resolve(ROOT, 'src-tauri') });
+    if (useRustTestFallback) {
+      console.log(`\nℹ 检测到本机 Rust host 为 ${rustHost}，跳过会在 Windows GNU 本机失真的 cargo test 运行，改为检查测试目标可编译。`);
+      runStep('Rust tests (check fallback)', 'cargo check --tests --jobs 1', { cwd: resolve(ROOT, 'src-tauri') });
+    } else {
+      runStep('Rust tests', 'cargo test --jobs 1 -- --nocapture', { cwd: resolve(ROOT, 'src-tauri') });
+    }
   }
 }
 runStep('环境检查', 'node scripts/check-environment.mjs');

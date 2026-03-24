@@ -129,6 +129,18 @@ try {
   ok('tsc --noEmit 通过');
 } catch { warn('TypeScript 存在类型错误'); }
 
+// ── 4b. 前端单元测试 ──
+console.log('\n🧪 单元测试:');
+try {
+  const hasVitest = existsSync(resolve(ROOT, 'node_modules', '.bin', 'vitest'));
+  if (hasVitest) {
+    execSync('npx vitest run --reporter=verbose 2>&1', { cwd: ROOT, stdio: 'ignore', shell: true, timeout: 120000 });
+    ok('vitest 全部通过');
+  } else {
+    warn('vitest 未安装，跳过前端单元测试 (npm install 后可用)');
+  }
+} catch { warn('vitest 测试存在失败项'); }
+
 // ── 5. Cargo ──
 console.log('\n🦀 Cargo:');
 try {

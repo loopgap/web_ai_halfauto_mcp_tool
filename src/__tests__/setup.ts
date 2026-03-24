@@ -5,6 +5,14 @@ import { vi } from "vitest";
 // ── Mock @tauri-apps/api/core ──
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn().mockRejectedValue(new Error("invoke() not mocked for this test")),
+  transformCallback: vi.fn().mockReturnValue(0),
+}));
+
+// ── Mock @tauri-apps/api/event ──
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn().mockResolvedValue(() => {}),
+  emit: vi.fn(),
+  once: vi.fn().mockResolvedValue(() => {}),
 }));
 
 // ── Mock @tauri-apps/plugin-notification ──

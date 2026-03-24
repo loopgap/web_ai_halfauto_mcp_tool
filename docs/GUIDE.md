@@ -1,6 +1,6 @@
 # AI Workbench 完整使用指南
 
-> 版本 v0.3.0 · 最后更新 2026-03-01
+> 版本 v0.4.0 · 最后更新 2026-03-22
 
 ---
 
@@ -31,7 +31,7 @@ AI Workbench 是一个 **本地优先、安全优先** 的 AI 工作台桌面应
 | TypeScript | ~5.8 |
 | Rust | 1.93+ |
 | Tailwind CSS | v4 |
-| Vite | 6.x |
+| Vite | 7.x |
 
 **核心能力：**
 
@@ -137,6 +137,8 @@ ai-workbench/
 │   │   ├── injection.ts        # 指令注入引擎
 │   │   ├── workflow-engine.ts  # §7 DAG 执行引擎
 │   │   ├── self-heal.ts        # §8 自愈引擎 (断路器 + 补偿矩阵)
+│   │   ├── health-check.ts    # §101 运行时健康诊断 (6 项检查)
+│   │   ├── logging.ts         # §102 结构化日志 (trace_id + 环形缓冲)
 │   │   ├── slm.ts              # §4 本地 SLM 管理框架
 │   │   └── feedback-learning.ts # §5 路由反馈学习
 │   ├── store/
@@ -483,34 +485,73 @@ pnpm ci:governance
 
 ### 9.1 TypeScript 类型检查
 
-```powershell
+```bash
 pnpm exec tsc --noEmit
 ```
 
 期望输出：无错误。
 
-### 9.2 Rust 单元测试
+### 9.2 前端单元测试 (Vitest)
 
-```powershell
+```bash
+# 运行全部测试
+npm test
+
+# 监听模式 (开发时推荐)
+npm run test:watch
+
+# 生成覆盖率报告
+npm run test:coverage
+
+# CI 模式 (JUnit 输出)
+npm run test:ci
+```
+
+测试覆盖的模块：
+- `workflow-engine` — DAG 拓扑、步骤推进、补偿、暂停/恢复/取消、合并策略
+- `actions` — 安全检查 (注入/PII/限流)、状态转换、恢复动作
+- `self-heal` — 熔断器、策略匹配、补偿矩阵
+- `injection` — 注入策略排序、mutex、长度限制
+- `feedback-learning` — 意图统计、权重自适应
+- `slm` — 设备选择、CPU 安全模式
+- `logging` — 日志工厂、缓冲区、级别过滤
+- `persistence` — 状态持久化与恢复
+- `health-check` — 运行时诊断
+- `config-export` — 配置导出/导入
+- `run-statistics` — 运行统计
+- `api-retry` — 重试退避
+- `AppStore` — 全局状态 reducer
+
+### 9.3 Rust 单元测试
+
+```bash
 cd src-tauri
 cargo test
 ```
 
 期望输出：41/41 通过（27 配置 + 12 OS + 2 治理）。
 
-### 9.3 治理合约测试
+### 9.4 治理合约测试
 
-```powershell
+```bash
 node scripts/test-governance-api-contract.mjs
 ```
 
 期望输出：32/32 通过。
 
-### 9.4 一键全量测试
+### 9.5 一键全量测试
 
-```powershell
+```bash
 # 在 ai-workbench 目录下
-pnpm exec tsc --noEmit; cd src-tauri; cargo test; cd ..; node scripts/test-governance-api-contract.mjs
+pnpm exec tsc --noEmit && pnpm test && cd src-tauri && cargo test && cd .. && node scripts/test-governance-api-contract.mjs
+```
+
+### 9.6 环境诊断
+
+```bash
+node scripts/doctor.mjs            # 完整诊断 (含 vitest)
+node scripts/doctor.mjs --report   # 诊断并输出报告文件
+node scripts/doctor.mjs --fix      # 诊断并自动修复
 ```
 
 ---
@@ -579,6 +620,55 @@ Rust Backend (lib.rs / config.rs)
 ### 10.9 Vault 存储管理（§95）
 
 在 Settings 页面查看 Vault 磁盘占用，可清理 N 天前的运行记录释放空间。
+
+### 10.10 运行时诊断（§101）
+
+在 Settings 页面底部"运行时诊断"面板可一键检查：
+
+| 检查项 | 说明 | 异常阈值 |
+|--------|------|----------|
+| localStorage | 读写可用性 | 不可用 → ❌ |
+| 内存 | JS 堆使用率 | >85% → ⚠️ |
+| DOM 节点 | 页面复杂度 | >5000 → ⚠️ |
+| 后端连接 | Tauri invoke 探测 | 不可达 → ❌ |
+| 日志系统 | 5 分钟错误计数 | >10 → ⚠️ |
+| 自愈引擎 | 熔断器状态 | 有打开 → ⚠️ |
+
+点击"复制诊断报告"可一键将完整环境信息 + 检查结果 + 最近日志复制到剪切板，方便提交 Issue。
+
+### 10.11 结构化日志（§102）
+
+所有关键业务动作（dispatch、capture、route、init）自动记录带 trace_id 的结构化日志：
+
+```typescript
+import { createLogger } from "./domain/logging";
+const log = createLogger("my-module");
+log.info("operation_name", { key: "value" });
+```
+
+日志存储在 localStorage 环形缓冲区（200 条），可通过 `exportLogs()` 导出文本或在诊断面板中查看。
+
+### 10.12 发布流程
+
+```bash
+# 1. 确保所有测试通过
+npm test && cd src-tauri && cargo test && cd ..
+
+# 2. 版本打标 (自动同步 package.json + tauri.conf.json + Cargo.toml)
+npm run release:tag patch    # 0.3.0 → 0.3.1
+npm run release:tag minor    # 0.3.0 → 0.4.0
+npm run release:tag major    # 0.3.0 → 1.0.0
+npm run release:tag 1.2.3    # 指定版本
+
+# 3. 推送触发 CI/CD (自动构建 + 发布)
+npm run release:tag patch -- --push
+# 或手动: git push origin HEAD && git push origin v0.4.0
+```
+
+GitHub Actions Release 工作流将自动：
+1. 创建 Draft Release
+2. 构建 Linux (.deb + .AppImage) 和 Windows (.msi + .exe)
+3. 上传产物并发布
 
 ---
 

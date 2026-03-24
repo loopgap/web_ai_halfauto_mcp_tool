@@ -39,7 +39,12 @@
     "ci:local:clean": "node scripts/ci-local.mjs --clean",
     "ci:linux": "node scripts/ci-linux.mjs",
     "release:preflight": "node scripts/release-preflight.mjs",
-    "release:preflight:debug": "node scripts/release-preflight.mjs --debug"
+    "release:preflight:debug": "node scripts/release-preflight.mjs --debug",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ci": "vitest run --reporter=junit --outputFile=test-results.xml",
+    "release:tag": "node scripts/release-tag.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
@@ -55,13 +60,18 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.10.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "babel-plugin-transform-remove-console": "^6.9.4",
+    "@vitest/coverage-v8": "^3.2.1",
+    "jsdom": "^26.1.0",
     "terser": "^5.46.0",
     "typescript": "~5.8.3",
-    "vite": "^7.0.4"
+    "vite": "^7.0.4",
+    "vitest": "^3.2.1"
   }
 }

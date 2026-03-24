@@ -2,6 +2,37 @@
 
 All notable changes to AI Workbench.
 
+## [0.4.0] — 可靠性、可观测性与开箱即用增强
+
+### 新增
+- **结构化日志** (§102) — `logging.ts` 模块：`createLogger(module)` 工厂 + trace_id + localStorage 环形缓冲区 (200 条) + `exportLogs()` 诊断导出
+- **运行时健康检查** (§101) — `health-check.ts`：一键诊断 6 项指标（localStorage / 内存 / DOM / 后端连通 / 日志系统 / 自愈引擎）
+- **Settings 诊断面板** — 运行时诊断集成到 Settings 页面，含状态指示、一键复制诊断报告
+- **工作流补偿执行** (§67) — `getCompensationPlan()` 逆拓扑序回滚 + `markCompensating()` 标记 + `pauseExecution/resumeExecution/cancelExecution` 生命周期控制
+- **工作流进度追踪** — `getExecutionProgress()` 返回 total/completed/failed/running/pending/percent
+- **DAG 校验增强** — `validateWorkflowDag()` 循环检测、缺少补偿/重试策略警告
+- **Actions 结构化日志集成** — dispatch_start、rate_limit、PII、injection 关键控制点日志
+- **自动化发布脚本** — `scripts/release-tag.mjs`：版本同步 (package.json + tauri.conf.json + Cargo.toml) → git tag → 可选 `--push` 触发 CI
+- **CI 单元测试** — `ci.yml` 新增 vitest 步骤 + JUnit 报告上传
+- **Doctor 脚本增强** — `doctor.mjs` 新增 vitest 检测与自动运行
+
+### 测试
+- 8 个新测试套件，覆盖原无测试模块：
+  - `actions.test.ts` — 安全检查、限流、状态转换 (13 组)
+  - `self-heal.test.ts` — 熔断器、策略匹配、补偿矩阵
+  - `injection.test.ts` — 注入策略、优先级、mutex、长度限制
+  - `feedback-learning.test.ts` — 意图统计、权重自适应
+  - `slm.test.ts` — 设备选择、CPU 安全模式、质量基线
+  - `logging.test.ts` — 日志工厂、缓冲区、级别过滤
+  - `persistence.test.ts` — 状态持久化与恢复、节流中间件
+  - `dictionary.test.ts` — UI 字典完整性
+  - `health-check.test.ts` — 运行时诊断与导出
+- `workflow-engine.test.ts` 扩展：新增 12 个 describe 块 (getReadySteps / advanceStep / canRetryStep / 补偿 / 暂停恢复取消 / 进度 / DAG 校验 / mergeResults)
+
+### 变更
+- `package.json` 新增 devDependencies: vitest ^3.2.1, @testing-library/react, @vitest/coverage-v8, jsdom
+- `package.json` 新增 scripts: test / test:watch / test:coverage / test:ci / release:tag
+
 ## [0.3.0] — 性能优化与 UX 增强
 
 ### 新增
