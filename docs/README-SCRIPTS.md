@@ -1,277 +1,75 @@
-# AI Workbench 自动化脚本说明
+# AI Workbench 脚本入口
 
-## 快速开始
-
-```bash
-# 一键初始化（Linux / macOS / Windows 通用）
-node scripts/setup.mjs
-
-# 启动 Tauri 全栈开发
-pnpm start
-
-# 仅前端开发 (http://localhost:1420)
-pnpm start:fe
-
-# 构建发布版
-pnpm build:app
-
-# 环境诊断
-pnpm doctor
-```
-
----
-
-## 跨平台脚本 (.mjs)
-
-所有核心脚本均使用 Node.js `.mjs` 编写，仅依赖 Node.js 内置模块，**无需额外安装任何依赖**，Linux / macOS / Windows 通用。
-
-| 脚本 | pnpm alias | 说明 |
-|------|-----------|------|
-| `scripts/dev.mjs` | `pnpm start` | 开发服务器启动 |
-| `scripts/setup.mjs` | `pnpm setup` | 环境初始化 |
-| `scripts/doctor.mjs` | `pnpm doctor` | 环境诊断 |
-| `scripts/build.mjs` | `pnpm build:app` | 构建前端 + Rust |
-| `scripts/clean.mjs` | `pnpm clean` | 清理构建缓存 |
-| `scripts/install-hooks.mjs` | `pnpm hooks:install` | 安装并启用 Git hooks |
-| `scripts/ci-linux.mjs` | `pnpm ci:linux` | Linux 预演 |
-| `scripts/ci-local.mjs` | `pnpm ci:local` | 本地完整 CI 预检 |
-| `scripts/release-preflight.mjs` | `pnpm release:preflight` | 发布前预检 |
-
-### dev.mjs — 开发服务器
+## 推荐入口
 
 ```bash
-node scripts/dev.mjs              # 启动 Tauri 全栈
-node scripts/dev.mjs --frontend   # 仅前端 (Vite :1420)
-node scripts/dev.mjs --build      # 构建发布版
-node scripts/dev.mjs --check      # 仅检查环境
+pnpm bootstrap   # 新机器首选：自检 + 安装 + 完整门禁
+pnpm doctor      # 诊断环境和关键测试
+pnpm env:fix     # 仅修复环境问题
+pnpm ci:local    # 本地完整门禁
+pnpm git:ship    # 测试全绿后自动 commit + push origin/main
 ```
 
-### setup.mjs — 环境初始化
+## 命令说明
 
-```bash
-node scripts/setup.mjs
-```
-
-自动执行：
-- ✅ 检查 Node.js / pnpm / Cargo / Rust 工具链
-- ✅ Linux 系统包检查 (libwebkit2gtk 等)
-- ✅ pnpm install --frozen-lockfile
-- ✅ 安装并启用 Git hooks
-- ✅ cargo check
-- ✅ 创建 `~/.ai-workbench/` 配置目录层级
-
-### doctor.mjs — 环境诊断
-
-```bash
-node scripts/doctor.mjs            # 运行诊断
-node scripts/doctor.mjs --fix      # 诊断并自动修复
-node scripts/doctor.mjs --report   # 生成 doctor-report.txt
-```
-
-检查项：
-- 💻 系统信息（平台/架构/内存）
-- 🔧 工具链（Node.js/pnpm/Cargo/Rust/Git）
-- 🪝 Git hooks 是否启用
-- 📦 项目状态（package.json/node_modules/lock file）
-- 📝 TypeScript（tsc --noEmit）
-- 🦀 Cargo（cargo check）
-- 📂 配置目录完整性
-- 💾 磁盘占用
-- 🌐 端口 1420 可用性
-
-### build.mjs — 构建
-
-```bash
-node scripts/build.mjs             # 发布构建 (Release)
-node scripts/build.mjs --debug     # 调试构建
-node scripts/build.mjs --clean     # 清理后构建
-```
-
-自动检测 CPU 核心数并优化并行编译 (使用核心数的一半)。
-
-### install-hooks.mjs — 安装 Git hooks
-
-```bash
-node scripts/install-hooks.mjs
-```
-
-自动执行：
-- ✅ 设置 `git config core.hooksPath .githooks`
-- ✅ 标记仓库内 hooks 为可执行
-
-### ci-local.mjs — 本地完整 CI 预检
-
-```bash
-node scripts/ci-local.mjs
-node scripts/ci-local.mjs --fast
-node scripts/ci-local.mjs --clean
-```
-
-自动执行：
-- ✅ `pnpm install --frozen-lockfile`（full 模式）
-- ✅ `pnpm install --frozen-lockfile`
-- ✅ TypeScript check
-- ✅ Vite build（full 模式）
-- ✅ cargo check
-- ✅ cargo clippy（full 模式）
-- ✅ cargo test / cargo check --tests fallback（full 模式）
-- ✅ governance 检查与 API contract test
-
-### ci-linux.mjs — Linux 预演
-
-```bash
-node scripts/ci-linux.mjs
-```
-
-自动执行：
-- ✅ 校验 CI workflow 中的 Linux runner / 依赖声明
-- ✅ 校验 release workflow 中的 Linux 构建路径
-- ✅ 检测 Docker / WSL / act 可用性
-- ✅ 无 Linux 执行器时降级为静态一致性检查，并明确提示由远端 GitHub Actions 完成真实 Linux 验证
-
-### release-preflight.mjs — 发布前预检
-
-```bash
-node scripts/release-preflight.mjs
-node scripts/release-preflight.mjs --debug
-```
-
-自动执行：
-- ✅ 先跑完整 `ci-local`
-- ✅ 再做当前平台 Tauri bundle 构建
-
-### clean.mjs — 清理
-
-```bash
-node scripts/clean.mjs soft        # 仅增量缓存 (默认)
-node scripts/clean.mjs hard        # 所有构建产物 (含 target)
-node scripts/clean.mjs full        # 完全重置 (含 node_modules)
-```
-
----
-
-## Windows .bat 文件（双击启动）
-
-Windows 用户仍可使用根目录下的 `.bat` 文件双击启动（通过 PowerShell 脚本）：
-
-| 文件 | 说明 |
+| 命令 | 说明 |
 |------|------|
-| `start.bat` | 交互式菜单，包含启动/构建/诊断 |
-| `setup.bat` | 调用 `scripts/setup.ps1` |
-| `doctor.bat` | 调用 `scripts/doctor.ps1` |
-| `build.bat` | 调用 `scripts/dev.ps1 -Build` |
+| `pnpm bootstrap` | 自动检测工具链、安装依赖、初始化配置、安装 hooks、跑完整门禁 |
+| `pnpm setup` | `pnpm bootstrap` 的兼容别名 |
+| `pnpm env:check` | 只检查环境状态，不做修改 |
+| `pnpm env:fix` | 尝试修复环境问题并补齐配置目录 |
+| `pnpm doctor` | 诊断环境、hooks、TypeScript、Vitest、Cargo、governance |
+| `pnpm doctor -- --fix` | 修复环境问题后继续做诊断 |
+| `pnpm ci:local` | 执行本地完整 CI：env check、tsc、vitest、vite build、cargo、governance |
+| `pnpm ci:local -- --fast` | 执行快速门禁：env check、tsc、核心治理检查 |
+| `pnpm first-run` | 首次启动时的引导入口，内部委托 `env:fix` + `bootstrap` |
+| `pnpm git:ship` | 只暂存安全范围文件，跑完整门禁，通过后 commit 并 push `origin/main` |
+| `pnpm hooks:install` | 启用 `.githooks` |
 
----
+## 自动化行为
 
-## pnpm 脚本速查
+### `pnpm bootstrap`
 
-```bash
-# ── 开发 ──
-pnpm start                # Tauri 全栈开发
-pnpm start:fe             # 仅前端 (Vite)
-pnpm start:build          # 构建发布版
-pnpm dev                  # Vite dev server (裸)
+阶段固定为：
+- 环境与系统依赖检测
+- 自动修复可修复项
+- `pnpm install --frozen-lockfile`
+- `~/.ai-workbench/` 目录初始化
+- Git hooks 安装
+- `cargo check`
+- `pnpm ci:local`
 
-# ── 环境 ──
-pnpm setup                # 环境初始化
-pnpm hooks:install        # 启用 Git hooks
-pnpm doctor               # 环境诊断
-pnpm doctor:report        # 生成诊断报告
-pnpm doctor:fix           # 诊断并自动修复
+阻断策略：
+- 缺管理员权限：停止并输出精确命令
+- 网络失败：停止并保留已完成阶段
+- 测试失败：停止，不继续 commit 或 push
 
-# ── 构建 ──
-pnpm build:app            # Release 构建
-pnpm build:app:debug      # Debug 构建
-pnpm build:app:clean      # 清理后构建
-pnpm build                # tsc + vite build (仅前端)
+### `pnpm git:ship`
 
-# ── 清理 ──
-pnpm clean                # 增量缓存
-pnpm clean:hard           # 所有构建产物
-pnpm clean:full           # 完全重置
+默认行为：
+- 当前分支必须是 `main`
+- 远端必须是 GitHub `origin`
+- 如果没有已暂存文件，只自动暂存 `README/QUICKSTART/docs/scripts/package/.githooks/.github` 范围
+- 运行完整 `pnpm ci:local`
+- 生成 conventional commit message
+- `git push origin main`
 
-# ── 检查 ──
-pnpm check                # TypeScript 类型检查
-pnpm check:rust           # Cargo check
-pnpm check:all            # TS + Rust
-pnpm check:clippy         # Rust clippy 严格检查
-pnpm ci:local:fast        # 本地快速门禁
-
-# ── 测试 ──
-pnpm test:governance:api  # 治理 API 合约
-pnpm test:governance:rust # Rust 治理测试
-pnpm test:all             # TS + Governance + Rust
-
-# ── 治理 ──
-pnpm env:check            # 环境检查
-pnpm governance:validate  # 治理资产校验
-pnpm governance:evidence  # 证据包生成
-pnpm ci:governance        # CI 治理流水线
-
-# ── 本地 CI / 发布 ──
-pnpm ci:linux             # Linux 预演
-pnpm ci:local             # 本地完整 CI 预检
-pnpm ci:local:clean       # 清理后跑本地完整 CI
-pnpm release:preflight    # 当前平台发布前预检
-pnpm release:preflight:debug # Debug 模式发布前预检
-```
-
----
-
-## 发布
-
-使用 Git tag 触发 GitHub Actions 自动构建：
+常用参数：
 
 ```bash
-# 发布所有平台
-git tag v0.1.0 && git push origin v0.1.0
-
-# 仅 Linux
-git tag v0.1.0-linux && git push origin v0.1.0-linux
-
-# 仅 Windows
-git tag v0.1.0-windows && git push origin v0.1.0-windows
+pnpm git:ship -- --type chore --scope workflow --message "unify bootstrap automation"
+pnpm git:ship -- --no-push
+pnpm git:ship -- --all
 ```
 
-产物：Linux (.deb / .AppImage)、Windows (.msi / .exe NSIS)。
-详见 `.github/workflows/release.yml`。
+## Hooks
 
----
+- `pre-commit`：运行 `pnpm ci:local -- --fast`
+- `pre-push`：运行 `pnpm ci:local`
+- `commit-msg`：校验 conventional commits
 
-## 常见问题
+## 兼容与范围
 
-### Q: 双击 start.bat 没反应 / 闪退
-1. 右键 → "以管理员身份运行"
-2. 或在命令提示符中手动运行：`start.bat`
-
-### Q: "pnpm 不是内部命令"
-运行 `setup.bat` 或手动安装 Node.js: https://nodejs.org
-
-### Q: TypeScript 编译错误
-```powershell
-pnpm exec tsc --noEmit  # 查看具体错误
-```
-
-### Q: Rust 编译错误
-```powershell
-cd src-tauri
-cargo check       # 查看具体错误
-cargo clean       # 清理后重新编译
-```
-
-### Q: 端口 1420 被占用
-```powershell
-# 查找占用进程
-netstat -aon | findstr :1420
-# 终止进程 (替换 PID)
-taskkill /PID <PID> /F
-```
-
-### Q: WebView2 窗口白屏
-安装最新 WebView2 运行时: https://developer.microsoft.com/en-us/microsoft-edge/webview2/
-
-### Q: 如何获取完整诊断报告？
-```powershell
-.\scripts\doctor.ps1 -Report
-# 报告保存在项目根目录 doctor-report.txt
-```
+- Linux 自动安装当前只正式支持 `apt`
+- Windows 自动化当前聚焦工具链检测、引导和项目依赖闭环
+- macOS 当前仅保留手动支持，不纳入本轮自动化闭环

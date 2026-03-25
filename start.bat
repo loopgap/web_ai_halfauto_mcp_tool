@@ -61,7 +61,7 @@ cls
 echo.
 echo   [*] Starting Fullstack Dev Server...
 echo.
-call pnpm start
+call node scripts\dev.mjs
 pause
 goto menu
 
@@ -71,7 +71,7 @@ cls
 echo.
 echo   [*] Starting Frontend Sandbox...
 echo.
-call pnpm start:fe
+call node scripts\dev.mjs --frontend
 pause
 goto menu
 
@@ -81,7 +81,7 @@ cls
 echo.
 echo   [*] Building Current Platform Release...
 echo.
-call pnpm build:app
+call node scripts\build.mjs
 if %ERRORLEVEL% equ 0 (
     echo.
     echo   [OK] Build successful.
@@ -98,7 +98,7 @@ cls
 echo.
 echo   [*] Installing Git Hooks...
 echo.
-call pnpm hooks:install
+call node scripts\install-hooks.mjs
 pause
 goto menu
 
@@ -108,7 +108,7 @@ cls
 echo.
 echo   [*] Running Local Fast Gate...
 echo.
-call pnpm ci:local:fast
+call node scripts\ci-local.mjs --fast
 if %ERRORLEVEL% equ 0 (
     echo.
     echo   [OK] Local fast gate passed.
@@ -125,7 +125,7 @@ cls
 echo.
 echo   [*] Running Local CI Gate...
 echo.
-call pnpm ci:local
+call node scripts\ci-local.mjs
 if %ERRORLEVEL% equ 0 (
     echo.
     echo   [OK] Local CI gate passed.
@@ -142,7 +142,7 @@ cls
 echo.
 echo   [*] Running Linux Preflight...
 echo.
-call pnpm ci:linux
+call node scripts\ci-linux.mjs
 if %ERRORLEVEL% equ 0 (
     echo.
     echo   [OK] Linux preflight passed.
@@ -159,7 +159,7 @@ cls
 echo.
 echo   [*] Running Release Preflight...
 echo.
-call pnpm release:preflight
+call node scripts\release-preflight.mjs
 if %ERRORLEVEL% equ 0 (
     echo.
     echo   [OK] Release preflight passed.
@@ -176,7 +176,7 @@ cls
 echo.
 echo   [*] Running System Doctor...
 echo.
-call pnpm doctor:fix
+call node scripts\doctor.mjs --fix
 pause
 goto menu
 
@@ -186,7 +186,7 @@ cls
 echo.
 echo   [*] Cleaning caches...
 echo.
-call pnpm clean:hard
+call node scripts\clean.mjs hard
 if %ERRORLEVEL% equ 0 (
     echo   [OK] Cleaned.
 ) else (
@@ -201,19 +201,18 @@ cls
 echo.
 echo   [*] Resetting workspace...
 echo.
-call pnpm clean:full
+call node scripts\clean.mjs full
 if %ERRORLEVEL% neq 0 (
     echo   [FAIL] Clean failed.
     pause
     goto menu
 )
-call pnpm install --frozen-lockfile
+call node scripts\bootstrap.mjs --skip-ci
 if %ERRORLEVEL% neq 0 (
-    echo   [FAIL] Dependency install failed.
+    echo   [FAIL] Bootstrap failed.
     pause
     goto menu
 )
-call pnpm hooks:install
 echo   [OK] Reset complete.
 pause
 goto menu

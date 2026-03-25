@@ -1,79 +1,83 @@
 #!/usr/bin/env node
-// ═══════════════════════════════════════════════
-// dev.mjs — 跨平台开发服务器启动脚本 (Linux/macOS/Windows)
-// 无外部依赖，仅使用 Node.js 内置模块
-// ═══════════════════════════════════════════════
-import { execSync, spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { existsSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { resolve } from "node:path";
+import {
+  ROOT,
+  banner,
+  capture,
+  chdirRoot,
+  ensurePnpmAvailable,
+  installNodeDependencies,
+  memorySummary,
+  pnpmCommand,
+  stepErr,
+  stepOk,
+  stepWarn,
+} from "./lib/automation.mjs";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
-process.chdir(ROOT);
+const args = new Set(process.argv.slice(2));
+const frontendOnly = args.has("--frontend") || args.has("-f");
+const buildMode = args.has("--build") || args.has("-b");
+const checkOnly = args.has("--check") || args.has("-c");
 
-const isWin = process.platform === 'win32';
-
-function run(cmd, opts = {}) {
-  return execSync(cmd, { stdio: 'inherit', cwd: ROOT, shell: true, ...opts });
+function spawnCommand(command, commandArgs) {
+  const child = spawn(command, commandArgs, { stdio: "inherit", cwd: ROOT, shell: true });
+  child.on("exit", (code) => process.exit(code ?? 0));
 }
 
-function which(name) {
-  try {
-    const cmd = isWin ? `where ${name}` : `command -v ${name}`;
-    execSync(cmd, { stdio: 'ignore' });
-    return true;
-  } catch { return false; }
+chdirRoot();
+banner("AI Workbench — 开发环境", [memorySummary(), frontendOnly ? "模式: frontend" : buildMode ? "模式: build" : "模式: tauri"]);
+
+const nodeVersion = capture("node --version");
+if (!nodeVersion.ok) {
+  stepErr("Node.js 未安装。");
+  process.exit(1);
 }
+stepOk(`Node.js ${nodeVersion.stdout}`);
 
-function getVersion(cmd) {
-  try { return execSync(cmd, { encoding: 'utf8' }).trim(); }
-  catch { return null; }
+const pnpmStatus = ensurePnpmAvailable({ autoFix: true });
+if (pnpmStatus.status !== "ready" && pnpmStatus.status !== "fixed") {
+  stepErr(pnpmStatus.detail);
+  process.exit(pnpmStatus.exitCode);
 }
+stepOk(pnpmStatus.status === "fixed" ? `${pnpmStatus.detail} (自动修复)` : pnpmStatus.detail);
 
-// ── 参数 ──
-const args = process.argv.slice(2);
-const frontendOnly = args.includes('--frontend') || args.includes('-f');
-const buildMode    = args.includes('--build')    || args.includes('-b');
-const checkOnly    = args.includes('--check')    || args.includes('-c');
-
-// ── 环境检查 ──
-console.log('');
-console.log('═══════════════════════════════════════');
-console.log('  AI Workbench — 开发环境');
-console.log('═══════════════════════════════════════');
-console.log('');
-
-const nodeVer = getVersion('node --version');
-const cargoVer = getVersion('cargo --version');
-
-if (!nodeVer) { console.error('❌ Node.js 未安装'); process.exit(1); }
-console.log(`  ✅ Node.js ${nodeVer}`);
-
-if (!cargoVer) { console.error('❌ Cargo/Rust 未安装'); process.exit(1); }
-console.log(`  ✅ ${cargoVer}`);
+if (!frontendOnly || buildMode) {
+  const cargoVersion = capture("cargo --version");
+  if (!cargoVersion.ok) {
+    stepErr("Cargo/Rust 未安装。");
+    process.exit(1);
+  }
+  stepOk(cargoVersion.stdout);
+} else {
+  stepWarn("frontend 模式跳过 Rust 工具链校验");
+}
 
 if (checkOnly) {
-  console.log('\n  环境检查通过。');
   process.exit(0);
 }
 
-// ── 依赖安装 ──
-if (!existsSync(resolve(ROOT, 'node_modules'))) {
-  console.log('\n📦 安装 pnpm 依赖...');
-  run('pnpm install');
+if (!existsSync(resolve(ROOT, "node_modules"))) {
+  stepWarn("node_modules 不存在，开始安装依赖");
+  const install = installNodeDependencies({ frozenLockfile: true });
+  if (install.status !== "ready" && install.status !== "fixed") {
+    stepErr(install.detail);
+    process.exit(install.exitCode);
+  }
+  stepOk(install.detail);
 }
 
-// ── 构建 / 启动 ──
 if (buildMode) {
-  console.log('\n🏗️  构建生产版本...');
-  run('pnpm tauri build');
+  stepWarn("转交给 pnpm tauri build");
+  if (pnpmCommand() === "pnpm") spawnCommand("pnpm", ["tauri", "build"]);
+  else spawnCommand("corepack", ["pnpm", "tauri", "build"]);
 } else if (frontendOnly) {
-  console.log('\n🚀 启动前端开发服务器 (http://localhost:1420)...');
-  const child = spawn('pnpm', ['exec', 'vite'], { stdio: 'inherit', cwd: ROOT, shell: true });
-  child.on('exit', code => process.exit(code ?? 0));
+  stepWarn("启动前端开发服务器 http://localhost:1420");
+  if (pnpmCommand() === "pnpm") spawnCommand("pnpm", ["exec", "vite"]);
+  else spawnCommand("corepack", ["pnpm", "exec", "vite"]);
 } else {
-  console.log('\n🚀 启动 Tauri 开发服务器...');
-  const child = spawn('pnpm', ['tauri', 'dev'], { stdio: 'inherit', cwd: ROOT, shell: true });
-  child.on('exit', code => process.exit(code ?? 0));
+  stepWarn("启动 Tauri 开发服务器");
+  if (pnpmCommand() === "pnpm") spawnCommand("pnpm", ["tauri", "dev"]);
+  else spawnCommand("corepack", ["pnpm", "tauri", "dev"]);
 }

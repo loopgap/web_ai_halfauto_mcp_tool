@@ -1,60 +1,39 @@
-import fs from "node:fs";
-import path from "node:path";
-import { spawnSync } from "node:child_process";
+#!/usr/bin/env node
+import {
+  STATUS_CODES,
+  banner,
+  chdirRoot,
+  ensureConfigDirectories,
+  memorySummary,
+  printEnvironmentChecks,
+  section,
+  stepErr,
+  stepOk,
+  inspectEnvironment,
+} from "./lib/automation.mjs";
 
-function checkNode() {
-  const execPath = process.execPath;
-  const ok = Boolean(execPath && fs.existsSync(execPath));
-  return {
-    ok,
-    name: "node",
-    required: true,
-    line: ok ? `${process.version} (${execPath})` : "node runtime is unavailable",
-  };
-}
+const args = new Set(process.argv.slice(2));
+const autoFix = args.has("--fix");
 
-function checkPnpm() {
-  const result = spawnSync("pnpm", ["--version"], { encoding: "utf8", shell: true });
-  const ok = result.status === 0;
-  return {
-    ok,
-    name: "pnpm",
-    required: true,
-    line: ok ? `version ${result.stdout.trim()}` : "pnpm runtime is unavailable",
-  };
-}
+chdirRoot();
+banner("AI Workbench — Environment Check", [memorySummary(), autoFix ? "模式: fix" : "模式: check"]);
 
-function checkOptional(name, filePath) {
-  const ok = fs.existsSync(filePath);
-  return {
-    ok,
-    name,
-    required: false,
-    line: ok ? `detected at ${filePath}` : "optional tool not found",
-  };
-}
+const result = inspectEnvironment({ autoFix, includeGit: true });
+printEnvironmentChecks(result.checks);
 
-const user = process.env.USERPROFILE || "C:\\Users\\Administrator";
-const checks = [
-  checkNode(),
-  checkPnpm(),
-  checkOptional("cargo", path.join(user, ".cargo", "bin", "cargo.exe")),
-  checkOptional("rustc", path.join(user, ".cargo", "bin", "rustc.exe")),
-];
-
-let failed = false;
-for (const c of checks) {
-  if (c.ok) {
-    console.log(`[env] ${c.name}: ${c.line}`);
-  } else {
-    console.log(`[env] ${c.name}: missing`);
-    if (c.required) failed = true;
+if (autoFix) {
+  section("📂 配置目录");
+  const created = ensureConfigDirectories();
+  if (created.error) {
+    stepErr(`无法创建配置目录: ${created.base}`);
+    process.exit(STATUS_CODES["blocked-needs-admin"]);
   }
+  stepOk(created.created.length === 0 ? `${created.base} 已就绪` : `已创建 ${created.created.length} 个目录`);
 }
 
-if (failed) {
-  console.error("[env] required tools are missing");
-  process.exit(1);
+if (result.status === "ready" || result.status === "fixed") {
+  banner("环境检查通过", [autoFix ? "可继续执行 pnpm bootstrap 或 pnpm ci:local" : "可继续执行 pnpm ci:local"]);
+  process.exit(0);
 }
 
-console.log("[env] check passed");
+process.exit(STATUS_CODES[result.status]);

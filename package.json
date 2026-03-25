@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.3.0",
   "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=18"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +15,9 @@
     "start": "node scripts/dev.mjs",
     "start:fe": "node scripts/dev.mjs --frontend",
     "start:build": "node scripts/dev.mjs --build",
-    "setup": "node scripts/setup.mjs",
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "setup": "node scripts/bootstrap.mjs",
+    "first-run": "node scripts/first-run.mjs",
     "hooks:install": "node scripts/install-hooks.mjs",
     "doctor": "node scripts/doctor.mjs",
     "doctor:report": "node scripts/doctor.mjs --report",
@@ -29,8 +34,9 @@
     "check:clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml --jobs 1 -- -D warnings -A dead_code",
     "test:governance:api": "node scripts/test-governance-api-contract.mjs",
     "test:governance:rust": "cargo test governance_tests --manifest-path src-tauri/Cargo.toml -- --nocapture",
-    "test:all": "tsc --noEmit && node scripts/test-governance-api-contract.mjs && cargo test --manifest-path src-tauri/Cargo.toml -- --nocapture",
+    "test:all": "pnpm test && tsc --noEmit && node scripts/test-governance-api-contract.mjs && cargo test --manifest-path src-tauri/Cargo.toml -- --nocapture",
     "env:check": "node scripts/check-environment.mjs",
+    "env:fix": "node scripts/check-environment.mjs --fix",
     "governance:validate": "node scripts/validate-governance.mjs",
     "governance:evidence": "node scripts/build-evidence-pack.mjs --change governance/examples/change-record.example.json --quality governance/examples/quality-gate-result.example.json --release governance/examples/release-decision.example.json --output governance/examples/evidence-pack.generated.md",
     "ci:governance": "node scripts/check-environment.mjs && node scripts/validate-governance.mjs && node scripts/test-governance-api-contract.mjs",
@@ -44,7 +50,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ci": "vitest run --reporter=junit --outputFile=test-results.xml",
-    "release:tag": "node scripts/release-tag.mjs"
+    "release:tag": "node scripts/release-tag.mjs",
+    "git:ship": "node scripts/git-workflow.mjs"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
@@ -66,8 +73,8 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
-    "babel-plugin-transform-remove-console": "^6.9.4",
     "@vitest/coverage-v8": "^3.2.1",
+    "babel-plugin-transform-remove-console": "^6.9.4",
     "jsdom": "^26.1.0",
     "terser": "^5.46.0",
     "typescript": "~5.8.3",

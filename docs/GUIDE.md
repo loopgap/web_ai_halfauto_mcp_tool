@@ -72,10 +72,14 @@ pnpm env:check
 node scripts/doctor.mjs
 ```
 
-一键初始化（Linux / macOS / Windows 通用）：
+一键初始化：
 
 ```bash
-node scripts/setup.mjs
+pnpm bootstrap
+
+# 若 pnpm 尚未安装，先用 corepack 引导固定版本
+corepack enable
+corepack pnpm bootstrap
 ```
 
 ---
@@ -87,8 +91,8 @@ node scripts/setup.mjs
 ```bash
 cd ai-workbench
 
-# 一键初始化（推荐，跨平台）
-node scripts/setup.mjs
+# 一键初始化（推荐）
+pnpm bootstrap
 
 # 或手动安装
 pnpm install
@@ -188,7 +192,8 @@ ai-workbench/
 │
 ├── scripts/                    # 工具脚本
 │   ├── dev.mjs                 # §99 跨平台开发服务器
-│   ├── setup.mjs               # §99 跨平台环境初始化
+│   ├── bootstrap.mjs           # §99 环境初始化与完整自举
+│   ├── setup.mjs               # bootstrap.mjs 的兼容入口
 │   ├── doctor.mjs              # §99 跨平台环境诊断
 │   ├── build.mjs               # §99 跨平台构建
 │   ├── clean.mjs               # §99 跨平台清理
@@ -498,13 +503,13 @@ pnpm exec tsc --noEmit
 npm test
 
 # 监听模式 (开发时推荐)
-npm run test:watch
+pnpm test:watch
 
 # 生成覆盖率报告
-npm run test:coverage
+pnpm test:coverage
 
 # CI 模式 (JUnit 输出)
-npm run test:ci
+pnpm test:ci
 ```
 
 测试覆盖的模块：
@@ -655,13 +660,13 @@ log.info("operation_name", { key: "value" });
 npm test && cd src-tauri && cargo test && cd ..
 
 # 2. 版本打标 (自动同步 package.json + tauri.conf.json + Cargo.toml)
-npm run release:tag patch    # 0.3.0 → 0.3.1
-npm run release:tag minor    # 0.3.0 → 0.4.0
-npm run release:tag major    # 0.3.0 → 1.0.0
-npm run release:tag 1.2.3    # 指定版本
+pnpm release:tag patch    # 0.3.0 → 0.3.1
+pnpm release:tag minor    # 0.3.0 → 0.4.0
+pnpm release:tag major    # 0.3.0 → 1.0.0
+pnpm release:tag 1.2.3    # 指定版本
 
 # 3. 推送触发 CI/CD (自动构建 + 发布)
-npm run release:tag patch -- --push
+pnpm release:tag patch -- --push
 # 或手动: git push origin HEAD && git push origin v0.4.0
 ```
 

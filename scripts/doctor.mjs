@@ -1,226 +1,129 @@
 #!/usr/bin/env node
-// ═══════════════════════════════════════════════
-// doctor.mjs — 跨平台环境诊断脚本 (Linux/macOS/Windows)
-// 无外部依赖，仅使用 Node.js 内置模块
-// ═══════════════════════════════════════════════
-import { execSync } from 'node:child_process';
-import { existsSync, writeFileSync, statSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { homedir, platform, arch, totalmem, freemem, cpus } from 'node:os';
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import {
+  STATUS_CODES,
+  banner,
+  capture,
+  chdirRoot,
+  ensureConfigDirectories,
+  installNodeDependencies,
+  memorySummary,
+  printEnvironmentChecks,
+  repoPathExists,
+  run,
+  runCargoCheck,
+  section,
+  stepErr,
+  stepOk,
+  stepWarn,
+  inspectEnvironment,
+  pnpmCommand,
+} from "./lib/automation.mjs";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..');
-process.chdir(ROOT);
-
-const isWin = platform() === 'win32';
+const args = new Set(process.argv.slice(2));
+const doFix = args.has("--fix") || args.has("-x");
+const doReport = args.has("--report") || args.has("-r");
 const report = [];
-let warnings = 0, errors = 0, passed = 0;
+let highestExit = 0;
 
-function ok(msg)   { console.log(`  ✅ ${msg}`); report.push(`OK:   ${msg}`); passed++; }
-function warn(msg) { console.log(`  ⚠️  ${msg}`); report.push(`WARN: ${msg}`); warnings++; }
-function err(msg)  { console.log(`  ❌ ${msg}`); report.push(`ERR:  ${msg}`); errors++; }
-
-function getVersion(cmd) {
-  try { return execSync(cmd, { encoding: 'utf8', timeout: 15000 }).trim(); }
-  catch { return null; }
+function mark(code, line) {
+  report.push(line);
+  highestExit = Math.max(highestExit, code);
 }
 
-function dirSize(dir) {
+function pass(line) {
+  stepOk(line);
+  mark(0, `OK: ${line}`);
+}
+
+function warn(line) {
+  stepWarn(line);
+  mark(STATUS_CODES["blocked-needs-admin"], `WARN: ${line}`);
+}
+
+function fail(line, code = STATUS_CODES["blocked-test-failure"]) {
+  stepErr(line);
+  mark(code, `ERR: ${line}`);
+}
+
+function runCheck(title, command, code = STATUS_CODES["blocked-test-failure"]) {
+  section(title);
+  const result = capture(command, { timeout: 180000 });
+  if (result.ok) {
+    pass(`${command} 通过`);
+    return true;
+  }
+  fail(`${command} 失败`, code);
+  return false;
+}
+
+chdirRoot();
+banner("AI Workbench Doctor", [memorySummary(), doFix ? "模式: fix" : "模式: report"]);
+
+const env = inspectEnvironment({ autoFix: doFix, includeGit: true });
+printEnvironmentChecks(env.checks, { title: "🔧 环境与系统依赖" });
+for (const check of env.checks) {
+  const prefix = check.status === "ready" || check.status === "fixed" ? "OK" : check.status === "blocked-needs-admin" ? "WARN" : "ERR";
+  mark(check.exitCode, `${prefix}: ${check.detail}`);
+}
+if (env.status !== "ready" && env.status !== "fixed") {
+  if (doReport) {
+    const reportPath = resolve("doctor-report.txt");
+    writeFileSync(reportPath, report.join("\n") + "\n", "utf8");
+    stepOk(`报告已保存: ${reportPath}`);
+  }
+  process.exit(env.exitCode);
+}
+
+section("📦 项目状态");
+if (repoPathExists("package.json")) pass("package.json 存在"); else fail("package.json 缺失");
+if (repoPathExists("pnpm-lock.yaml")) pass("pnpm-lock.yaml 存在"); else fail("pnpm-lock.yaml 缺失");
+if (repoPathExists("node_modules")) pass("node_modules 已安装");
+else if (doFix) {
+  const install = installNodeDependencies({ frozenLockfile: true });
+  if (install.status === "ready" || install.status === "fixed") pass(install.detail); else fail(install.detail, install.exitCode);
+} else {
+  warn("node_modules 不存在，可运行 pnpm bootstrap 自动安装");
+}
+
+section("📂 配置目录");
+const created = ensureConfigDirectories();
+if (created.error) fail(`无法创建配置目录: ${created.base}`, STATUS_CODES["blocked-needs-admin"]);
+else pass(created.created.length === 0 ? `${created.base} 已就绪` : `已创建 ${created.created.length} 个目录`);
+
+section("🪝 Git Hooks");
+const hooksPath = capture("git config --get core.hooksPath");
+if (hooksPath.ok && hooksPath.stdout === ".githooks") {
+  pass("core.hooksPath = .githooks");
+} else if (doFix) {
   try {
-    if (isWin) {
-      const out = execSync(`powershell -Command "(Get-ChildItem -Path '${dir}' -Recurse -File | Measure-Object -Property Length -Sum).Sum"`,
-        { encoding: 'utf8', timeout: 30000 }).trim();
-      return parseInt(out, 10) || 0;
-    }
-    const out = execSync(`du -sb "${dir}" 2>/dev/null | cut -f1`, { encoding: 'utf8', timeout: 30000 }).trim();
-    return parseInt(out, 10) || 0;
-  } catch { return 0; }
-}
-
-function formatBytes(b) {
-  if (b < 1024) return `${b} B`;
-  if (b < 1048576) return `${(b / 1024).toFixed(1)} KB`;
-  if (b < 1073741824) return `${(b / 1048576).toFixed(1)} MB`;
-  return `${(b / 1073741824).toFixed(2)} GB`;
-}
-
-// ── 参数 ──
-const args = process.argv.slice(2);
-const doReport = args.includes('--report') || args.includes('-r');
-const doFix    = args.includes('--fix')    || args.includes('-x');
-
-console.log('');
-console.log('═══════════════════════════════════════');
-console.log('  AI Workbench Doctor');
-console.log(`  ${platform()} ${arch()} | Node ${process.version}`);
-console.log('═══════════════════════════════════════');
-
-// ── 1. 系统 ──
-console.log('\n💻 系统信息:');
-ok(`平台: ${platform()} ${arch()}`);
-ok(`CPU: ${cpus().length} 核`);
-const totalGB = totalmem() / 1073741824;
-const freeGB = freemem() / 1073741824;
-if (freeGB < 2) warn(`可用内存偏低: ${freeGB.toFixed(1)}/${totalGB.toFixed(1)} GB`);
-else ok(`内存: ${freeGB.toFixed(1)}/${totalGB.toFixed(1)} GB 可用`);
-
-// ── 2. 工具链 ──
-console.log('\n🔧 工具链:');
-const nodeVer = getVersion('node --version');
-if (nodeVer) {
-  const major = parseInt(nodeVer.replace('v', ''), 10);
-  if (major >= 18) ok(`Node.js ${nodeVer}`);
-  else warn(`Node.js ${nodeVer} (建议 ≥18)`);
-} else err('Node.js 未安装');
-
-const pnpmVer = getVersion('pnpm --version');
-if (pnpmVer) ok(`pnpm ${pnpmVer}`); else err('pnpm 未安装');
-
-const cargoVer = getVersion('cargo --version');
-if (cargoVer) ok(cargoVer); else err('Cargo 未安装');
-
-const rustcVer = getVersion('rustc --version');
-if (rustcVer) ok(rustcVer); else err('rustc 未安装');
-
-const gitVer = getVersion('git --version');
-if (gitVer) ok(gitVer); else warn('Git 未安装');
-
-// ── 2.1 Git hooks ──
-console.log('\n🪝 Git Hooks:');
-const hooksPath = getVersion('git config --get core.hooksPath');
-if (hooksPath === '.githooks') {
-  ok('core.hooksPath = .githooks');
-} else if (gitVer) {
-  warn(`core.hooksPath 未启用${hooksPath ? ` (当前: ${hooksPath})` : ''}`);
-  if (doFix) {
-    try {
-      execSync('node scripts/install-hooks.mjs', { stdio: 'inherit', cwd: ROOT, shell: true, timeout: 30000 });
-      ok('Git hooks 已安装');
-    } catch {
-      err('Git hooks 安装失败');
-    }
-  }
-}
-
-// ── 3. 项目状态 ──
-console.log('\n📦 项目状态:');
-if (existsSync(resolve(ROOT, 'package.json'))) ok('package.json 存在');
-else err('package.json 缺失');
-
-if (existsSync(resolve(ROOT, 'pnpm-lock.yaml'))) ok('pnpm-lock.yaml 存在');
-else warn('pnpm-lock.yaml 缺失');
-
-if (existsSync(resolve(ROOT, 'node_modules'))) {
-  ok('node_modules 已安装');
-} else {
-  warn('node_modules 不存在');
-  if (doFix) {
-    console.log('  🔧 正在修复: pnpm install...');
-    try { execSync('pnpm install', { stdio: 'inherit', cwd: ROOT, shell: true }); ok('pnpm install 完成'); }
-    catch { err('pnpm install 失败'); }
-  }
-}
-
-// ── 4. TypeScript ──
-console.log('\n📝 TypeScript:');
-try {
-  execSync('pnpm exec tsc --noEmit', { cwd: ROOT, stdio: 'ignore', shell: true, timeout: 60000 });
-  ok('tsc --noEmit 通过');
-} catch { warn('TypeScript 存在类型错误'); }
-
-// ── 4b. 前端单元测试 ──
-console.log('\n🧪 单元测试:');
-try {
-  const hasVitest = existsSync(resolve(ROOT, 'node_modules', '.bin', 'vitest'));
-  if (hasVitest) {
-    execSync('npx vitest run --reporter=verbose 2>&1', { cwd: ROOT, stdio: 'ignore', shell: true, timeout: 120000 });
-    ok('vitest 全部通过');
-  } else {
-    warn('vitest 未安装，跳过前端单元测试 (npm install 后可用)');
-  }
-} catch { warn('vitest 测试存在失败项'); }
-
-// ── 5. Cargo ──
-console.log('\n🦀 Cargo:');
-try {
-  execSync('cargo check --jobs 2', { cwd: resolve(ROOT, 'src-tauri'), stdio: 'ignore', shell: true, timeout: 120000 });
-  ok('cargo check 通过');
-} catch { warn('cargo check 失败'); }
-
-// ── 6. 配置目录 ──
-console.log('\n📂 配置目录:');
-const configBase = join(homedir(), '.ai-workbench');
-if (existsSync(configBase)) {
-  ok(`${configBase} 存在`);
-  for (const sub of ['config', 'vault', 'vault/runs', 'vault/artifacts', 'vault/governance']) {
-    const p = join(configBase, sub);
-    if (existsSync(p)) ok(`  ${sub}/`);
-    else {
-      warn(`  ${sub}/ 不存在`);
-      if (doFix) {
-        const { mkdirSync } = await import('node:fs');
-        mkdirSync(p, { recursive: true });
-        ok(`  创建 ${sub}/`);
-      }
-    }
+    run("node scripts/install-hooks.mjs");
+    pass("Git hooks 已安装");
+  } catch {
+    fail("Git hooks 安装失败", STATUS_CODES["blocked-git"]);
   }
 } else {
-  warn(`${configBase} 不存在`);
-  if (doFix) {
-    const { mkdirSync } = await import('node:fs');
-    for (const sub of ['', 'config', 'vault', 'vault/runs', 'vault/artifacts', 'vault/governance', 'vault/events', 'vault/traces', 'health']) {
-      const dir = sub ? join(configBase, sub) : configBase;
-      mkdirSync(dir, { recursive: true });
-    }
-    ok(`已创建 ${configBase} 目录树`);
-  }
+  warn("Git hooks 未启用，可运行 pnpm hooks:install");
 }
 
-// ── 7. 磁盘占用 ──
-console.log('\n💾 磁盘占用:');
-const targetDir = resolve(ROOT, 'src-tauri', 'target');
-if (existsSync(targetDir)) {
-  const size = dirSize(targetDir);
-  if (size > 5 * 1073741824) warn(`src-tauri/target: ${formatBytes(size)} (${'>'}5GB, 建议清理)`);
-  else ok(`src-tauri/target: ${formatBytes(size)}`);
-} else ok('src-tauri/target: 不存在（未编译）');
+runCheck("📝 TypeScript", `${pnpmCommand()} exec tsc --noEmit`);
+runCheck("🧪 Vitest", `${pnpmCommand()} test:ci`);
+section("🦀 Cargo");
+const cargoCheck = runCargoCheck();
+if (cargoCheck.status === "ready" || cargoCheck.status === "fixed") pass(cargoCheck.detail); else fail(cargoCheck.detail, cargoCheck.exitCode);
+runCheck("🏛️ Governance Validate", "node scripts/validate-governance.mjs");
+runCheck("🔌 Governance API Contract", "node scripts/test-governance-api-contract.mjs");
 
-if (existsSync(resolve(ROOT, 'node_modules'))) {
-  const size = dirSize(resolve(ROOT, 'node_modules'));
-  ok(`node_modules: ${formatBytes(size)}`);
-}
-
-// ── 8. 端口 ──
-console.log('\n🌐 端口状态:');
-try {
-  const cmd = isWin
-    ? 'netstat -ano | findstr :1420'
-    : 'lsof -i :1420 2>/dev/null || ss -tlnp 2>/dev/null | grep 1420';
-  execSync(cmd, { stdio: 'ignore', shell: true });
-  warn('端口 1420 已被占用');
-} catch { ok('端口 1420 可用'); }
-
-// ── 汇总 ──
-const total = passed + warnings + errors;
-console.log('');
-console.log('═══════════════════════════════════════');
-console.log(`  诊断完成: ${passed}/${total} 通过, ${warnings} 警告, ${errors} 失败`);
-console.log('═══════════════════════════════════════');
-
-// ── 报告 ──
 if (doReport) {
-  const reportPath = resolve(ROOT, 'doctor-report.txt');
-  const content = [
-    `AI Workbench Doctor Report — ${new Date().toISOString()}`,
-    `Platform: ${platform()} ${arch()}`,
-    `Node: ${process.version}`,
-    `Result: ${passed}/${total} passed, ${warnings} warnings, ${errors} errors`,
-    '',
-    ...report,
-  ].join('\n');
-  writeFileSync(reportPath, content, 'utf8');
-  console.log(`\n📄 报告已保存: ${reportPath}`);
+  const reportPath = resolve("doctor-report.txt");
+  writeFileSync(reportPath, report.join("\n") + "\n", "utf8");
+  stepOk(`报告已保存: ${reportPath}`);
 }
 
-process.exit(errors > 0 ? 1 : 0);
+if (highestExit !== 0) {
+  process.exit(highestExit);
+}
+
+banner("Doctor 完成", ["环境与关键测试均已通过"]);
+process.exit(0);
