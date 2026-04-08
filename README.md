@@ -19,6 +19,7 @@
 ### 🔧 故障排查与优化
 - **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** — 常见问题快速解决
 - **[docs/PERFORMANCE.md](docs/PERFORMANCE.md)** — 性能优化和监控指南
+- **构建优化说明** — 已切换至 `esbuild` 压缩，并限制了 CI 并行编译任务数以防止 OOM。
 
 ### 💻 开发资源
 - **[docs/README-SCRIPTS.md](docs/README-SCRIPTS.md)** — 所有脚本详解

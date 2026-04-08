@@ -163,6 +163,9 @@ pub fn find_window_by_title_regex(
     let compiled: Vec<regex::Regex> = patterns
         .iter()
         .map(|p| {
+            if p.len() > 200 {
+                return Err(OsWinError::InvalidArg("Regex pattern exceeds maximum length of 200 characters".into()));
+            }
             regex::Regex::new(p)
                 .map_err(|e| OsWinError::InvalidArg(format!("Invalid regex '{}': {}", p, e)))
         })
@@ -189,6 +192,9 @@ pub fn find_all_windows_by_title_regex(
     let compiled: Vec<regex::Regex> = patterns
         .iter()
         .map(|p| {
+            if p.len() > 200 {
+                return Err(OsWinError::InvalidArg("Regex pattern exceeds maximum length of 200 characters".into()));
+            }
             regex::Regex::new(p)
                 .map_err(|e| OsWinError::InvalidArg(format!("Invalid regex '{}': {}", p, e)))
         })

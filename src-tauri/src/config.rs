@@ -1,6 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
+
+fn atomic_write<P: AsRef<std::path::Path>, C: AsRef<[u8]>>(path: P, contents: C) -> std::io::Result<()> {
+    let path = path.as_ref();
+    let tmp_path = path.with_extension("tmp");
+    std::fs::write(&tmp_path, contents)?;
+    std::fs::rename(&tmp_path, path)
+}
 use std::io::Write as IoWrite;
 use std::path::PathBuf;
 use tauri::Manager;
@@ -916,7 +923,7 @@ pub fn ensure_config_dir(app: &tauri::AppHandle) -> Result<(), Box<dyn std::erro
     if !targets_path.exists() {
         let default = TargetsConfig::default();
         let yaml = serde_yaml::to_string(&default)?;
-        fs::write(&targets_path, yaml)?;
+        atomic_write(&targets_path, yaml)?;
     }
 
     // Write default router_rules.yaml if not exists
@@ -924,7 +931,7 @@ pub fn ensure_config_dir(app: &tauri::AppHandle) -> Result<(), Box<dyn std::erro
     if !router_path.exists() {
         let default_rules = default_router_rules();
         let yaml = serde_yaml::to_string(&default_rules)?;
-        fs::write(&router_path, yaml)?;
+        atomic_write(&router_path, yaml)?;
     }
 
     // Ensure skills/ and workflows/ dirs
@@ -963,7 +970,7 @@ pub fn save_targets(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let path = config_dir(app).join("targets.yaml");
     let yaml = serde_yaml::to_string(cfg)?;
-    fs::write(&path, yaml)?;
+    atomic_write(&path, yaml)?;
     Ok(())
 }
 
@@ -1753,7 +1760,7 @@ determinism: non_deterministic
 
     for (i, skill_yaml) in skills.iter().enumerate() {
         let filename = format!("skill_{}.yaml", i + 1);
-        fs::write(dir.join(filename), skill_yaml)?;
+        atomic_write(dir.join(filename), skill_yaml)?;
     }
     Ok(())
 }
@@ -2020,7 +2027,7 @@ steps:
 
     for (i, wf_yaml) in workflows.iter().enumerate() {
         let filename = format!("workflow_{}.yaml", i + 1);
-        fs::write(dir.join(filename), wf_yaml)?;
+        atomic_write(dir.join(filename), wf_yaml)?;
     }
     Ok(())
 }
@@ -2037,7 +2044,7 @@ pub fn save_run(app: &tauri::AppHandle, run: &RunRecord) -> Result<(), Box<dyn s
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.json", run.id));
     let json = serde_json::to_string_pretty(run)?;
-    fs::write(&path, json)?;
+    atomic_write(&path, json)?;
     Ok(())
 }
 
@@ -2076,7 +2083,7 @@ pub fn save_health_snapshot(app: &tauri::AppHandle, health: &[TargetHealth]) -> 
     fs::create_dir_all(&dir)?;
     let path = dir.join("latest.json");
     let json = serde_json::to_string_pretty(health)?;
-    fs::write(&path, json)?;
+    atomic_write(&path, json)?;
     Ok(())
 }
 
@@ -2086,7 +2093,7 @@ pub fn save_artifact(app: &tauri::AppHandle, artifact: &Artifact) -> Result<Stri
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.json", artifact.artifact_id));
     let json = serde_json::to_string_pretty(artifact)?;
-    fs::write(&path, json)?;
+    atomic_write(&path, json)?;
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -2096,7 +2103,7 @@ pub fn save_dispatch_trace(app: &tauri::AppHandle, trace: &DispatchTrace) -> Res
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("dispatch_trace_{}.json", trace.trace_id));
     let json = serde_json::to_string_pretty(trace)?;
-    fs::write(&path, json)?;
+    atomic_write(&path, json)?;
     Ok(())
 }
 
@@ -2278,7 +2285,7 @@ pub fn save_route_feedback(app: &tauri::AppHandle, fb: &RouteFeedback) -> Result
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("feedback_{}.json", fb.trace_id));
     let json = serde_json::to_string_pretty(fb)?;
-    fs::write(&path, json)?;
+    atomic_write(&path, json)?;
     Ok(())
 }
 
@@ -2449,7 +2456,7 @@ pub fn save_change_record(app: &tauri::AppHandle, change: &ChangeRecord) -> Resu
     let dir = governance_dir(app).join("changes");
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.json", change.change_id));
-    fs::write(path, serde_json::to_string_pretty(change)?)?;
+    atomic_write(path, serde_json::to_string_pretty(change)?)?;
     Ok(())
 }
 
@@ -2460,7 +2467,7 @@ pub fn save_quality_gate_result(
     let dir = governance_dir(app).join("quality");
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.json", quality.change_id));
-    fs::write(path, serde_json::to_string_pretty(quality)?)?;
+    atomic_write(path, serde_json::to_string_pretty(quality)?)?;
     Ok(())
 }
 
@@ -2471,7 +2478,7 @@ pub fn save_release_decision(
     let dir = governance_dir(app).join("decisions");
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.json", decision.change_id));
-    fs::write(path, serde_json::to_string_pretty(decision)?)?;
+    atomic_write(path, serde_json::to_string_pretty(decision)?)?;
     Ok(())
 }
 

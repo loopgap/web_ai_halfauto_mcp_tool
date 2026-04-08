@@ -76,7 +76,6 @@
     "@vitest/coverage-v8": "^3.2.1",
     "babel-plugin-transform-remove-console": "^6.9.4",
     "jsdom": "^26.1.0",
-    "terser": "^5.46.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vitest": "^3.2.1"

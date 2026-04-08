@@ -146,20 +146,26 @@ fn map_os_error(action: &str, e: OsWinError) -> ApiError {
 
 fn write_audit(app_handle: &tauri::AppHandle, event: AuditEvent<'_>) {
     let Ok(base) = app_handle.path().app_config_dir() else {
+        eprintln!("Audit error: failed to get app config dir");
         return;
     };
     let dir = base.join("audit");
-    if fs::create_dir_all(&dir).is_err() {
+    if let Err(e) = fs::create_dir_all(&dir) {
+        eprintln!("Audit error: failed to create audit dir: {}", e);
         return;
     }
     let path = dir.join("security_events.jsonl");
     let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) else {
+        eprintln!("Audit error: failed to open audit file");
         return;
     };
     let Ok(line) = serde_json::to_string(&event) else {
+        eprintln!("Audit error: failed to serialize event");
         return;
     };
-    let _ = writeln!(file, "{}", line);
+    if let Err(e) = writeln!(file, "{}", line) {
+        eprintln!("Audit error: failed to write to audit file: {}", e);
+    }
 }
 
 fn validate_activate_args(args: &ActivateArgs) -> CmdResult<()> {
@@ -891,6 +897,9 @@ fn dispatch_confirm(app_handle: tauri::AppHandle, args: DispatchConfirmArgs) -> 
     let confirm_set = CONFIRM_GUARD.get_or_init(|| Mutex::new(HashSet::new()));
     {
         let mut confirmed = confirm_set.lock().map_err(|_| err("INTERNAL_ERROR", "Confirm lock poisoned", None))?;
+        if confirmed.len() > 1000 {
+            confirmed.clear();
+        }
         if confirmed.contains(&args.hwnd) {
             return Err(err("DISPATCH_DUPLICATE_CONFIRM", "Confirm already sent for this target (idempotency guard)", None));
         }

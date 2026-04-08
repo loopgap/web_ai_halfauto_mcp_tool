@@ -30,17 +30,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.11.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -67,23 +67,8 @@ jobs:
   # ── Rust 后端检查 ──
   backend-check:
     runs-on: ubuntu-22.04
-    defaults:
-      run:
-        working-directory: src-tauri
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.11.0 --activate
 
       - name: Install system dependencies
         run: |
@@ -101,14 +86,20 @@ jobs:
           workspaces: src-tauri
           cache-on-failure: true
 
+      - name: Create dummy dist for Tauri check
+        run: mkdir -p dist
+
       - name: Cargo check
         run: cargo check --jobs 1
+        working-directory: src-tauri
 
       - name: Clippy lint
         run: cargo clippy --jobs 1 -- -D warnings -A dead_code
+        working-directory: src-tauri
 
       - name: Cargo test
         run: cargo test --jobs 1 -- --nocapture
+        working-directory: src-tauri
 
   # ── 治理验证 ──
   governance:
@@ -117,17 +108,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.11.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -154,8 +145,16 @@ jobs:
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.platform }}
+    env:
+      CARGO_BUILD_JOBS: 2
+      NODE_OPTIONS: "--max-old-space-size=8192"
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -163,11 +162,6 @@ jobs:
           node-version: 20
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.11.0 --activate
 
       - name: Install system dependencies (Linux)
         if: matrix.platform == 'ubuntu-22.04'

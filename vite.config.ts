@@ -18,6 +18,11 @@ export default defineConfig(async () => ({
     tailwindcss(),
   ],
 
+  // 生产环境移除 console
+  esbuild: {
+    drop: isProd ? ["console", "debugger"] : [],
+  },
+
   // 路径别名
   resolve: {
     alias: {
@@ -39,19 +44,8 @@ export default defineConfig(async () => ({
     chunkSizeWarningLimit: 600,
     // CSS 代码分割
     cssCodeSplit: true,
-    // Minification: 使用 terser 获得更好的压缩率
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: isProd,
-        drop_debugger: isProd,
-        pure_funcs: isProd ? ["console.log", "console.debug", "console.trace"] : [],
-        passes: 2,
-      },
-      format: {
-        comments: false,
-      },
-    },
+    // 使用 Vite 默认的 esbuild 进行极致快速压缩
+    minify: "esbuild",
     // 手动分包策略 — 优化缓存利用率
     rollupOptions: {
       output: {
