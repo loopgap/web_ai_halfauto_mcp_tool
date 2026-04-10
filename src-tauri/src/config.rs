@@ -697,23 +697,6 @@ pub struct StepRecord {
     pub ts_end: Option<u128>,
 }
 
-/// Step 状态合法转换表 — route.md §37
-pub fn valid_step_transitions(from: &StepStatus) -> Vec<StepStatus> {
-    match from {
-        StepStatus::Pending => vec![StepStatus::Dispatched, StepStatus::Failed],
-        StepStatus::Dispatched => vec![StepStatus::AwaitingSend, StepStatus::WaitingOutput, StepStatus::Failed],
-        StepStatus::AwaitingSend => vec![StepStatus::WaitingOutput, StepStatus::Failed],
-        StepStatus::WaitingOutput => vec![StepStatus::Captured, StepStatus::Failed],
-        StepStatus::Captured => vec![],           // terminal success
-        StepStatus::Failed => vec![],              // terminal failure
-    }
-}
-
-/// 验证 Step 状态转换合法性
-pub fn validate_step_transition(from: &StepStatus, to: &StepStatus) -> bool {
-    valid_step_transitions(from).contains(to)
-}
-
 // ───────── Dispatch Trace (§9.9 关键日志 + §29 E2E Contract) ─────────
 
 /// 结构化 dispatch 执行日志 — route.md §9.9 + §29.3
@@ -2292,29 +2275,6 @@ pub fn save_route_feedback(app: &tauri::AppHandle, fb: &RouteFeedback) -> Result
 // Enterprise Closed Loop v2 shared contracts
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-pub enum MaturityLevel {
-    L1,
-    L2,
-    L3,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LifecyclePhase {
-    Demand,
-    Scope,
-    Design,
-    Build,
-    Verify,
-    Review,
-    Release,
-    Observe,
-    Improve,
-    Blocked,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChangeRecord {
     pub change_id: String,
     pub title: String,
@@ -2368,26 +2328,6 @@ pub struct ReleaseDecisionRecord {
     pub evidence: Vec<String>,
     #[serde(default)]
     pub notes: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct IncidentRecord {
-    pub incident_id: String,
-    #[serde(default)]
-    pub change_id: Option<String>,
-    pub severity: String,
-    pub start_time_utc: String,
-    #[serde(default)]
-    pub end_time_utc: Option<String>,
-    pub impact: String,
-    #[serde(default)]
-    pub root_cause: Option<String>,
-    #[serde(default)]
-    pub mitigation: Option<String>,
-    #[serde(default)]
-    pub recovery_verification: Option<String>,
-    #[serde(default)]
-    pub capa_actions: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
