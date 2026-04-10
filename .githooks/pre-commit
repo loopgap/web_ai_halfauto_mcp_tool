@@ -1,32 +1,17 @@
 #!/bin/sh
-# ============================================================
-# AI Workbench - pre-commit hook
-# Runs the fast local CI gate before each commit.
-# ============================================================
+# ═══════════════════════════════════════════════════════════
+# Git Pre-Commit Hook — 快速本地门禁
+# ═══════════════════════════════════════════════════════════
 
-echo ""
 echo "== [pre-commit] Running fast local gate =="
-echo ""
 
-# -- PATH fix (Windows Git Bash) --
-export PATH="/c/Program Files/nodejs:$HOME/.cargo/bin:$APPDATA/npm:$PATH"
+go run task.go check
 
-if ! command -v node >/dev/null 2>&1; then
-    echo "[SKIP] node not found. CI will verify."
-    exit 0
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "== [pre-commit] BLOCKED: Fix failures above before committing =="
+  echo "  Use: git commit --no-verify  to bypass (not recommended)"
+  exit 1
 fi
 
-node scripts/ci-local.mjs --fast --hook
-STATUS=$?
-
-if [ $STATUS -ne 0 ]; then
-    echo ""
-    echo "== [pre-commit] BLOCKED: Fix failures above before committing =="
-    echo "  Use: git commit --no-verify  to bypass (not recommended)"
-    exit $STATUS
-fi
-
-echo ""
-echo "== [pre-commit] Fast gate passed =="
-echo ""
 exit 0

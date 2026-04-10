@@ -10,7 +10,6 @@ use windows::Win32::{
     },
 };
 
-/// Set text to clipboard (UTF-16 / CF_UNICODETEXT).
 #[cfg(windows)]
 pub fn clipboard_set_text(text: &str) -> OsWinResult<()> {
     let wide: Vec<u16> = text.encode_utf16().chain(std::iter::once(0u16)).collect();
@@ -18,7 +17,6 @@ pub fn clipboard_set_text(text: &str) -> OsWinResult<()> {
 
     retry_clipboard_open(800, 50)?;
 
-    // We now have the clipboard open
     let result = (|| -> OsWinResult<()> {
         unsafe {
             EmptyClipboard()
@@ -55,7 +53,6 @@ pub fn clipboard_set_text(_text: &str) -> OsWinResult<()> {
     ))
 }
 
-/// Get text from clipboard (CF_UNICODETEXT).
 #[cfg(windows)]
 pub fn clipboard_get_text() -> OsWinResult<String> {
     retry_clipboard_open(800, 50)?;
@@ -71,7 +68,6 @@ pub fn clipboard_get_text() -> OsWinResult<String> {
                 return Err(OsWinError::ClipboardFailed("GlobalLock returned null".into()));
             }
 
-            // Read UTF-16 null-terminated string
             let mut len = 0usize;
             let wptr = ptr as *const u16;
             while *wptr.add(len) != 0 {
@@ -101,7 +97,6 @@ pub fn clipboard_get_text() -> OsWinResult<String> {
     ))
 }
 
-/// Retry opening clipboard with timeout.
 #[cfg(windows)]
 fn retry_clipboard_open(timeout_ms: u64, interval_ms: u64) -> OsWinResult<()> {
     use windows::Win32::Foundation::HWND;

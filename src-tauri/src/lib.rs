@@ -1,5 +1,6 @@
 mod config;
 
+use crate_core::{err, new_trace_id, now_ms, ApiError, AuditEvent, CmdResult};
 use os_win::clipboard;
 use os_win::error::OsWinError;
 use os_win::input::PasteOptions;
@@ -10,9 +11,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 use tauri::Manager;
 use tauri::Emitter;
 
@@ -24,7 +24,6 @@ const MAX_DELAY_MS: u64 = 10_000;
 const MAX_TARGETS: usize = 256;
 const MIN_DISPATCH_INTERVAL_MS: u64 = 120;
 
-static TRACE_COUNTER: AtomicU64 = AtomicU64::new(1);
 static DISPATCH_GUARD: OnceLock<Mutex<DispatchGuard>> = OnceLock::new();
 /// §29.4 Confirm idempotency: track confirmed hwnds to prevent duplicate sends
 static CONFIRM_GUARD: OnceLock<Mutex<HashSet<u64>>> = OnceLock::new();
@@ -32,27 +31,6 @@ static CONFIRM_GUARD: OnceLock<Mutex<HashSet<u64>>> = OnceLock::new();
 #[derive(Debug, Default)]
 struct DispatchGuard {
     last_dispatch_at: Option<Instant>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiError {
-    pub code: String,
-    pub message: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub details: Option<String>,
-    pub trace_id: String,
-}
-
-type CmdResult<T> = Result<T, ApiError>;
-
-#[derive(Debug, Clone, Serialize)]
-struct AuditEvent<'a> {
-    ts_ms: u128,
-    action: &'a str,
-    outcome: &'a str,
-    trace_id: &'a str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    detail: Option<&'a str>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,27 +60,6 @@ pub struct DispatchArgs {
 pub struct FindByRegexArgs {
     pub patterns: Vec<String>,
     pub include_invisible: bool,
-}
-
-fn now_ms() -> u128 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or(Duration::from_secs(0))
-        .as_millis()
-}
-
-fn new_trace_id() -> String {
-    let seq = TRACE_COUNTER.fetch_add(1, Ordering::Relaxed);
-    format!("t{}-{}", now_ms(), seq)
-}
-
-fn err(code: &str, message: &str, details: Option<String>) -> ApiError {
-    ApiError {
-        code: code.to_string(),
-        message: message.to_string(),
-        details,
-        trace_id: new_trace_id(),
-    }
 }
 
 fn now_iso_stub() -> String {

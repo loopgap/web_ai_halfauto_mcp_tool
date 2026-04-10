@@ -85,6 +85,26 @@ function PerformancePanel({ metrics }: PerformancePanelProps) {
             color={metrics.pageLoadTime > 3000 ? "text-red-400" : "text-emerald-400"}
           />
         )}
+
+        {metrics.recentEvents.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-white/[0.05] animate-pulse-glow">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                最新流程事件
+              </span>
+              <span className="text-[9px] text-slate-600 font-mono">
+                {new Date(metrics.recentEvents[0].timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+            <div className="text-[11px] text-cyan-300 font-mono truncate bg-cyan-950/20 px-2 py-1.5 rounded-lg border border-cyan-500/20 flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+              <span className="opacity-80">[{metrics.recentEvents[0].type}]</span>
+              <span className="flex-1 truncate">
+                {metrics.recentEvents[0].stepId || metrics.recentEvents[0].runId.slice(0, 8)}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

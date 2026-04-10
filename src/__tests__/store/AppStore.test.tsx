@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { AppStoreProvider, useAppState, useAppDispatch } from "../../store/AppStore";
+import { AppStoreProvider, useAppDispatch, useAppState } from "../../store/AppStore";
 import type { ReactNode } from "react";
 
 function wrapper({ children }: { children: ReactNode }) {

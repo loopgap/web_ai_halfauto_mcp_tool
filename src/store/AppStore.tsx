@@ -1,8 +1,10 @@
 // ═══════════════════════════════════════════════════════════
-// Global Store — route.md §3 前端闭环: Store 全局状态与 reducer
+// Global Store — route.md §3 前端闭环: Store 全局状态与 reducer (Decoupled)
 // ═══════════════════════════════════════════════════════════
 
-import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type Dispatch, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { create } from "zustand";
+import { subscribeWithSelector } from "zustand/middleware";
 import { useEventBus } from "../hooks/useEventBus";
 import { restoreUIState, createPersistMiddleware } from "../domain/persistence";
 import type {
@@ -22,9 +24,9 @@ import type {
   GovernanceValidationReport,
 } from "../types";
 
-// ───────── State ─────────
+// ───────── State Slices ─────────
 
-export interface AppState {
+export interface DomainState {
   skills: Skill[];
   workflows: Workflow[];
   targets: TargetsConfig | null;
@@ -32,18 +34,23 @@ export interface AppState {
   routerRules: RouterRulesConfig | null;
   runs: RunRecord[];
   errorCatalog: ErrorDefinition[];
-  // 页面状态机
+}
+
+export interface UIState {
   pageStates: Record<string, PageState>;
   stateHistory: StateTransition[];
-  // 全局错误
   lastError: ApiError | null;
-  // 加载标记
   initialized: boolean;
+}
+
+export interface GovState {
   governanceChanges: ChangeRecord[];
   governanceQuality: QualityGateResult[];
   governanceDecisions: ReleaseDecisionRecord[];
   governanceReports: GovernanceValidationReport[];
 }
+
+export type AppState = DomainState & UIState & GovState;
 
 const defaultPageStates: Record<string, PageState> = {
   dashboard: "idle",
@@ -55,10 +62,9 @@ const defaultPageStates: Record<string, PageState> = {
   settings: "idle",
 };
 
-// 从 localStorage 恢复 UI 状态
 const restored = restoreUIState();
 
-const initialState: AppState = {
+const initialDomainState: DomainState = {
   skills: [],
   workflows: [],
   targets: null,
@@ -66,17 +72,22 @@ const initialState: AppState = {
   routerRules: null,
   runs: [],
   errorCatalog: [],
+};
+
+const initialUIState: UIState = {
   pageStates: { ...defaultPageStates, ...restored.pageStates },
   stateHistory: [],
   lastError: null,
   initialized: false,
+};
+
+const initialGovState: GovState = {
   governanceChanges: [],
   governanceQuality: [],
   governanceDecisions: [],
   governanceReports: [],
 };
 
-// 持久化中间件
 const persistMiddleware = createPersistMiddleware(2000);
 
 // ───────── Actions ─────────
@@ -99,9 +110,8 @@ export type AppAction =
   | { type: "SET_ERROR"; payload: ApiError | null }
   | { type: "SET_INITIALIZED"; payload: boolean };
 
-// ───────── Reducer ─────────
+// ───────── Reducers ─────────
 
-// §3 + §10: 页面状态机合法转换表
 const VALID_PAGE_TRANSITIONS: Record<string, string[]> = {
   idle: ["loading", "validating", "editing"],
   loading: ["ready", "error"],
@@ -119,40 +129,54 @@ function isValidPageTransition(from: string, to: string): boolean {
   return (VALID_PAGE_TRANSITIONS[from] ?? []).includes(to);
 }
 
-function appReducer(state: AppState, action: AppAction): AppState {
+function domainReducer(state: DomainState, action: AppAction): DomainState {
   switch (action.type) {
-    case "SET_SKILLS":
-      return { ...state, skills: action.payload };
-    case "SET_WORKFLOWS":
-      return { ...state, workflows: action.payload };
-    case "SET_TARGETS":
-      return { ...state, targets: action.payload };
-    case "SET_HEALTH":
-      return { ...state, health: action.payload };
-    case "SET_ROUTER_RULES":
-      return { ...state, routerRules: action.payload };
-    case "SET_RUNS":
-      return { ...state, runs: action.payload };
-    case "ADD_RUN":
-      return { ...state, runs: [action.payload, ...state.runs] };
+    case "SET_SKILLS": return { ...state, skills: action.payload };
+    case "SET_WORKFLOWS": return { ...state, workflows: action.payload };
+    case "SET_TARGETS": return { ...state, targets: action.payload };
+    case "SET_HEALTH": return { ...state, health: action.payload };
+    case "SET_ROUTER_RULES": return { ...state, routerRules: action.payload };
+    case "SET_RUNS": return { ...state, runs: action.payload };
+    case "ADD_RUN": return { ...state, runs: [action.payload, ...state.runs] };
     case "UPDATE_RUN": {
-      // §10: 状态约束 — done/closed 后禁止改正文
       const existing = state.runs.find((r) => r.id === action.payload.id);
       if (existing && (existing.status === "done" || existing.status === "closed")) {
         if (action.payload.updates.prompt && action.payload.updates.prompt !== existing.prompt) {
-          console.warn("[§10] 已完成 Run 禁止修改 prompt:", existing.id);
           return state;
         }
       }
       return {
         ...state,
-        runs: state.runs.map((r) =>
-          r.id === action.payload.id ? { ...r, ...action.payload.updates } : r
-        ),
+        runs: state.runs.map((r) => r.id === action.payload.id ? { ...r, ...action.payload.updates } : r),
       };
     }
-    case "SET_ERROR_CATALOG":
-      return { ...state, errorCatalog: action.payload };
+    case "SET_ERROR_CATALOG": return { ...state, errorCatalog: action.payload };
+    default: return state;
+  }
+}
+
+function uiReducer(state: UIState, action: AppAction): UIState {
+  switch (action.type) {
+    case "SET_PAGE_STATE": {
+      const prevState = state.pageStates[action.payload.page] || "idle";
+      if (prevState !== action.payload.state && !isValidPageTransition(prevState, action.payload.state)) {
+        console.warn(`[§10] 非标准页面转换: ${action.payload.page} ${prevState} → ${action.payload.state}`);
+      }
+      const transition: StateTransition = { from: prevState, to: action.payload.state, action: action.payload.page, timestamp: Date.now() };
+      return {
+        ...state,
+        pageStates: { ...state.pageStates, [action.payload.page]: action.payload.state },
+        stateHistory: [...state.stateHistory.slice(-99), transition],
+      };
+    }
+    case "SET_ERROR": return { ...state, lastError: action.payload };
+    case "SET_INITIALIZED": return { ...state, initialized: action.payload };
+    default: return state;
+  }
+}
+
+function govReducer(state: GovState, action: AppAction): GovState {
+  switch (action.type) {
     case "UPSERT_GOV_CHANGE": {
       const next = state.governanceChanges.filter((x) => x.change_id !== action.payload.change_id);
       return { ...state, governanceChanges: [action.payload, ...next].slice(0, 200) };
@@ -165,78 +189,65 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const next = state.governanceDecisions.filter((x) => x.change_id !== action.payload.change_id);
       return { ...state, governanceDecisions: [action.payload, ...next].slice(0, 200) };
     }
-    case "ADD_GOV_REPORT":
-      return { ...state, governanceReports: [action.payload, ...state.governanceReports].slice(0, 100) };
-    case "SET_PAGE_STATE": {
-      const prevState = state.pageStates[action.payload.page] || "idle";
-      // §3 + §10: 状态迁移校验 (warn but allow for flexibility)
-      if (prevState !== action.payload.state && !isValidPageTransition(prevState, action.payload.state)) {
-        console.warn(`[§10] 非标准页面转换: ${action.payload.page} ${prevState} → ${action.payload.state}`);
-      }
-      const transition: StateTransition = {
-        from: prevState,
-        to: action.payload.state,
-        action: action.payload.page,
-        timestamp: Date.now(),
-      };
-      return {
-        ...state,
-        pageStates: {
-          ...state.pageStates,
-          [action.payload.page]: action.payload.state,
-        },
-        stateHistory: [...state.stateHistory.slice(-99), transition],
-      };
-    }
-    case "SET_ERROR":
-      return { ...state, lastError: action.payload };
-    case "SET_INITIALIZED":
-      return { ...state, initialized: action.payload };
-    default:
-      return state;
+    case "ADD_GOV_REPORT": return { ...state, governanceReports: [action.payload, ...state.governanceReports].slice(0, 100) };
+    default: return state;
   }
 }
 
-// ───────── Context ─────────
+// ───────── Zustand Store ─────────
 
-const AppStateContext = createContext<AppState>(initialState);
-const AppDispatchContext = createContext<Dispatch<AppAction>>(() => {});
+export const useAppStore = create<AppState & { dispatch: (action: AppAction) => void }>()(
+  subscribeWithSelector((set) => ({
+    ...initialDomainState,
+    ...initialUIState,
+    ...initialGovState,
+    dispatch: (action) =>
+      set((state) => {
+        const s1 = domainReducer(state, action);
+        const s2 = uiReducer(s1 as any, action);
+        const s3 = govReducer(s2 as any, action);
+        return s3 as any;
+      }),
+  }))
+);
+
+// ───────── Provider & Hooks ─────────
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [state, rawDispatch] = useReducer(appReducer, initialState);
+  const dispatch = useAppStore((s) => s.dispatch);
 
-  // §100 性能优化: dispatch 稳定引用，不依赖 state，避免级联重渲染
-  const dispatch: Dispatch<AppAction> = useCallback((action: AppAction) => {
-    rawDispatch(action);
+  useEffect(() => {
+    const unsub = useAppStore.subscribe(
+      (state) => state,
+      (state) => {
+        persistMiddleware(state, { type: "SET_INITIALIZED", payload: state.initialized });
+      },
+      { fireImmediately: false }
+    );
+    return unsub;
   }, []);
 
-  // 持久化: 通过 useEffect + useRef 节流写入，不影响 dispatch 稳定性
-  const stateRef = useRef(state);
-  stateRef.current = state;
-  const mountedRef = useRef(false);
-  useEffect(() => {
-    if (!mountedRef.current) {
-      mountedRef.current = true;
-      return;
-    }
-    persistMiddleware(state, { type: "SET_INITIALIZED", payload: state.initialized });
-  }, [state]);
-
-  // §38 订阅后端 workbench-event 事件
   useEventBus(dispatch);
-  return (
-    <AppStateContext.Provider value={state}>
-      <AppDispatchContext.Provider value={dispatch}>
-        {children}
-      </AppDispatchContext.Provider>
-    </AppStateContext.Provider>
-  );
+
+  return <>{children}</>;
 }
 
-export function useAppState() {
-  return useContext(AppStateContext);
+export function useDomainState() {
+  return useAppStore();
+}
+
+export function useUIState() {
+  return useAppStore();
+}
+
+export function useGovState() {
+  return useAppStore();
 }
 
 export function useAppDispatch() {
-  return useContext(AppDispatchContext);
+  return useAppStore((s) => s.dispatch);
+}
+
+export function useAppState() {
+  return useAppStore();
 }

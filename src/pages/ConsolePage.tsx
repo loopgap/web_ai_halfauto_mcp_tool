@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { useAppState, useAppDispatch } from "../store/AppStore";
+import { useAppDispatch, useAppStore } from '../store/AppStore';
 import {
   executeDispatchFlow,
   captureOutput,
@@ -30,7 +30,11 @@ import {
 } from "lucide-react";
 
 export default function ConsolePage() {
-  const { skills, targets, runs, errorCatalog, pageStates } = useAppState();
+  const skills = useAppStore(s => s.skills);
+  const targets = useAppStore(s => s.targets);
+  const runs = useAppStore(s => s.runs);
+  const errorCatalog = useAppStore(s => s.errorCatalog);
+  const pageStates = useAppStore(s => s.pageStates);
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
@@ -187,7 +191,7 @@ export default function ConsolePage() {
   const [debouncedConfirmSend, confirmLoading] = useDebouncedAction(handleConfirmSend, 400);
 
   const hasInputErrors = Object.keys(inputErrors).length > 0;
-  const sessionRuns = useMemo(() => runs.slice(0, 10), [runs]);
+  const sessionRuns = runs;
 
   return (
     <div className="p-8 space-y-8">

@@ -10,6 +10,36 @@ import type {
   StepStatus,
 } from "../types";
 
+// ───────── §2.2 AOP Telemetry ─────────
+
+export interface WorkflowTelemetryEvent {
+  workflowId: string;
+  runId: string;
+  stepId?: string;
+  type: "workflow_start" | "workflow_end" | "step_start" | "step_end" | "step_retry" | "step_fail";
+  timestamp: number;
+  durationMs?: number;
+  status?: string;
+  error?: string;
+}
+
+export type WorkflowTelemetryHook = (event: WorkflowTelemetryEvent) => void;
+
+let workflowTelemetryHook: WorkflowTelemetryHook | null = null;
+
+/**
+ * §2.2 AOP: 注册全局遥测 Hook
+ */
+export function setWorkflowTelemetryHook(hook: WorkflowTelemetryHook | null) {
+  workflowTelemetryHook = hook;
+}
+
+function emitWorkflowTelemetry(event: WorkflowTelemetryEvent) {
+  if (workflowTelemetryHook) {
+    workflowTelemetryHook(event);
+  }
+}
+
 // ═══ DAG 分析工具 ═══
 
 export interface DagNode {
@@ -182,6 +212,13 @@ export function createWorkflowExecution(
     });
   }
 
+  emitWorkflowTelemetry({
+    workflowId: workflow.id,
+    runId,
+    type: "workflow_start",
+    timestamp: Date.now(),
+  });
+
   return {
     workflowId: workflow.id,
     runId,
@@ -242,6 +279,49 @@ export function advanceStep(
   const step = execution.steps.get(stepId);
   if (!step) return execution;
 
+  const now = Date.now();
+
+  // Telemetry: step lifecycle
+  if (newStatus === "dispatched" && step.status === "pending") {
+    emitWorkflowTelemetry({
+      workflowId: execution.workflowId,
+      runId: execution.runId,
+      stepId,
+      type: "step_start",
+      timestamp: now,
+    });
+  } else if (newStatus === "captured") {
+    emitWorkflowTelemetry({
+      workflowId: execution.workflowId,
+      runId: execution.runId,
+      stepId,
+      type: "step_end",
+      timestamp: now,
+      durationMs: now - (step.startedAt ?? now),
+      status: "success",
+    });
+  } else if (newStatus === "failed") {
+    if (step.attempts < step.maxRetries) {
+      emitWorkflowTelemetry({
+        workflowId: execution.workflowId,
+        runId: execution.runId,
+        stepId,
+        type: "step_retry",
+        timestamp: now,
+        status: `attempt_${step.attempts}`,
+      });
+    } else {
+      emitWorkflowTelemetry({
+        workflowId: execution.workflowId,
+        runId: execution.runId,
+        stepId,
+        type: "step_fail",
+        timestamp: now,
+        error: errorCode,
+      });
+    }
+  }
+
   const updated: StepExecutionState = {
     ...step,
     status: newStatus,
@@ -266,8 +346,24 @@ export function advanceStep(
 
   if (allDone) {
     status = "done";
+    emitWorkflowTelemetry({
+      workflowId: execution.workflowId,
+      runId: execution.runId,
+      type: "workflow_end",
+      timestamp: now,
+      durationMs: now - execution.startedAt,
+      status: "done",
+    });
   } else if (anyFailed && execution.failPolicy === "fail_fast") {
     status = "failed";
+    emitWorkflowTelemetry({
+      workflowId: execution.workflowId,
+      runId: execution.runId,
+      type: "workflow_end",
+      timestamp: now,
+      durationMs: now - execution.startedAt,
+      status: "failed",
+    });
   } else if (execution.status === "pending") {
     status = "running";
   }

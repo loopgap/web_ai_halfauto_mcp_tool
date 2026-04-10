@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useAppState } from "../store/AppStore";
+import { useAppStore } from '../store/AppStore';
 import { getSelfHealRegistry, governanceEmitTelemetry, governanceLatest, governanceValidate } from "../api";
 import { getVaultStats, cleanupVault } from "../api";
 import type { VaultStats } from "../api";
@@ -13,7 +13,15 @@ import { Settings as SettingsIcon, Route, Cpu, AlertTriangle, ChevronDown, Chevr
 import { runHealthCheck, exportDiagnosticBundle, type HealthReport } from "../domain/health-check";
 
 export default function SettingsPage() {
-  const { routerRules, errorCatalog, initialized, stateHistory, governanceChanges, skills, workflows, targets, runs } = useAppState();
+  const routerRules = useAppStore(s => s.routerRules);
+  const errorCatalog = useAppStore(s => s.errorCatalog);
+  const skills = useAppStore(s => s.skills);
+  const workflows = useAppStore(s => s.workflows);
+  const targets = useAppStore(s => s.targets);
+  const runs = useAppStore(s => s.runs);
+  const initialized = useAppStore(s => s.initialized);
+  const stateHistory = useAppStore(s => s.stateHistory);
+  const governanceChanges = useAppStore(s => s.governanceChanges);
   const [showErrors, setShowErrors] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSelfHeal, setShowSelfHeal] = useState(false);

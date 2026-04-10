@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
-import { useAppState } from "../store/AppStore";
+import { useAppStore } from '../store/AppStore';
 import { SkeletonList } from "../components/Skeleton";
 import { GitBranch, ArrowRight, ChevronDown, ChevronRight, Timer, RefreshCw, AlertTriangle, CheckCircle, Layers } from "lucide-react";
 import { analyzeDag, validateWorkflowDag } from "../domain/workflow-engine";
 import type { Workflow } from "../types";
 
 export default function WorkflowsPage() {
-  const { workflows, initialized } = useAppState();
+  const workflows = useAppStore(s => s.workflows);
+  const initialized = useAppStore(s => s.initialized);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   if (!initialized) {

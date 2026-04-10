@@ -2,7 +2,7 @@
 // §71 Button Debounce & Idempotent Click Protection
 // ═══════════════════════════════════════════════════════════
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 
 /**
  * §71 防抖点击 hook: 防止关键按钮被重复点击
@@ -34,4 +34,25 @@ export function useDebouncedAction<T extends unknown[]>(
   );
 
   return [debouncedFn, loading];
+}
+
+/**
+ * useDebounce hook for values
+ * @param value The value to debounce
+ * @param delay The delay in ms
+ */
+export function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }

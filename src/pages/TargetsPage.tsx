@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useAppState, useAppDispatch } from "../store/AppStore";
+import { useAppDispatch, useAppStore } from '../store/AppStore';
 import { saveTargetsFlow } from "../domain/actions";
 import { enumWindows, healthCheck } from "../api";
 import type { WindowInfo, TargetsConfig } from "../types";
@@ -18,7 +18,10 @@ import {
 } from "lucide-react";
 
 export default function TargetsPage() {
-  const { targets, health, initialized, pageStates } = useAppState();
+  const targets = useAppStore(s => s.targets);
+  const health = useAppStore(s => s.health);
+  const initialized = useAppStore(s => s.initialized);
+  const pageStates = useAppStore(s => s.pageStates);
   const dispatch = useAppDispatch();
 
   const [localConfig, setLocalConfig] = useState<TargetsConfig | null>(null);

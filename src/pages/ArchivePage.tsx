@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useAppState } from "../store/AppStore";
+import { useAppStore } from '../store/AppStore';
 import { SkeletonList } from "../components/Skeleton";
 import { RUN_STATUS } from "../domain/dictionary";
 import { useVirtualScroll } from "../hooks/useVirtualScroll";
@@ -8,7 +8,8 @@ import { downloadAsFile, exportRunsToMarkdown } from "../domain/config-export";
 import { Archive, Search, Download, TrendingUp, CheckCircle, XCircle, Clock } from "lucide-react";
 
 export default function ArchivePage() {
-  const { runs, initialized } = useAppState();
+  const runs = useAppStore(s => s.runs);
+  const initialized = useAppStore(s => s.initialized);
   const [search, setSearch] = useState("");
 
   const stats = useMemo(() => computeRunStats(runs), [runs]);

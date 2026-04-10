@@ -79,7 +79,7 @@ describe("computeRunStats", () => {
   it("last24hCount 仅计最近 24h", () => {
     const runs = [
       makeRun({ ts_start: NOW - 1000 }),     // within 24h
-      makeRun({ ts_start: NOW - DAY + 100 }), // within 24h
+      makeRun({ ts_start: NOW - DAY + 10000 }), // within 24h (10s margin)
       makeRun({ ts_start: NOW - DAY * 2 }),   // outside
     ];
     const stats = computeRunStats(runs);

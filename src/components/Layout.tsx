@@ -12,7 +12,7 @@ import {
   Sparkles,
   Search,
 } from "lucide-react";
-import { useAppState, useAppDispatch } from "../store/AppStore";
+import { useAppDispatch, useAppStore } from '../store/AppStore';
 import { initializeApp } from "../domain/actions";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import CommandPalette from "./CommandPalette";
@@ -38,7 +38,7 @@ const pageTitle: Record<string, string> = {
 };
 
 export default function Layout() {
-  const state = useAppState();
+  const state = useAppStore();
   const dispatch = useAppDispatch();
   const location = useLocation();
   const navigate = useNavigate();

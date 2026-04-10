@@ -8,14 +8,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "ai_workbench_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [workspace]
-members = ["crates/os-win"]
+members = ["crates/os-win", "crates/core"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -26,35 +23,32 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 os-win = { path = "crates/os-win" }
+crate_core = { package = "core", path = "crates/core" }
 serde_yaml = "0.9"
 regex = "1"
 tracing = "0.1"
 tauri-plugin-notification = "2.3.3"
 
 [profile.dev]
+incremental = true
 opt-level = 0
-debug = false
-strip = "debuginfo"          # 剔除调试符号防止内存撑爆
-split-debuginfo = "unpacked"
-incremental = true            # 开启增量编译加速开发迭代
-
-# 第三方依赖开启高等优化，减小包体并提高运行速度
-[profile.dev.package."*"]
-opt-level = 0                 # CI/debug 优先保证稳定可编译，避免依赖树 OOM
-debug = false
+debug = 1
+debug-assertions = true
+overflow-checks = true
+lto = false
+panic = 'unwind'
 
 [profile.release]
-opt-level = "s"               # 专门针对体积进行优化
-lto = "thin"                  # thin LTO 在体积和编译速度间取得平衡
-codegen-units = 1             # 单线程生成代码（最大化优化效果）
-panic = "abort"               # 遇到 panic 直接退出（不展开调用栈，节省体积）
-strip = true                  # 发布模式直接剥离所有符号表
-incremental = false           # release 关闭增量编译以获得更好优化
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+debug = false
+incremental = false
 
-# ── CI 专用 profile：平衡编译速度与产物质量 ──
 [profile.ci]
 inherits = "release"
 lto = "thin"
-codegen-units = 4             # CI 多线程编译加速
-opt-level = 2                 # O2 比 Os 编译更快
-
+codegen-units = 4
+opt-level = 2

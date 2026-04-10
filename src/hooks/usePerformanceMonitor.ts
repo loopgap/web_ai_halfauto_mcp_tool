@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { setWorkflowTelemetryHook, type WorkflowTelemetryEvent } from "../domain/workflow-engine";
 
 export interface PerformanceMetrics {
   /** 页面加载耗时 (ms) */
@@ -20,6 +21,8 @@ export interface PerformanceMetrics {
   longTaskCount: number;
   /** DOM 节点数 */
   domNodeCount: number;
+  /** 最近的工作流事件 */
+  recentEvents: WorkflowTelemetryEvent[];
   /** 最后更新时间 */
   lastUpdate: number;
 }
@@ -32,6 +35,7 @@ const INITIAL_METRICS: PerformanceMetrics = {
   fps: 0,
   longTaskCount: 0,
   domNodeCount: 0,
+  recentEvents: [],
   lastUpdate: 0,
 };
 
@@ -46,6 +50,7 @@ export function usePerformanceMonitor(intervalMs: number = 2000, enabled: boolea
   const lastFrameTimeRef = useRef(performance.now());
   const longTaskCountRef = useRef(0);
   const rafIdRef = useRef(0);
+  const eventsRef = useRef<WorkflowTelemetryEvent[]>([]);
 
   // FPS 计数回调
   const countFrame = useCallback(() => {
@@ -55,6 +60,11 @@ export function usePerformanceMonitor(intervalMs: number = 2000, enabled: boolea
 
   useEffect(() => {
     if (!enabled) return;
+
+    // 注册工作流遥测 Hook
+    setWorkflowTelemetryHook((event) => {
+      eventsRef.current = [event, ...eventsRef.current].slice(0, 10);
+    });
 
     // 启动 FPS 计数
     rafIdRef.current = requestAnimationFrame(countFrame);
@@ -103,11 +113,13 @@ export function usePerformanceMonitor(intervalMs: number = 2000, enabled: boolea
         fps,
         longTaskCount: longTaskCountRef.current,
         domNodeCount: document.querySelectorAll("*").length,
+        recentEvents: [...eventsRef.current],
         lastUpdate: Date.now(),
       });
     }, intervalMs);
 
     return () => {
+      setWorkflowTelemetryHook(null);
       clearInterval(timer);
       cancelAnimationFrame(rafIdRef.current);
       longTaskObserver?.disconnect();

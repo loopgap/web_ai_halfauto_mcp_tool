@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useAppState } from "../store/AppStore";
+import { useAppStore } from '../store/AppStore';
 import { SkeletonList } from "../components/Skeleton";
 import { Zap, ChevronDown, ChevronRight, Shield, Clock, Tag } from "lucide-react";
 
 export default function SkillsPage() {
-  const { skills, initialized } = useAppState();
+  const skills = useAppStore(s => s.skills);
+  const initialized = useAppStore(s => s.initialized);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   if (!initialized) {

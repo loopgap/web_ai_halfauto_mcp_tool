@@ -1,5 +1,5 @@
 import { useMemo, memo } from "react";
-import { useAppState } from "../store/AppStore";
+import { useAppStore } from '../store/AppStore';
 import { SkeletonCard, SkeletonList } from "../components/Skeleton";
 import { TARGET_STATUS, RUN_STATUS } from "../domain/dictionary";
 import { defaultRuntimeState, getSlmSummary } from "../domain/slm";
@@ -8,7 +8,13 @@ import PerformancePanel from "../components/PerformancePanel";
 import { Zap, GitBranch, Monitor, CheckCircle, XCircle, Shield, Clock, Cpu, HeartPulse, BarChart3, TrendingUp, Activity } from "lucide-react";
 
 export default function Dashboard() {
-  const { skills, workflows, targets, health, runs, errorCatalog, initialized } = useAppState();
+  const skills = useAppStore(s => s.skills);
+  const workflows = useAppStore(s => s.workflows);
+  const targets = useAppStore(s => s.targets);
+  const health = useAppStore(s => s.health);
+  const runs = useAppStore(s => s.runs);
+  const errorCatalog = useAppStore(s => s.errorCatalog);
+  const initialized = useAppStore(s => s.initialized);
 
   // §100 性能优化: 缓存 SLM 计算结果，避免每次渲染重算
   const slmRuntime = useMemo(() => defaultRuntimeState(), []);
