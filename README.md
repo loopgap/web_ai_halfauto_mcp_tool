@@ -4,7 +4,7 @@
 
 ## 🚀 项目入口 (Main Entries)
 
-*   **[快速开始 (Quickstart)](QUICKSTART.md)** - 环境准备与 5 分钟上手。
+*   **[快速开始 (Quickstart)](docs/QUICKSTART.md)** - 环境准备与 5 分钟上手。
 *   **[用户指南 (User Guide)](docs/GUIDE.md)** - 详细的功能操作与界面说明。
 *   **[开发者指南 (Developer Wiki)](#开发者指南)** - 深入了解架构、开发流程与治理规范。
 
@@ -38,10 +38,11 @@
 
 ### 3. 项目文档索引 (Documentation Index)
 
-*   **[架构优化方案](architecture_optimization_plan.md)** - 记录了项目重构与性能调优的完整计划。
+*   **[架构优化方案](docs/architecture_optimization_plan.md)** - 记录了项目重构与性能调优的完整计划。
 *   **[自动化脚本说明](docs/README-SCRIPTS.md)** - 关于 `task.go` 的设计与命令详情。
 *   **[故障排除 (Troubleshooting)](docs/TROUBLESHOOTING.md)** - 常见编译错误与运行问题的解决方法。
-*   **[项目变更日志 (Changelog)](CHANGELOG.md)** - 版本迭代记录。
+*   **[项目变更日志 (Changelog)](docs/CHANGELOG.md)** - 版本迭代记录。
+*   **[技术路线图 (Route)](docs/route.md)** - 详细的开发路线与技术细则。
 
 ### 4. 项目治理与质量门禁 (Governance)
 
@@ -57,4 +58,5 @@
 - [x] **Phase 1.2**: 后端 Rust 模块化解耦 (提取 `crates/core`)。
 - [x] **Phase 2.1**: 前端长列表性能调优 (Virtual Scroll)。
 - [x] **Phase 2.2**: 运行时 AOP 监控注入。
-- [ ] **Phase 3**: 闭环测试与 Git Hooks 自动化。
+- [x] **Phase 3.1**: 归类整理工作区杂乱文件。
+- [ ] **Phase 3.2**: 闭环测试与 Git Hooks 自动化。
