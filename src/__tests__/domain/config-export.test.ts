@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import {
   exportConfigBundle,
+  exportNewsToMarkdown,
   serializeBundle,
   validateConfigBundle,
 } from "../../domain/config-export";
@@ -74,5 +75,24 @@ describe("validateConfigBundle", () => {
     const result = validateConfigBundle({ version: "1", skills: [], workflows: {} });
     expect(result.valid).toBe(false);
     expect(result.errors).toContain("workflows 必须为数组");
+  });
+});
+
+describe("exportNewsToMarkdown", () => {
+  it("delegates to news report renderer", () => {
+    const md = exportNewsToMarkdown("News", [
+      {
+        id: "1",
+        source_id: "src",
+        source_name: "Source",
+        title: "Headline",
+        content: "Body",
+        published_at: 1,
+        fetched_at: 2,
+      },
+    ]);
+
+    expect(md).toContain("# News");
+    expect(md).toContain("Headline");
   });
 });

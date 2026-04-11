@@ -21,6 +21,10 @@ import type {
   GovernanceValidationReport,
   GovernanceSnapshot,
   BrowserDetectionResult,
+  ScheduledWorkflow,
+  NewsSource,
+  NewsItem,
+  ReportDocument,
 } from "./types";
 
 function normalizeError(error: unknown): ApiError {
@@ -285,6 +289,58 @@ export async function getVaultStats(): Promise<VaultStats> {
 /** §100 清理超过指定天数的 Run 存档，返回删除数量 */
 export async function cleanupVault(olderThanDays: number): Promise<number> {
   return invokeSafe("cleanup_vault", { olderThanDays });
+}
+
+// ───────── Scheduler v1 ─────────
+
+export async function listSchedules(): Promise<ScheduledWorkflow[]> {
+  return invokeSafe("list_schedules");
+}
+
+export async function saveSchedule(schedule: ScheduledWorkflow): Promise<void> {
+  return invokeSafe("save_schedule", { schedule });
+}
+
+export async function deleteSchedule(scheduleId: string): Promise<void> {
+  return invokeSafe("delete_schedule", { scheduleId });
+}
+
+export async function triggerScheduledWorkflow(scheduleId: string): Promise<void> {
+  return invokeSafe("trigger_scheduled_workflow", { scheduleId });
+}
+
+// ───────── News / Report v1 ─────────
+
+export async function listNewsSources(): Promise<NewsSource[]> {
+  return invokeSafe("list_news_sources");
+}
+
+export async function saveNewsSource(source: NewsSource): Promise<void> {
+  return invokeSafe("save_news_source", { source });
+}
+
+export async function deleteNewsSource(sourceId: string): Promise<void> {
+  return invokeSafe("delete_news_source", { sourceId });
+}
+
+export async function fetchNewsFromSource(sourceId: string): Promise<NewsItem[]> {
+  return invokeSafe("fetch_news_from_source", { sourceId });
+}
+
+export async function generateNewsReport(args: {
+  title: string;
+  sourceIds: string[];
+  sinceTs?: number;
+  untilTs?: number;
+}): Promise<ReportDocument> {
+  return invokeSafe("generate_news_report", {
+    args: {
+      title: args.title,
+      source_ids: args.sourceIds,
+      since_ts: args.sinceTs ?? null,
+      until_ts: args.untilTs ?? null,
+    },
+  });
 }
 
 import { sendNotification } from '@tauri-apps/plugin-notification';

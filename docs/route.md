@@ -2258,3 +2258,82 @@ Tauri v2 遵循各操作系统原生安装包标准：
 - [ ] 搜索栏可点击打开命令面板
 - [ ] 首次加载显示 splash screen 后过渡到应用
 - [ ] Dashboard 重渲染次数显著减少（React DevTools 验证）
+
+---
+
+## §101 2026-04 增量实现：Scheduler + Reports + 自动化门禁修复
+
+> 本节记录本次按“逐功能实现 + 逐项测试验证”完成的增量改造。
+
+### 101.1 功能 1：Scheduler 定时任务（前端闭环）
+
+已实现：
+
+- 新增 `schedule-engine`：触发器校验（once/interval/daily/cron）、下次运行时间计算、预览与到期判断。
+- 新增 `schedule-storage`：本地持久化、upsert/remove、自动计算 `next_run_at`。
+- 新增页面 `SchedulerPage`：创建任务、预览未来触发时间、删除任务。
+- 导航与命令面板接入：`/scheduler`，支持快捷键跳转。
+
+验证结果：
+
+- `src/__tests__/domain/schedule-engine.test.ts` 通过。
+- `src/__tests__/domain/schedule-storage.test.ts` 通过。
+- `src/__tests__/pages/SchedulerPage.test.tsx` 通过。
+
+### 101.2 功能 2：资讯整理与 Markdown 汇报预览
+
+已实现：
+
+- 新增 `news-report`：资讯标准化、去重、Markdown 报告生成、`ReportDocument` 构建。
+- 扩展导出链路：`config-export` 新增 `exportNewsToMarkdown()`。
+- 新增页面 `ReportsPage`：手工录入资讯、实时生成报告、站内预览、导出 `.md`。
+- 导航与命令面板接入：`/reports`，支持快捷键跳转。
+
+验证结果：
+
+- `src/__tests__/domain/news-report.test.ts` 通过。
+- `src/__tests__/pages/ReportsPage.test.tsx` 通过。
+- `src/__tests__/domain/config-export.test.ts`（新增 news 导出断言）通过。
+
+### 101.3 多平台优化与检测增强
+
+已实现：
+
+- `task.go` 增强：
+  - `pnpm` 缺失时自动回退到 `corepack pnpm`。
+  - `doctor` 新增 Linux 依赖检测（`libwebkit2gtk-4.1-dev`、`libgtk-3-dev`、`libayatana-appindicator3-dev`、`librsvg2-dev`、`patchelf`）。
+- CI 增强：
+  - 新增 `platform-doctor`（ubuntu + windows）矩阵任务，执行环境检测。
+  - 修复前端门禁依赖脚本缺失问题，确保 workflow 可执行。
+
+### 101.4 自动化工作流修复
+
+已实现：
+
+- `package.json` 新增：
+  - `test:ci`
+  - `governance:validate`
+  - `test:governance:api`
+- 新增脚本：
+  - `scripts/governance-validate.mjs`
+  - `scripts/governance-api-check.mjs`
+- `.github/workflows/ci.yml`：
+  - 监听 `scripts/**` 变更。
+  - 前端测试产物上传与构建步骤保持在 `frontend-check`。
+  - `governance` 与 `build-release` 增加对 `platform-doctor` 的依赖。
+
+### 101.5 本地验证快照（本次执行）
+
+- `corepack pnpm governance:validate` 通过。
+- `corepack pnpm test:governance:api` 通过。
+- `corepack pnpm exec tsc --noEmit` 通过。
+- `corepack pnpm test:ci` 通过：
+  - `19` 个测试文件
+  - `217` 个测试用例全部通过
+  - 生成 `test-results.xml`
+
+### 101.6 已知环境差异
+
+- 当前执行环境未安装 `go`，因此 `go run task.go doctor` 无法在本机直接运行。
+- 该限制已通过 CI 的 `platform-doctor` + `setup-go` 覆盖，远端流水线可验证 Go 侧 doctor 流程。
+

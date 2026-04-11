@@ -8,9 +8,11 @@ import {
   Archive,
   Settings,
   Activity,
+  CalendarClock,
   Loader2,
   Sparkles,
   Search,
+  FileText,
 } from "lucide-react";
 import { useAppDispatch, useAppStore } from '../store/AppStore';
 import { initializeApp } from "../domain/actions";
@@ -23,6 +25,8 @@ const navItems = [
   { to: "/workflows", icon: GitBranch, label: "Workflows", desc: "工作流" },
   { to: "/console", icon: Monitor, label: "Console", desc: "控制台" },
   { to: "/archive", icon: Archive, label: "Archive", desc: "归档" },
+  { to: "/scheduler", icon: CalendarClock, label: "Scheduler", desc: "定时" },
+  { to: "/reports", icon: FileText, label: "Reports", desc: "汇报" },
   { to: "/targets", icon: Activity, label: "Targets", desc: "管理" },
   { to: "/settings", icon: Settings, label: "Settings", desc: "设置" },
 ];
@@ -33,6 +37,8 @@ const pageTitle: Record<string, string> = {
   "/workflows": "Workflows 工作流",
   "/console": "运行控制台",
   "/archive": "Runs 归档",
+  "/scheduler": "Scheduler 定时任务",
+  "/reports": "Reports 汇报中心",
   "/targets": "Targets 管理",
   "/settings": "系统设置",
 };
@@ -59,7 +65,9 @@ export default function Layout() {
     { key: "ctrl+3",       handler: () => navigate("/workflows") },
     { key: "ctrl+4",       handler: () => navigate("/console") },
     { key: "ctrl+5",       handler: () => navigate("/archive") },
-    { key: "ctrl+6",       handler: () => navigate("/targets") },
+    { key: "ctrl+6",       handler: () => navigate("/scheduler") },
+    { key: "ctrl+7",       handler: () => navigate("/reports") },
+    { key: "ctrl+8",       handler: () => navigate("/targets") },
     { key: "ctrl+,",       handler: () => navigate("/settings") },
   ]);
 

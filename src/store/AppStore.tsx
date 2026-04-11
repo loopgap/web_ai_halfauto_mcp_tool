@@ -58,6 +58,8 @@ const defaultPageStates: Record<string, PageState> = {
   workflows: "idle",
   console: "idle",
   archive: "idle",
+  scheduler: "idle",
+  reports: "idle",
   targets: "idle",
   settings: "idle",
 };

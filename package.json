@@ -14,6 +14,9 @@
     "doctor": "go run task.go doctor",
     "check": "go run task.go check",
     "test": "go run task.go test",
+    "test:ci": "vitest run --reporter=default --reporter=junit --outputFile=test-results.xml",
+    "governance:validate": "node scripts/governance-validate.mjs",
+    "test:governance:api": "node scripts/governance-api-check.mjs",
     "setup": "go run task.go setup",
     "ci": "go run task.go ci"
   },

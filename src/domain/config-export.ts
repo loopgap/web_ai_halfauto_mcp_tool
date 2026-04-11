@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════════════
 
 import type { TargetsConfig, Skill, Workflow, RouterRulesConfig } from "../types";
+import { generateNewsMarkdownReport } from "./news-report";
 
 export interface ConfigBundle {
   version: string;
@@ -82,6 +83,7 @@ export function readFileAsText(file: File): Promise<string> {
 // ───────── Run 导出为 Markdown ─────────
 
 import type { RunRecord } from "../types";
+import type { NewsItem } from "../types";
 
 export function exportRunsToMarkdown(runs: RunRecord[]): string {
   const lines: string[] = [
@@ -127,4 +129,8 @@ export function exportRunsToMarkdown(runs: RunRecord[]): string {
   }
 
   return lines.join("\n");
+}
+
+export function exportNewsToMarkdown(title: string, items: NewsItem[]): string {
+  return generateNewsMarkdownReport(title, items);
 }

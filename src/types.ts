@@ -168,6 +168,21 @@ export interface WorkflowStep {
   compensation?: string;
   emit_events: string[];
   dispatch?: SkillDispatch;
+  /** 条件分支: 满足条件才执行当前节点 */
+  if_condition?: {
+    type: "status_is" | "output_contains" | "error_code_matches";
+    value: string;
+    source_step_id?: string;
+  };
+  /** 循环执行: 从上游产物读取列表并展开 */
+  for_each?: {
+    items_expr: string;
+    var_name: string;
+    max_iterations?: number;
+  };
+  /** 审批节点/条件节点/循环节点 */
+  node_type?: "normal" | "approval" | "conditional" | "loop";
+  approval_timeout_ms?: number;
 }
 
 export interface WorkflowPolicy {
@@ -283,6 +298,8 @@ export interface RunRecord {
   browser_id?: BrowserId;
   browser_candidates?: BrowserCandidate[];
   injection_audit?: InjectionAudit;
+  /** 定时任务运行来源 */
+  scheduled_id?: string;
 }
 
 export interface VaultEvent {
@@ -557,4 +574,73 @@ export interface GovernanceSnapshot {
   change: ChangeRecord;
   quality: QualityGateResult;
   decision: ReleaseDecisionRecord;
+}
+
+// Scheduler / News / Report v1 contracts
+
+export type ScheduleType = "once" | "interval" | "daily" | "cron";
+
+export interface ScheduleTrigger {
+  type: ScheduleType;
+  /** once 模式使用 UTC 毫秒时间戳 */
+  once_at?: number;
+  /** interval 模式使用毫秒 */
+  interval_ms?: number;
+  /** daily 模式: "HH:mm" (UTC) */
+  daily_utc_hm?: string;
+  /** cron 模式: 5 段表达式 */
+  cron?: string;
+}
+
+export interface ScheduledWorkflow {
+  id: string;
+  workflow_id: string;
+  trigger: ScheduleTrigger;
+  enabled: boolean;
+  next_run_at: number;
+  last_run_at?: number;
+  last_error?: string;
+  failure_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface NewsSource {
+  id: string;
+  name: string;
+  type: "rss" | "json_api" | "web";
+  endpoint: string;
+  enabled: boolean;
+  poll_interval_ms: number;
+  headers?: Record<string, string>;
+  extractor?: {
+    title_path?: string;
+    content_path?: string;
+    url_path?: string;
+    published_at_path?: string;
+  };
+}
+
+export interface NewsItem {
+  id: string;
+  source_id: string;
+  source_name: string;
+  title: string;
+  content: string;
+  url?: string;
+  published_at: number;
+  fetched_at: number;
+  summary?: string;
+  keywords?: string[];
+  tags?: string[];
+}
+
+export interface ReportDocument {
+  id: string;
+  title: string;
+  generated_at: number;
+  format: "markdown";
+  content: string;
+  source_ids: string[];
+  item_ids: string[];
 }

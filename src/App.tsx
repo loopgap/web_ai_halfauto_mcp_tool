@@ -12,6 +12,8 @@ const SkillsPage = lazy(() => import("./pages/SkillsPage"));
 const WorkflowsPage = lazy(() => import("./pages/WorkflowsPage"));
 const ConsolePage = lazy(() => import("./pages/ConsolePage"));
 const ArchivePage = lazy(() => import("./pages/ArchivePage"));
+const SchedulerPage = lazy(() => import("./pages/SchedulerPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
 const TargetsPage = lazy(() => import("./pages/TargetsPage"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 
@@ -37,6 +39,8 @@ function App() {
                 <Route path="/workflows" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><WorkflowsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/console" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ConsolePage /></Suspense></ErrorBoundary>} />
                 <Route path="/archive" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ArchivePage /></Suspense></ErrorBoundary>} />
+                <Route path="/scheduler" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><SchedulerPage /></Suspense></ErrorBoundary>} />
+                <Route path="/reports" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><ReportsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/targets" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><TargetsPage /></Suspense></ErrorBoundary>} />
                 <Route path="/settings" element={<ErrorBoundary><Suspense fallback={<PageFallback />}><SettingsPage /></Suspense></ErrorBoundary>} />
               </Route>

@@ -7,6 +7,7 @@ on:
       - "src/**"
       - "src-tauri/**"
       - "package.json"
+      - "scripts/**"
       - "tsconfig*.json"
       - "vite.config.ts"
       - ".github/workflows/ci.yml"
@@ -64,6 +65,36 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
+  # ── 多平台环境检测 ──
+  platform-doctor:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Doctor check
+        run: go run task.go doctor
+
   # ── Rust 后端检查 ──
   backend-check:
     runs-on: ubuntu-22.04
@@ -104,7 +135,7 @@ jobs:
   # ── 治理验证 ──
   governance:
     runs-on: ubuntu-latest
-    needs: [frontend-check]
+    needs: [frontend-check, platform-doctor]
     steps:
       - uses: actions/checkout@v4
 
@@ -132,7 +163,7 @@ jobs:
   # ── Tauri 完整构建 (仅 main 分支) ──
   build-release:
     if: github.ref == 'refs/heads/main'
-    needs: [frontend-check, backend-check, governance]
+    needs: [frontend-check, backend-check, governance, platform-doctor]
     strategy:
       fail-fast: false
       matrix:

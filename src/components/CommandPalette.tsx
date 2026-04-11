@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Zap, Terminal, Activity, Settings, Archive, GitBranch, Monitor } from "lucide-react";
+import { Search, Zap, Terminal, Activity, Settings, Archive, GitBranch, Monitor, CalendarClock, FileText } from "lucide-react";
 
 export interface CommandItem {
   id: string;
@@ -95,6 +95,22 @@ export default function CommandPalette({ extraCommands = [], onClose, externalOp
         icon: <Archive size={16} />,
         category: "导航",
         action: () => navigate("/archive"),
+      },
+      {
+        id: "nav-scheduler",
+        label: "前往 Scheduler",
+        description: "管理定时任务",
+        icon: <CalendarClock size={16} />,
+        category: "导航",
+        action: () => navigate("/scheduler"),
+      },
+      {
+        id: "nav-reports",
+        label: "前往 Reports",
+        description: "资讯汇报与预览",
+        icon: <FileText size={16} />,
+        category: "导航",
+        action: () => navigate("/reports"),
       },
       {
         id: "nav-settings",
