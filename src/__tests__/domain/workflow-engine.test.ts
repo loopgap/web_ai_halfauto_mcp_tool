@@ -7,6 +7,7 @@ import {
   analyzeDag,
   createWorkflowExecution,
   getReadySteps,
+  getRunnableWorkflowSteps,
   advanceStep,
   isTimedOut,
   canRetryStep,
@@ -18,6 +19,9 @@ import {
   getExecutionProgress,
   validateWorkflowDag,
   mergeResults,
+  createWorkflowConditionContext,
+  evaluateWorkflowStepCondition,
+  expandWorkflowLoopItems,
 } from "../../domain/workflow-engine";
 import type { Workflow } from "../../types";
 
@@ -149,6 +153,79 @@ describe("getReadySteps", () => {
     const dag = analyzeDag(wf);
     const ready = getReadySteps(exec, dag);
     expect(ready).toContain("b");
+  });
+});
+
+describe("workflow collaboration helpers", () => {
+  it("按状态条件筛选可执行步骤", () => {
+    const wf: Workflow = {
+      id: "wf-branch",
+      version: "1.0",
+      title: "Branch Workflow",
+      steps: [
+        { id: "source", use: "source", depends_on: [], timeout_ms: 30000, emit_events: [], compensation: "undo_source", retry_policy: { max_retries: 3, delay_ms: 1000, backoff: "exponential" } },
+        {
+          id: "conditional",
+          use: "conditional",
+          depends_on: ["source"],
+          timeout_ms: 30000,
+          emit_events: [],
+          compensation: "undo_conditional",
+          retry_policy: { max_retries: 3, delay_ms: 1000, backoff: "exponential" },
+          if_condition: { type: "status_is", value: "captured", source_step_id: "source" },
+        },
+      ],
+      policy: { max_parallelism: 3, global_timeout_ms: 300000, fail_policy: "fail_fast", checkpoint_policy: "none", resume_policy: "restart", merge_strategy: "replace" },
+    };
+
+    let exec = createWorkflowExecution(wf, "run-branch");
+    expect(getRunnableWorkflowSteps(exec, wf)).toContain("source");
+    expect(getRunnableWorkflowSteps(exec, wf)).not.toContain("conditional");
+
+    exec = advanceStep(exec, "source", "captured", undefined, "report-ready");
+    expect(getRunnableWorkflowSteps(exec, wf)).toContain("conditional");
+
+    const context = createWorkflowConditionContext(exec);
+    expect(evaluateWorkflowStepCondition(wf.steps[1], context)).toBe(true);
+  });
+
+  it("按输出内容和错误码条件判断", () => {
+    const wf: Workflow = {
+      id: "wf-io",
+      version: "1.0",
+      title: "IO Workflow",
+      steps: [
+        { id: "source", use: "source", depends_on: [], timeout_ms: 30000, emit_events: [], compensation: "undo_source", retry_policy: { max_retries: 3, delay_ms: 1000, backoff: "exponential" } },
+        { id: "output_check", use: "output_check", depends_on: ["source"], timeout_ms: 30000, emit_events: [], compensation: "undo_output", retry_policy: { max_retries: 3, delay_ms: 1000, backoff: "exponential" }, if_condition: { type: "output_contains", value: "ready", source_step_id: "source" } },
+        { id: "error_check", use: "error_check", depends_on: ["source"], timeout_ms: 30000, emit_events: [], compensation: "undo_error", retry_policy: { max_retries: 3, delay_ms: 1000, backoff: "exponential" }, if_condition: { type: "error_code_matches", value: "E42", source_step_id: "source" } },
+      ],
+      policy: { max_parallelism: 3, global_timeout_ms: 300000, fail_policy: "fail_fast", checkpoint_policy: "none", resume_policy: "restart", merge_strategy: "replace" },
+    };
+
+    let exec = createWorkflowExecution(wf, "run-io");
+    exec = advanceStep(exec, "source", "captured", undefined, "job ready");
+    const outputContext = createWorkflowConditionContext(exec);
+    expect(evaluateWorkflowStepCondition(wf.steps[1], outputContext)).toBe(true);
+    expect(evaluateWorkflowStepCondition(wf.steps[2], outputContext)).toBe(false);
+
+    exec = advanceStep(exec, "source", "failed", "E42");
+    const errorContext = createWorkflowConditionContext(exec);
+    expect(evaluateWorkflowStepCondition(wf.steps[2], errorContext)).toBe(true);
+  });
+
+  it("循环步骤按上限展开", () => {
+    const wfStep = {
+      id: "loop",
+      use: "loop",
+      depends_on: [],
+      timeout_ms: 30000,
+      emit_events: [],
+      compensation: "undo_loop",
+      retry_policy: { max_retries: 3, delay_ms: 1000, backoff: "exponential" },
+      for_each: { items_expr: "items", var_name: "item", max_iterations: 2 },
+    };
+
+    expect(expandWorkflowLoopItems(wfStep, ["one", "two", "three"])).toEqual(["one", "two"]);
   });
 });
 

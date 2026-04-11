@@ -1,197 +1,199 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="195" failures="0" errors="0" time="0.3850043">
-    <testsuite name="src/__tests__/domain/actions.test.ts" timestamp="2026-04-09T01:51:30.038Z" hostname="Redmibook14P24" tests="52" failures="0" errors="0" skipped="0" time="0.0126287">
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; 无 gate 时总是通过" time="0.0026568">
+<testsuites name="vitest tests" tests="220" failures="0" errors="0" time="1.777428039">
+    <testsuite name="src/__tests__/domain/actions.test.ts" timestamp="2026-04-11T14:04:46.667Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="52" failures="0" errors="0" skipped="0" time="0.055353413">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; 无 gate 时总是通过" time="0.005512881">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; min_length 不满足时失败" time="0.0003308">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; min_length 不满足时失败" time="0.001046226">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; max_length 超出时失败" time="0.0001813">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; max_length 超出时失败" time="0.000952445">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; must_contain 缺失时失败" time="0.0001295">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; must_contain 缺失时失败" time="0.000591325">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; must_not_contain 命中时失败" time="0.0001401">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; must_not_contain 命中时失败" time="0.000891343">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; 同时满足所有条件通过" time="0.0001287">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; 同时满足所有条件通过" time="0.000519575">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; 多个 gate 全部检查" time="0.0010643">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkQualityGates &gt; 多个 gate 全部检查" time="0.002760097">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 正常文本不触发" time="0.000528">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 正常文本不触发" time="0.002252049">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 ignore previous instructions" time="0.0004045">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 ignore previous instructions" time="0.001953754">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 jailbreak" time="0.000137">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 jailbreak" time="0.00080751">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 system: 前缀" time="0.0001068">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 system: 前缀" time="0.000455605">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 DAN mode" time="0.0000964">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 DAN mode" time="0.000378327">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 bypass safety" time="0.0000865">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPromptInjection &gt; 检测 bypass safety" time="0.000344694">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPII &gt; 正常文本无 PII" time="0.0003972">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPII &gt; 正常文本无 PII" time="0.002112363">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPII &gt; 检测手机号" time="0.000417">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPII &gt; 检测手机号" time="0.00192986">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPII &gt; 检测邮箱" time="0.0001519">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPII &gt; 检测邮箱" time="0.000771116">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPII &gt; 检测身份证号" time="0.0001478">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectPII &gt; 检测身份证号" time="0.000684255">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="sanitizeInput &gt; 移除空字节" time="0.0001323">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="sanitizeInput &gt; 移除空字节" time="0.000595281">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="sanitizeInput &gt; 移除控制字符" time="0.0000615">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="sanitizeInput &gt; 移除控制字符" time="0.000755562">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="sanitizeInput &gt; 统一换行符" time="0.0000495">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="sanitizeInput &gt; 统一换行符" time="0.000356542">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="sanitizeInput &gt; trim 首尾空白" time="0.0000473">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="sanitizeInput &gt; trim 首尾空白" time="0.000302478">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkRateLimit &gt; 首次调用通过" time="0.0001234">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkRateLimit &gt; 首次调用通过" time="0.000818392">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkRateLimit &gt; 在阈值内通过" time="0.0001291">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkRateLimit &gt; 在阈值内通过" time="0.000688363">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkRateLimit &gt; 超出阈值拦截" time="0.0000837">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="checkRateLimit &gt; 超出阈值拦截" time="0.000363342">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectAgentLoop &gt; 不足 3 条输出时不触发" time="0.0001419">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectAgentLoop &gt; 不足 3 条输出时不触发" time="0.000575368">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectAgentLoop &gt; 完全相同的输出触发循环" time="0.0001417">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectAgentLoop &gt; 完全相同的输出触发循环" time="0.00056391">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectAgentLoop &gt; 不同输出不触发" time="0.0000962">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="detectAgentLoop &gt; 不同输出不触发" time="0.007041875">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; 有效 run 通过检查" time="0.0001985">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; 有效 run 通过检查" time="0.000903173">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; done 但无 output" time="0.0001596">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; done 但无 output" time="0.000833677">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; done 但无 ts_end" time="0.0000694">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; done 但无 ts_end" time="0.000371116">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; failed 但无 error_code" time="0.0001286">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; failed 但无 error_code" time="0.000621783">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; 结束时间早于开始时间" time="0.0001225">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; 结束时间早于开始时间" time="0.000582887">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; 缺少 trace_id" time="0.0001054">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateRunConsistency &gt; 缺少 trace_id" time="0.000544476">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateInput &gt; 正常输入通过" time="0.0001092">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateInput &gt; 正常输入通过" time="0.000524108">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateInput &gt; 超长输入报错" time="0.0000663">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateInput &gt; 超长输入报错" time="0.00052795">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateInput &gt; 自定义 maxLen" time="0.0000522">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateInput &gt; 自定义 maxLen" time="0.00030907">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateInput &gt; 包含空字节报错" time="0.0000568">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validateInput &gt; 包含空字节报错" time="0.00024793">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validatePrompt &gt; 空 prompt 报错" time="0.0000974">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validatePrompt &gt; 空 prompt 报错" time="0.000440349">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validatePrompt &gt; 正常 prompt 通过" time="0.0000472">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validatePrompt &gt; 正常 prompt 通过" time="0.000459326">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="validatePrompt &gt; 包含空字节报错" time="0.0000842">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="validatePrompt &gt; 包含空字节报错" time="0.000327712">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; created → dispatched 合法" time="0.0000864">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; created → dispatched 合法" time="0.000324129">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; created → failed 合法" time="0.000047">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; created → failed 合法" time="0.000225189">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; done → created 非法" time="0.0000419">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; done → created 非法" time="0.000281061">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; closed → 任何 都非法" time="0.0000555">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; closed → 任何 都非法" time="0.000306965">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; 未知状态返回 false" time="0.000042">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="canTransitionTo &gt; 未知状态返回 false" time="0.000220045">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="parseWatermark &gt; 解析有效水印" time="0.0002503">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="parseWatermark &gt; 解析有效水印" time="0.001022937">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="parseWatermark &gt; 无水印返回 null" time="0.0001078">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="parseWatermark &gt; 无水印返回 null" time="0.000413849">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="getRecoveryActions &gt; 已知错误码返回对应动作" time="0.000205">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="getRecoveryActions &gt; 已知错误码返回对应动作" time="0.000889459">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="getRecoveryActions &gt; 未知错误码返回默认动作" time="0.0000901">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="getRecoveryActions &gt; 未知错误码返回默认动作" time="0.00045122">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="getRecoveryActions &gt; 安全相关错误有对应动作" time="0.0000928">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="getRecoveryActions &gt; 安全相关错误有对应动作" time="0.000481506">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="lookupError &gt; 找到匹配的错误" time="0.0000912">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="lookupError &gt; 找到匹配的错误" time="0.000428158">
         </testcase>
-        <testcase classname="src/__tests__/domain/actions.test.ts" name="lookupError &gt; 未找到返回 undefined" time="0.0000725">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/__tests__/domain/api-retry.test.ts" timestamp="2026-04-09T01:51:30.050Z" hostname="Redmibook14P24" tests="6" failures="0" errors="0" skipped="0" time="0.1545528">
-        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 成功时直接返回" time="0.0032246">
-        </testcase>
-        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 不可重试错误直接抛出" time="0.0027606">
-        </testcase>
-        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 可重试错误自动重试直到成功" time="0.0507489">
-        </testcase>
-        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 超过 maxRetries 后抛出最后一个错误" time="0.0477073">
-        </testcase>
-        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; onRetry 回调被调用" time="0.017814">
-        </testcase>
-        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 自定义 isRetryable" time="0.0283803">
+        <testcase classname="src/__tests__/domain/actions.test.ts" name="lookupError &gt; 未找到返回 undefined" time="0.000390721">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/config-export.test.ts" timestamp="2026-04-09T01:51:30.052Z" hostname="Redmibook14P24" tests="8" failures="0" errors="0" skipped="0" time="0.0086349">
-        <testcase classname="src/__tests__/domain/config-export.test.ts" name="exportConfigBundle &gt; 生成正确结构" time="0.0037024">
+    <testsuite name="src/__tests__/domain/api-retry.test.ts" timestamp="2026-04-11T14:04:46.684Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="6" failures="0" errors="0" skipped="0" time="0.129253852">
+        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 成功时直接返回" time="0.006204803">
         </testcase>
-        <testcase classname="src/__tests__/domain/config-export.test.ts" name="exportConfigBundle &gt; 保留传入的数据引用" time="0.0004419">
+        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 不可重试错误直接抛出" time="0.005805733">
         </testcase>
-        <testcase classname="src/__tests__/domain/config-export.test.ts" name="serializeBundle &gt; 输出有效 JSON" time="0.0004767">
+        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 可重试错误自动重试直到成功" time="0.037889152">
         </testcase>
-        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; 有效 bundle 通过验证" time="0.0004804">
+        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 超过 maxRetries 后抛出最后一个错误" time="0.040214265">
         </testcase>
-        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; null 输入失败" time="0.0011414">
+        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; onRetry 回调被调用" time="0.021255219">
         </testcase>
-        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; 缺少 version 报错" time="0.0003476">
-        </testcase>
-        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; skills 非数组报错" time="0.0001826">
-        </testcase>
-        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; workflows 非数组报错" time="0.0001445">
+        <testcase classname="src/__tests__/domain/api-retry.test.ts" name="invokeWithRetry &gt; 自定义 isRetryable" time="0.013966541">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/dictionary.test.ts" timestamp="2026-04-09T01:51:30.054Z" hostname="Redmibook14P24" tests="12" failures="0" errors="0" skipped="0" time="0.0085564">
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="PAGE_STATE_LABELS &gt; 覆盖所有页面状态" time="0.002597">
+    <testsuite name="src/__tests__/domain/config-export.test.ts" timestamp="2026-04-11T14:04:46.687Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="9" failures="0" errors="0" skipped="0" time="0.021718705">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="exportConfigBundle &gt; 生成正确结构" time="0.00714371">
         </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="RUN_STATUS &gt; 覆盖所有 run 状态" time="0.0012732">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="exportConfigBundle &gt; 保留传入的数据引用" time="0.000691067">
         </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="TARGET_STATUS &gt; 覆盖所有 target 状态" time="0.0003227">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="serializeBundle &gt; 输出有效 JSON" time="0.000844773">
         </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="STEP_STATUS &gt; 覆盖所有步骤状态" time="0.0003813">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; 有效 bundle 通过验证" time="0.001418575">
         </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="DISPATCH_STAGES &gt; 包含完整调度阶段" time="0.0003896">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; null 输入失败" time="0.002791567">
         </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; validating → 0 (preflight)" time="0.0002493">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; 缺少 version 报错" time="0.000904479">
         </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; dispatching → 2 (stage)" time="0.0001056">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; skills 非数组报错" time="0.00079023">
         </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; waiting_capture → 4 (capture)" time="0.0000708">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="validateConfigBundle &gt; workflows 非数组报错" time="0.001090168">
         </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; archived → 5 (archive)" time="0.0000954">
-        </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; idle → -1 (未开始)" time="0.0001194">
-        </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="AUTOMATION_LEVELS &gt; 包含 auto/assist/confirm" time="0.0001929">
-        </testcase>
-        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="BROWSER_LABELS &gt; 覆盖所有浏览器 ID" time="0.0006499">
+        <testcase classname="src/__tests__/domain/config-export.test.ts" name="exportNewsToMarkdown &gt; delegates to news report renderer" time="0.001462082">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/feedback-learning.test.ts" timestamp="2026-04-09T01:51:30.057Z" hostname="Redmibook14P24" tests="12" failures="0" errors="0" skipped="0" time="0.0096516">
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeIntentStats &gt; 空反馈返回空统计" time="0.0022982">
+    <testsuite name="src/__tests__/domain/dictionary.test.ts" timestamp="2026-04-11T14:04:46.690Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="12" failures="0" errors="0" skipped="0" time="0.021306715">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="PAGE_STATE_LABELS &gt; 覆盖所有页面状态" time="0.006561411">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeIntentStats &gt; 正确统计 accepted/rejected/overridden" time="0.0008982">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="RUN_STATUS &gt; 覆盖所有 run 状态" time="0.002138626">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeIntentStats &gt; overriddenTo 正确计数" time="0.0002842">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="TARGET_STATUS &gt; 覆盖所有 target 状态" time="0.000612635">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeIntentStats &gt; 按总量降序排列" time="0.000401">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="STEP_STATUS &gt; 覆盖所有步骤状态" time="0.002195683">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeWeightAdjustments &gt; 样本不足时不调整" time="0.0003017">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="DISPATCH_STAGES &gt; 包含完整调度阶段" time="0.001020403">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeWeightAdjustments &gt; 低接受率降权" time="0.0007132">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; validating → 0 (preflight)" time="0.0004974">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeWeightAdjustments &gt; 高接受率升权" time="0.0003957">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; dispatching → 2 (stage)" time="0.000371509">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeWeightAdjustments &gt; 频繁被改选到的 intent 额外升权" time="0.0003107">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; waiting_capture → 4 (capture)" time="0.000588427">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="applyWeightAdjustments &gt; 正确更新规则权重" time="0.0004278">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; archived → 5 (archive)" time="0.000811535">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="applyWeightAdjustments &gt; 不可变更新" time="0.0007568">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="getDispatchStageIndex &gt; idle → -1 (未开始)" time="0.00048515">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="findHighMisjudgmentRules &gt; 筛选低接受率规则" time="0.0009118">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="AUTOMATION_LEVELS &gt; 包含 auto/assist/confirm" time="0.000335587">
         </testcase>
-        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="findHighMisjudgmentRules &gt; 样本不足的不纳入" time="0.0001286">
+        <testcase classname="src/__tests__/domain/dictionary.test.ts" name="BROWSER_LABELS &gt; 覆盖所有浏览器 ID" time="0.000933584">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/health-check.test.ts" timestamp="2026-04-09T01:51:30.059Z" hostname="Redmibook14P24" tests="5" failures="0" errors="0" skipped="0" time="0.0268519">
-        <testcase classname="src/__tests__/domain/health-check.test.ts" name="runHealthCheck &gt; 返回完整的健康报告" time="0.0155353">
+    <testsuite name="src/__tests__/domain/feedback-learning.test.ts" timestamp="2026-04-11T14:04:46.693Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="12" failures="0" errors="0" skipped="0" time="0.018242151">
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeIntentStats &gt; 空反馈返回空统计" time="0.00389612">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeIntentStats &gt; 正确统计 accepted/rejected/overridden" time="0.002004641">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeIntentStats &gt; overriddenTo 正确计数" time="0.000692787">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeIntentStats &gt; 按总量降序排列" time="0.000746159">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeWeightAdjustments &gt; 样本不足时不调整" time="0.000794788">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeWeightAdjustments &gt; 低接受率降权" time="0.000860143">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeWeightAdjustments &gt; 高接受率升权" time="0.000834834">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="computeWeightAdjustments &gt; 频繁被改选到的 intent 额外升权" time="0.000548143">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="applyWeightAdjustments &gt; 正确更新规则权重" time="0.0006673">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="applyWeightAdjustments &gt; 不可变更新" time="0.001331051">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="findHighMisjudgmentRules &gt; 筛选低接受率规则" time="0.002111432">
+        </testcase>
+        <testcase classname="src/__tests__/domain/feedback-learning.test.ts" name="findHighMisjudgmentRules &gt; 样本不足的不纳入" time="0.000369138">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/domain/health-check.test.ts" timestamp="2026-04-11T14:04:46.696Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="5" failures="0" errors="0" skipped="0" time="0.041448138">
+        <testcase classname="src/__tests__/domain/health-check.test.ts" name="runHealthCheck &gt; 返回完整的健康报告" time="0.025199369">
             <system-out>
 [health-check] health_check_start 
 
@@ -199,7 +201,7 @@
 
             </system-out>
         </testcase>
-        <testcase classname="src/__tests__/domain/health-check.test.ts" name="runHealthCheck &gt; 含自愈引擎时检查正常" time="0.0026314">
+        <testcase classname="src/__tests__/domain/health-check.test.ts" name="runHealthCheck &gt; 含自愈引擎时检查正常" time="0.004474505">
             <system-out>
 [health-check] health_check_start 
 
@@ -207,7 +209,7 @@
 
             </system-out>
         </testcase>
-        <testcase classname="src/__tests__/domain/health-check.test.ts" name="runHealthCheck &gt; localStorage 正常时通过" time="0.0019918">
+        <testcase classname="src/__tests__/domain/health-check.test.ts" name="runHealthCheck &gt; localStorage 正常时通过" time="0.002176344">
             <system-out>
 [health-check] health_check_start 
 
@@ -215,7 +217,7 @@
 
             </system-out>
         </testcase>
-        <testcase classname="src/__tests__/domain/health-check.test.ts" name="exportDiagnosticBundle &gt; 生成可读的诊断文本" time="0.0026507">
+        <testcase classname="src/__tests__/domain/health-check.test.ts" name="exportDiagnosticBundle &gt; 生成可读的诊断文本" time="0.00343337">
             <system-out>
 [health-check] health_check_start 
 
@@ -223,7 +225,7 @@
 
             </system-out>
         </testcase>
-        <testcase classname="src/__tests__/domain/health-check.test.ts" name="exportDiagnosticBundle &gt; 包含环境信息" time="0.0020712">
+        <testcase classname="src/__tests__/domain/health-check.test.ts" name="exportDiagnosticBundle &gt; 包含环境信息" time="0.002537045">
             <system-out>
 [health-check] health_check_start 
 
@@ -232,38 +234,38 @@
             </system-out>
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/injection.test.ts" timestamp="2026-04-09T01:51:30.061Z" hostname="Redmibook14P24" tests="11" failures="0" errors="0" skipped="0" time="0.0141495">
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="defaultInjectionPolicy &gt; 返回启用状态的默认策略" time="0.0021507">
+    <testsuite name="src/__tests__/domain/injection.test.ts" timestamp="2026-04-11T14:04:46.698Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="11" failures="0" errors="0" skipped="0" time="0.016610032">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="defaultInjectionPolicy &gt; 返回启用状态的默认策略" time="0.003336102">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 策略禁用时返回空" time="0.0012762">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 策略禁用时返回空" time="0.00183033">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 按优先级排序 (低数字=高优先级)" time="0.0005474">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 按优先级排序 (低数字=高优先级)" time="0.000757586">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 相同 block_id 去重 (保留高优先级)" time="0.0060941">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 相同 block_id 去重 (保留高优先级)" time="0.001937708">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 互斥组只保留最高优先级" time="0.00064">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 互斥组只保留最高优先级" time="0.000926588">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 超过长度限制的块被截断丢弃" time="0.0002917">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="resolveInjectionBlocks &gt; 超过长度限制的块被截断丢弃" time="0.000437285">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="buildFinalPrompt &gt; 无注入块时返回原始 prompt" time="0.0001592">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="buildFinalPrompt &gt; 无注入块时返回原始 prompt" time="0.000340147">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="buildFinalPrompt &gt; 注入块前置于 prompt" time="0.0003728">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="buildFinalPrompt &gt; 注入块前置于 prompt" time="0.000889341">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="promptChecksum &gt; 相同输入产生相同校验和" time="0.0001803">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="promptChecksum &gt; 相同输入产生相同校验和" time="0.000653091">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="promptChecksum &gt; 不同输入产生不同校验和" time="0.0003036">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="promptChecksum &gt; 不同输入产生不同校验和" time="0.000851791">
         </testcase>
-        <testcase classname="src/__tests__/domain/injection.test.ts" name="promptChecksum &gt; 返回 ck- 前缀" time="0.000154">
+        <testcase classname="src/__tests__/domain/injection.test.ts" name="promptChecksum &gt; 返回 ck- 前缀" time="0.000355864">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/logging.test.ts" timestamp="2026-04-09T01:51:30.065Z" hostname="Redmibook14P24" tests="7" failures="0" errors="0" skipped="0" time="0.0108525">
-        <testcase classname="src/__tests__/domain/logging.test.ts" name="generateTraceId &gt; 格式正确" time="0.0016963">
+    <testsuite name="src/__tests__/domain/logging.test.ts" timestamp="2026-04-11T14:04:46.700Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="7" failures="0" errors="0" skipped="0" time="0.020421728">
+        <testcase classname="src/__tests__/domain/logging.test.ts" name="generateTraceId &gt; 格式正确" time="0.002418592">
         </testcase>
-        <testcase classname="src/__tests__/domain/logging.test.ts" name="generateTraceId &gt; 每次调用不同" time="0.0009784">
+        <testcase classname="src/__tests__/domain/logging.test.ts" name="generateTraceId &gt; 每次调用不同" time="0.001506328">
         </testcase>
-        <testcase classname="src/__tests__/domain/logging.test.ts" name="createLogger &gt; 创建模块 logger" time="0.000504">
+        <testcase classname="src/__tests__/domain/logging.test.ts" name="createLogger &gt; 创建模块 logger" time="0.001070362">
         </testcase>
-        <testcase classname="src/__tests__/domain/logging.test.ts" name="createLogger &gt; 调用不报错" time="0.0038514">
+        <testcase classname="src/__tests__/domain/logging.test.ts" name="createLogger &gt; 调用不报错" time="0.009437605">
             <system-out>
 [test] test message 
 
@@ -274,195 +276,249 @@
 
             </system-err>
         </testcase>
-        <testcase classname="src/__tests__/domain/logging.test.ts" name="exportLogs &gt; 格式化日志条目" time="0.0009829">
+        <testcase classname="src/__tests__/domain/logging.test.ts" name="exportLogs &gt; 格式化日志条目" time="0.001592909">
         </testcase>
-        <testcase classname="src/__tests__/domain/logging.test.ts" name="exportLogs &gt; 空列表返回空字符串" time="0.0002701">
+        <testcase classname="src/__tests__/domain/logging.test.ts" name="exportLogs &gt; 空列表返回空字符串" time="0.000362511">
         </testcase>
-        <testcase classname="src/__tests__/domain/logging.test.ts" name="setLogLevel &gt; 设置不报错" time="0.0007317">
-        </testcase>
-    </testsuite>
-    <testsuite name="src/__tests__/domain/persistence.test.ts" timestamp="2026-04-09T01:51:30.067Z" hostname="Redmibook14P24" tests="8" failures="0" errors="0" skipped="0" time="0.0098298">
-        <testcase classname="src/__tests__/domain/persistence.test.ts" name="persistUIState &gt; 写入 localStorage" time="0.002226">
-        </testcase>
-        <testcase classname="src/__tests__/domain/persistence.test.ts" name="restoreUIState &gt; 无数据时返回空对象" time="0.0015391">
-        </testcase>
-        <testcase classname="src/__tests__/domain/persistence.test.ts" name="restoreUIState &gt; 恢复已保存的状态" time="0.0004892">
-        </testcase>
-        <testcase classname="src/__tests__/domain/persistence.test.ts" name="restoreUIState &gt; 版本不匹配时清除并返回空" time="0.0003217">
-        </testcase>
-        <testcase classname="src/__tests__/domain/persistence.test.ts" name="restoreUIState &gt; JSON 损坏时清除并返回空" time="0.0002744">
-        </testcase>
-        <testcase classname="src/__tests__/domain/persistence.test.ts" name="clearPersistedState &gt; 清除存储" time="0.0002627">
-        </testcase>
-        <testcase classname="src/__tests__/domain/persistence.test.ts" name="createPersistMiddleware &gt; 创建中间件函数" time="0.0003273">
-        </testcase>
-        <testcase classname="src/__tests__/domain/persistence.test.ts" name="createPersistMiddleware &gt; 节流调用" time="0.0024552">
+        <testcase classname="src/__tests__/domain/logging.test.ts" name="setLogLevel &gt; 设置不报错" time="0.00118609">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/run-statistics.test.ts" timestamp="2026-04-09T01:51:30.069Z" hostname="Redmibook14P24" tests="10" failures="0" errors="0" skipped="0" time="0.0046815">
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; 空列表返回零值" time="0.001785">
+    <testsuite name="src/__tests__/domain/news-report.test.ts" timestamp="2026-04-11T14:04:46.701Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="4" failures="0" errors="0" skipped="0" time="0.009754352">
+        <testcase classname="src/__tests__/domain/news-report.test.ts" name="normalizeNewsItem &gt; fills id and fetched_at when absent" time="0.002724886">
         </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; 正确计算成功率" time="0.0004584">
+        <testcase classname="src/__tests__/domain/news-report.test.ts" name="dedupeNewsItems &gt; deduplicates by url and keeps latest" time="0.001777856">
         </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; 正确计算平均耗时" time="0.0001747">
+        <testcase classname="src/__tests__/domain/news-report.test.ts" name="generateNewsMarkdownReport &gt; renders markdown sections" time="0.001090547">
         </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; bySkill 分组计数" time="0.0002041">
-        </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; topErrors 按频次排序且最多5个" time="0.0002703">
-        </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; last24hCount 仅计最近 24h" time="0.000166">
-        </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; weeklyTrend 分桶正确" time="0.0001389">
-        </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="formatDuration &gt; 毫秒级" time="0.0001269">
-        </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="formatDuration &gt; 秒级" time="0.0000917">
-        </testcase>
-        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="formatDuration &gt; 分钟级" time="0.0000969">
+        <testcase classname="src/__tests__/domain/news-report.test.ts" name="createReportDocument &gt; creates markdown report document" time="0.001815935">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/self-heal.test.ts" timestamp="2026-04-09T01:51:30.072Z" hostname="Redmibook14P24" tests="14" failures="0" errors="0" skipped="0" time="0.0075087">
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="createSelfHealEngine &gt; 正确建立 errorCode → strategy 映射" time="0.0019324">
+    <testsuite name="src/__tests__/domain/persistence.test.ts" timestamp="2026-04-11T14:04:46.702Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="8" failures="0" errors="0" skipped="0" time="0.047049139">
+        <testcase classname="src/__tests__/domain/persistence.test.ts" name="persistUIState &gt; 写入 localStorage" time="0.016597188">
         </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="createSelfHealEngine &gt; 初始状态干净" time="0.0006488">
+        <testcase classname="src/__tests__/domain/persistence.test.ts" name="restoreUIState &gt; 无数据时返回空对象" time="0.003680517">
         </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="findHealStrategies &gt; 已知错误码返回策略" time="0.0002533">
+        <testcase classname="src/__tests__/domain/persistence.test.ts" name="restoreUIState &gt; 恢复已保存的状态" time="0.00315647">
         </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="findHealStrategies &gt; 未知错误码返回空数组" time="0.0001357">
+        <testcase classname="src/__tests__/domain/persistence.test.ts" name="restoreUIState &gt; 版本不匹配时清除并返回空" time="0.0013954">
         </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="熔断器 &gt; 初始状态熔断器未打开" time="0.000125">
+        <testcase classname="src/__tests__/domain/persistence.test.ts" name="restoreUIState &gt; JSON 损坏时清除并返回空" time="0.001055199">
         </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="熔断器 &gt; 累计失败触发熔断" time="0.0002467">
+        <testcase classname="src/__tests__/domain/persistence.test.ts" name="clearPersistedState &gt; 清除存储" time="0.000989536">
         </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="熔断器 &gt; 重置熔断器" time="0.0002222">
+        <testcase classname="src/__tests__/domain/persistence.test.ts" name="createPersistMiddleware &gt; 创建中间件函数" time="0.000690107">
         </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="修复尝试 &gt; startHealAttempt 创建执行中的尝试" time="0.0002962">
-        </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="修复尝试 &gt; completeHealAttempt 成功重置熔断器" time="0.000328">
-        </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="修复尝试 &gt; completeHealAttempt 失败记录到熔断器" time="0.000224">
-        </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="修复尝试 &gt; 超过 maxAttempts 后状态为 escalated" time="0.0001876">
-        </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="补偿矩阵 &gt; 每个阶段都有补偿规则" time="0.000772">
-        </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="getHealSummary &gt; 空引擎返回零值摘要" time="0.0003431">
-        </testcase>
-        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="getHealSummary &gt; 有数据时正确汇总" time="0.0002192">
+        <testcase classname="src/__tests__/domain/persistence.test.ts" name="createPersistMiddleware &gt; 节流调用" time="0.013598164">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/slm.test.ts" timestamp="2026-04-09T01:51:30.075Z" hostname="Redmibook14P24" tests="15" failures="0" errors="0" skipped="0" time="0.0420187">
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="defaultSlmConfig &gt; 返回合理默认值" time="0.0036255">
+    <testsuite name="src/__tests__/domain/run-statistics.test.ts" timestamp="2026-04-11T14:04:46.704Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="10" failures="0" errors="0" skipped="0" time="0.024307701">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; 空列表返回零值" time="0.009238436">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="defaultRuntimeState &gt; 所有模型初始未加载" time="0.0023643">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; 正确计算成功率" time="0.00185841">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="defaultRuntimeState &gt; CPU 可用" time="0.0014321">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; 正确计算平均耗时" time="0.000789485">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="selectDevice &gt; CPU-safe 模式下总是返回 cpu" time="0.0031041">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; bySkill 分组计数" time="0.000737131">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="selectDevice &gt; 无 GPU 时回退到 cpu" time="0.0016092">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; topErrors 按频次排序且最多5个" time="0.003887854">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="selectDevice &gt; GPU 可用且利用率低时选择 igpu" time="0.0041253">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; last24hCount 仅计最近 24h" time="0.000787748">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="selectDevice &gt; GPU 利用率超峰值时回退 cpu" time="0.0046769">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="computeRunStats &gt; weeklyTrend 分桶正确" time="0.000893702">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="shouldEnterCpuSafe &gt; 正常状态不进入 CPU-safe" time="0.0015585">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="formatDuration &gt; 毫秒级" time="0.000568785">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="shouldEnterCpuSafe &gt; 内存超预算触发 CPU-safe" time="0.0028816">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="formatDuration &gt; 秒级" time="0.000885566">
         </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="shouldEnterCpuSafe &gt; GPU 利用率超峰值触发 CPU-safe" time="0.0030831">
-        </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="checkQualityBaseline &gt; 合格基线通过" time="0.0003695">
-        </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="checkQualityBaseline &gt; 路由准确率下降过大时失败" time="0.0004043">
-        </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="getSlmSummary &gt; 默认状态返回零值" time="0.0060379">
-        </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="getSlmSummary &gt; 有加载模型时正确统计" time="0.0035668">
-        </testcase>
-        <testcase classname="src/__tests__/domain/slm.test.ts" name="recommendedModels &gt; 包含所有角色" time="0.0003318">
+        <testcase classname="src/__tests__/domain/run-statistics.test.ts" name="formatDuration &gt; 分钟级" time="0.000474661">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/domain/workflow-engine.test.ts" timestamp="2026-04-09T01:51:30.078Z" hostname="Redmibook14P24" tests="26" failures="0" errors="0" skipped="0" time="0.0177508">
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 线性 DAG 正确拓扑排序" time="0.0041733">
+    <testsuite name="src/__tests__/domain/schedule-engine.test.ts" timestamp="2026-04-11T14:04:46.706Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="9" failures="0" errors="0" skipped="0" time="0.01715731">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="validateScheduleTrigger &gt; validates once trigger" time="0.004569749">
         </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 并行分支分层正确" time="0.0011304">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="validateScheduleTrigger &gt; rejects too short interval" time="0.000672679">
         </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 检测循环依赖" time="0.0004572">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="validateScheduleTrigger &gt; validates daily UTC trigger" time="0.000678233">
         </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 空 steps 不崩溃" time="0.0002776">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="validateScheduleTrigger &gt; validates supported cron" time="0.001198797">
         </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 独立节点各自成层" time="0.0003771">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="getNextRunAt &gt; computes interval next run" time="0.00105321">
         </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="createWorkflowExecution &gt; 创建执行实例初始状态正确" time="0.0005885">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="getNextRunAt &gt; computes daily next run across day boundary" time="0.000593792">
         </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="getReadySteps &gt; 根节点立即就绪" time="0.0016178">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="getNextRunAt &gt; computes cron next run" time="0.000855193">
         </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="getReadySteps &gt; 依赖完成后后继就绪" time="0.0006304">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="schedule helpers &gt; marks schedule due" time="0.000556303">
         </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="advanceStep &gt; 更新步骤状态" time="0.0007658">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="advanceStep &gt; 所有 captured → done" time="0.0003659">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="advanceStep &gt; fail_fast 策略: 一个失败整体失败" time="0.0002414">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="isTimedOut &gt; 未超时返回 false" time="0.0001909">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="canRetryStep &gt; failed 且有剩余次数可重试" time="0.0001813">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="canRetryStep &gt; 用完次数不可重试" time="0.0001154">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="canRetryStep &gt; 非 failed 不可重试" time="0.0001019">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="getCompensationPlan &gt; 收集已完成步骤的补偿" time="0.0012814">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="pauseExecution / resumeExecution / cancelExecution &gt; markCompensating 标记步骤为补偿状态" time="0.000335">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="pauseExecution / resumeExecution / cancelExecution &gt; 暂停/恢复工作流" time="0.0003017">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="pauseExecution / resumeExecution / cancelExecution &gt; 取消工作流" time="0.0001509">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="getExecutionProgress &gt; 正确计算进度" time="0.0004298">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="validateWorkflowDag &gt; 有效 workflow 无问题 (除缺少 compensation)" time="0.0003227">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="validateWorkflowDag &gt; 循环依赖报告问题" time="0.0001758">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="mergeResults &gt; first_success 返回第一个" time="0.0003003">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="mergeResults &gt; best_score 返回最高分" time="0.0001482">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="mergeResults &gt; majority_vote 返回多数" time="0.0001189">
-        </testcase>
-        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="mergeResults &gt; 空结果不崩溃" time="0.0001053">
+        <testcase classname="src/__tests__/domain/schedule-engine.test.ts" name="schedule helpers &gt; previews upcoming runs" time="0.00268004">
         </testcase>
     </testsuite>
-    <testsuite name="src/__tests__/store/AppStore.test.tsx" timestamp="2026-04-09T01:51:30.084Z" hostname="Redmibook14P24" tests="9" failures="0" errors="0" skipped="0" time="0.0573365">
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; 初始状态正确" time="0.0245578">
+    <testsuite name="src/__tests__/domain/schedule-storage.test.ts" timestamp="2026-04-11T14:04:46.707Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="4" failures="0" errors="0" skipped="0" time="0.016724029">
+        <testcase classname="src/__tests__/domain/schedule-storage.test.ts" name="upsertSchedule &gt; inserts new schedule and computes next_run_at" time="0.008251445">
         </testcase>
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_SKILLS 更新技能列表" time="0.0063036">
+        <testcase classname="src/__tests__/domain/schedule-storage.test.ts" name="upsertSchedule &gt; updates existing schedule" time="0.001230693">
         </testcase>
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_PAGE_STATE 合法转换被记录到 stateHistory" time="0.0041114">
+        <testcase classname="src/__tests__/domain/schedule-storage.test.ts" name="upsertSchedule &gt; returns error when trigger invalid" time="0.002415312">
         </testcase>
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_PAGE_STATE 非法转换也能执行但有 warn" time="0.0040757">
+        <testcase classname="src/__tests__/domain/schedule-storage.test.ts" name="removeSchedule &gt; removes by id" time="0.001145887">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/domain/self-heal.test.ts" timestamp="2026-04-11T14:04:46.708Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="14" failures="0" errors="0" skipped="0" time="0.027440809">
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="createSelfHealEngine &gt; 正确建立 errorCode → strategy 映射" time="0.006997223">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="createSelfHealEngine &gt; 初始状态干净" time="0.002321955">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="findHealStrategies &gt; 已知错误码返回策略" time="0.001103876">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="findHealStrategies &gt; 未知错误码返回空数组" time="0.000572349">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="熔断器 &gt; 初始状态熔断器未打开" time="0.000659922">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="熔断器 &gt; 累计失败触发熔断" time="0.001123031">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="熔断器 &gt; 重置熔断器" time="0.000903783">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="修复尝试 &gt; startHealAttempt 创建执行中的尝试" time="0.001442851">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="修复尝试 &gt; completeHealAttempt 成功重置熔断器" time="0.001307448">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="修复尝试 &gt; completeHealAttempt 失败记录到熔断器" time="0.000899212">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="修复尝试 &gt; 超过 maxAttempts 后状态为 escalated" time="0.000673">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="补偿矩阵 &gt; 每个阶段都有补偿规则" time="0.002246286">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="getHealSummary &gt; 空引擎返回零值摘要" time="0.000999065">
+        </testcase>
+        <testcase classname="src/__tests__/domain/self-heal.test.ts" name="getHealSummary &gt; 有数据时正确汇总" time="0.00118284">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/domain/slm.test.ts" timestamp="2026-04-11T14:04:46.712Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="15" failures="0" errors="0" skipped="0" time="0.057274894">
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="defaultSlmConfig &gt; 返回合理默认值" time="0.007093578">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="defaultRuntimeState &gt; 所有模型初始未加载" time="0.004738247">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="defaultRuntimeState &gt; CPU 可用" time="0.002208661">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="selectDevice &gt; CPU-safe 模式下总是返回 cpu" time="0.002610674">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="selectDevice &gt; 无 GPU 时回退到 cpu" time="0.002185589">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="selectDevice &gt; GPU 可用且利用率低时选择 igpu" time="0.005169762">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="selectDevice &gt; GPU 利用率超峰值时回退 cpu" time="0.004884418">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="shouldEnterCpuSafe &gt; 正常状态不进入 CPU-safe" time="0.002421845">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="shouldEnterCpuSafe &gt; 内存超预算触发 CPU-safe" time="0.00388891">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="shouldEnterCpuSafe &gt; GPU 利用率超峰值触发 CPU-safe" time="0.003830763">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="checkQualityBaseline &gt; 合格基线通过" time="0.000752484">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="checkQualityBaseline &gt; 路由准确率下降过大时失败" time="0.000637049">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="getSlmSummary &gt; 默认状态返回零值" time="0.004134354">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="getSlmSummary &gt; 有加载模型时正确统计" time="0.006457007">
+        </testcase>
+        <testcase classname="src/__tests__/domain/slm.test.ts" name="recommendedModels &gt; 包含所有角色" time="0.000992546">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/domain/workflow-engine.test.ts" timestamp="2026-04-11T14:04:46.717Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="29" failures="0" errors="0" skipped="0" time="0.033981708">
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 线性 DAG 正确拓扑排序" time="0.005699053">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 并行分支分层正确" time="0.001936361">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 检测循环依赖" time="0.000733176">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 空 steps 不崩溃" time="0.000735012">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="analyzeDag &gt; 独立节点各自成层" time="0.000860502">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="createWorkflowExecution &gt; 创建执行实例初始状态正确" time="0.001241913">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="getReadySteps &gt; 根节点立即就绪" time="0.003028495">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="getReadySteps &gt; 依赖完成后后继就绪" time="0.00137822">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="workflow collaboration helpers &gt; 按状态条件筛选可执行步骤" time="0.002319893">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="workflow collaboration helpers &gt; 按输出内容和错误码条件判断" time="0.001046925">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="workflow collaboration helpers &gt; 循环步骤按上限展开" time="0.000784402">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="advanceStep &gt; 更新步骤状态" time="0.000551359">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="advanceStep &gt; 所有 captured → done" time="0.000383577">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="advanceStep &gt; fail_fast 策略: 一个失败整体失败" time="0.001045502">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="isTimedOut &gt; 未超时返回 false" time="0.000481696">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="canRetryStep &gt; failed 且有剩余次数可重试" time="0.000343115">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="canRetryStep &gt; 用完次数不可重试" time="0.000243582">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="canRetryStep &gt; 非 failed 不可重试" time="0.000211247">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="getCompensationPlan &gt; 收集已完成步骤的补偿" time="0.001744935">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="pauseExecution / resumeExecution / cancelExecution &gt; markCompensating 标记步骤为补偿状态" time="0.000727474">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="pauseExecution / resumeExecution / cancelExecution &gt; 暂停/恢复工作流" time="0.000725071">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="pauseExecution / resumeExecution / cancelExecution &gt; 取消工作流" time="0.000313095">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="getExecutionProgress &gt; 正确计算进度" time="0.000789401">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="validateWorkflowDag &gt; 有效 workflow 无问题 (除缺少 compensation)" time="0.000571365">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="validateWorkflowDag &gt; 循环依赖报告问题" time="0.000359343">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="mergeResults &gt; first_success 返回第一个" time="0.000491498">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="mergeResults &gt; best_score 返回最高分" time="0.000304277">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="mergeResults &gt; majority_vote 返回多数" time="0.000242584">
+        </testcase>
+        <testcase classname="src/__tests__/domain/workflow-engine.test.ts" name="mergeResults &gt; 空结果不崩溃" time="0.000192225">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/pages/ReportsPage.test.tsx" timestamp="2026-04-11T14:04:46.728Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="1" failures="0" errors="0" skipped="0" time="0.42642562">
+        <testcase classname="src/__tests__/pages/ReportsPage.test.tsx" name="ReportsPage &gt; adds news item and updates preview" time="0.422985136">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/pages/SchedulerPage.test.tsx" timestamp="2026-04-11T14:04:46.728Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="3" failures="0" errors="0" skipped="0" time="0.647357929">
+        <testcase classname="src/__tests__/pages/SchedulerPage.test.tsx" name="SchedulerPage &gt; creates schedule successfully" time="0.481426275">
+        </testcase>
+        <testcase classname="src/__tests__/pages/SchedulerPage.test.tsx" name="SchedulerPage &gt; shows error when invalid daily trigger" time="0.091824629">
+        </testcase>
+        <testcase classname="src/__tests__/pages/SchedulerPage.test.tsx" name="SchedulerPage &gt; deletes created schedule" time="0.06983645">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/__tests__/store/AppStore.test.tsx" timestamp="2026-04-11T14:04:46.730Z" hostname="lhm-ThinkPad-E14-Gen-6" tests="9" failures="0" errors="0" skipped="0" time="0.145599814">
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; 初始状态正确" time="0.055568009">
+        </testcase>
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_SKILLS 更新技能列表" time="0.014785094">
+        </testcase>
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_PAGE_STATE 合法转换被记录到 stateHistory" time="0.018105729">
+        </testcase>
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_PAGE_STATE 非法转换也能执行但有 warn" time="0.014006177">
             <system-err>
 [§10] 非标准页面转换: console idle → archived
 
             </system-err>
         </testcase>
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; ADD_RUN 插入到头部" time="0.0028746">
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; ADD_RUN 插入到头部" time="0.011760172">
         </testcase>
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; UPDATE_RUN 禁止修改已完成 run 的 prompt" time="0.0034839">
-            <system-err>
-[§10] 已完成 Run 禁止修改 prompt: r1
-
-            </system-err>
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; UPDATE_RUN 禁止修改已完成 run 的 prompt" time="0.009535585">
         </testcase>
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_ERROR 和清除" time="0.0028671">
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_ERROR 和清除" time="0.004887681">
         </testcase>
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_INITIALIZED 标记初始化完成" time="0.0027564">
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; SET_INITIALIZED 标记初始化完成" time="0.003738582">
         </testcase>
-        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; stateHistory 最多保留 100 条" time="0.003328">
+        <testcase classname="src/__tests__/store/AppStore.test.tsx" name="AppStore &gt; stateHistory 最多保留 100 条" time="0.006653876">
         </testcase>
     </testsuite>
 </testsuites>

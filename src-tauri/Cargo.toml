@@ -12,7 +12,7 @@ name = "ai_workbench_lib"
 crate-type = ["rlib"]
 
 [workspace]
-members = ["crates/os-win", "crates/core"]
+members = ["crates/os-win", "crates/os-linux", "crates/core"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -23,6 +23,7 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 os-win = { path = "crates/os-win" }
+os-linux = { path = "crates/os-linux" }
 crate_core = { package = "core", path = "crates/core" }
 serde_yaml = "0.9"
 regex = "1"

@@ -41,7 +41,7 @@
 *   **[架构优化方案](docs/architecture_optimization_plan.md)** - 记录了项目重构与性能调优的完整计划。
 *   **[自动化脚本说明](docs/README-SCRIPTS.md)** - 关于 `task.go` 的设计与命令详情。
 *   **[故障排除 (Troubleshooting)](docs/TROUBLESHOOTING.md)** - 常见编译错误与运行问题的解决方法。
-*   **[项目变更日志 (Changelog)](docs/CHANGELOG.md)** - 版本迭代记录。
+*   **[项目变更日志 (Changelog)](CHANGELOG.md)** - 版本迭代记录。
 *   **[技术路线图 (Route)](docs/route.md)** - 详细的开发路线与技术细则。
 
 ### 4. 项目治理与质量门禁 (Governance)

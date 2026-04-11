@@ -1,0 +1,11 @@
+[package]
+name = "os-linux"
+version = "0.1.0"
+edition = "2021"
+description = "Linux OS automation for AI Workbench (window, clipboard, input)"
+
+[dependencies]
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+tracing = "0.1"

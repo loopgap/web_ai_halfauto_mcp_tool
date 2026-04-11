@@ -1,11 +1,20 @@
 mod config;
 
 use crate_core::{err, new_trace_id, now_ms, ApiError, AuditEvent, CmdResult};
-use os_win::clipboard;
-use os_win::error::OsWinError;
-use os_win::input::PasteOptions;
-use os_win::window::{self, WindowInfo};
-use os_win::DispatchRequest;
+
+#[cfg(windows)]
+use os_win as platform;
+#[cfg(not(windows))]
+use os_linux as platform;
+
+use platform::clipboard;
+use platform::input::PasteOptions;
+use platform::window::{self, WindowInfo};
+use platform::DispatchRequest;
+#[cfg(windows)]
+use platform::error::OsWinError as PlatformError;
+#[cfg(not(windows))]
+use platform::error::OsWinError as PlatformError;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -73,29 +82,29 @@ fn now_iso_stub() -> String {
     format!("{}T{:02}:{:02}:{:02}Z", date, h, m, s)
 }
 
-fn map_os_error(action: &str, e: OsWinError) -> ApiError {
+fn map_os_error(action: &str, e: PlatformError) -> ApiError {
     match e {
-        OsWinError::WindowNotFound => err(
+        PlatformError::WindowNotFound => err(
             "TARGET_NOT_FOUND",
             "No matching target window was found",
             Some(action.to_string()),
         ),
-        OsWinError::ActivateFailed => err(
+        PlatformError::ActivateFailed => err(
             "TARGET_ACTIVATE_FAILED",
             "Failed to activate target window",
             Some(action.to_string()),
         ),
-        OsWinError::ClipboardFailed(detail) => {
+        PlatformError::ClipboardFailed(detail) => {
             err("CLIPBOARD_BUSY", "Clipboard operation failed", Some(detail))
         }
-        OsWinError::InputFailed(detail) => {
+        PlatformError::InputFailed(detail) => {
             err("INPUT_FAILED", "Keyboard input simulation failed", Some(detail))
         }
-        OsWinError::Timeout(ms) => err("TIMEOUT", "Operation timed out", Some(format!("{}ms", ms))),
-        OsWinError::InvalidArg(detail) => {
+        PlatformError::Timeout(ms) => err("TIMEOUT", "Operation timed out", Some(format!("{}ms", ms))),
+        PlatformError::InvalidArg(detail) => {
             err("INVALID_ARG", "Invalid command argument", Some(detail))
         }
-        OsWinError::WinApiFailed(detail) => {
+        PlatformError::WinApiFailed(detail) => {
             err("WIN_API_FAILED", "Windows API call failed", Some(detail))
         }
     }
@@ -402,7 +411,7 @@ fn os_dispatch_paste(app_handle: tauri::AppHandle, args: DispatchArgs) -> CmdRes
         activate_settle_delay_ms: args.activate_settle_delay_ms,
     };
 
-    let result = os_win::dispatch_paste(req).map_err(|e| map_os_error("dispatch_paste", e));
+    let result = platform::dispatch_paste(req).map_err(|e| map_os_error("dispatch_paste", e));
 
     let (outcome, detail, trace) = match &result {
         Ok(_) => ("ok", None, "n/a".to_string()),
@@ -762,24 +771,24 @@ fn dispatch_stage(app_handle: tauri::AppHandle, args: DispatchStageArgs) -> CmdR
     }
 
     // §9.6 Clipboard Transaction + §9.7 Focus Recipe
-    let result = os_win::clipboard_transaction(move || {
+    let result = platform::clipboard_transaction(move || {
         // Activate first
         window::activate_window(req.hwnd, req.activate_retry, req.activate_settle_delay_ms)?;
 
         // §9.7 Focus Recipe: run keystroke sequence after activation
         if !args.focus_recipe.is_empty() {
-            os_win::input::send_key_sequence(&args.focus_recipe, 80)?;
+            platform::input::send_key_sequence(&args.focus_recipe, 80)?;
         }
 
         // §9.5 Soft Lock: verify window is still foreground
         let fg_now = window::get_foreground_hwnd();
         if fg_now != req.hwnd {
-            return Err(OsWinError::ActivateFailed);
+            return Err(PlatformError::ActivateFailed);
         }
 
         // Set clipboard + paste
         clipboard::clipboard_set_text(&req.text)?;
-        os_win::input::send_ctrl_v(&req.opts)?;
+        platform::input::send_ctrl_v(&req.opts)?;
 
         Ok(())
     }, args.restore_clipboard);
@@ -881,7 +890,7 @@ fn dispatch_confirm(app_handle: tauri::AppHandle, args: DispatchConfirmArgs) -> 
         enter_delay_ms: args.enter_delay_ms,
     };
 
-    let result = os_win::dispatch_confirm(&opts).map_err(|e| map_os_error("dispatch_confirm", e));
+    let result = platform::dispatch_confirm(&opts).map_err(|e| map_os_error("dispatch_confirm", e));
 
     let trace = new_trace_id();
     write_audit(&app_handle, AuditEvent {

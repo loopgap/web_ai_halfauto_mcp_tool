@@ -266,6 +266,74 @@ export function getReadySteps(
   return ready.slice(0, available);
 }
 
+export interface WorkflowConditionContext {
+  stepStatuses: Map<string, string>;
+  stepOutputs: Map<string, string>;
+  stepErrors: Map<string, string>;
+}
+
+export function createWorkflowConditionContext(execution: WorkflowExecution): WorkflowConditionContext {
+  const stepStatuses = new Map<string, string>();
+  const stepOutputs = new Map<string, string>();
+  const stepErrors = new Map<string, string>();
+
+  for (const [stepId, state] of execution.steps) {
+    stepStatuses.set(stepId, state.status);
+    if (state.outputArtifact) {
+      stepOutputs.set(stepId, state.outputArtifact);
+    }
+    if (state.lastError) {
+      stepErrors.set(stepId, state.lastError);
+    }
+  }
+
+  return { stepStatuses, stepOutputs, stepErrors };
+}
+
+export function evaluateWorkflowStepCondition(
+  step: WorkflowStep,
+  context: WorkflowConditionContext,
+): boolean {
+  if (!step.if_condition) return true;
+
+  const sourceStepId = step.if_condition.source_step_id ?? step.depends_on[0];
+  if (!sourceStepId) return false;
+
+  const conditionValue = step.if_condition.value;
+
+  switch (step.if_condition.type) {
+    case "status_is":
+      return (context.stepStatuses.get(sourceStepId) ?? "") === conditionValue;
+    case "output_contains":
+      return (context.stepOutputs.get(sourceStepId) ?? "").includes(conditionValue);
+    case "error_code_matches":
+      return (context.stepErrors.get(sourceStepId) ?? "") === conditionValue;
+    default:
+      return false;
+  }
+}
+
+export function expandWorkflowLoopItems(step: WorkflowStep, items: string[]): string[] {
+  if (!step.for_each) return items;
+  const maxIterations = Math.max(0, step.for_each.max_iterations ?? items.length);
+  return items.slice(0, maxIterations);
+}
+
+export function getRunnableWorkflowSteps(
+  execution: WorkflowExecution,
+  workflow: Workflow,
+): string[] {
+  const dag = analyzeDag(workflow);
+  const readySteps = getReadySteps(execution, dag);
+  const context = createWorkflowConditionContext(execution);
+
+  return readySteps.filter((stepId) => {
+    const step = workflow.steps.find((candidate) => (candidate.id ?? candidate.use) === stepId);
+    if (!step) return false;
+    return evaluateWorkflowStepCondition(step, context);
+  });
+}
+
 /**
  * §37 推进步骤状态
  */

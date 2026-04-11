@@ -16,9 +16,9 @@ pub struct PasteOptions {
 impl Default for PasteOptions {
     fn default() -> Self {
         Self {
-            auto_enter: true,
-            paste_delay_ms: 100,
-            enter_delay_ms: 100,
+            auto_enter: false,
+            paste_delay_ms: 80,
+            enter_delay_ms: 120,
         }
     }
 }

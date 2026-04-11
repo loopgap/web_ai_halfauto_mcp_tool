@@ -2337,3 +2337,45 @@ Tauri v2 遵循各操作系统原生安装包标准：
 - 当前执行环境未安装 `go`，因此 `go run task.go doctor` 无法在本机直接运行。
 - 该限制已通过 CI 的 `platform-doctor` + `setup-go` 覆盖，远端流水线可验证 Go 侧 doctor 流程。
 
+---
+
+## §102 2026-04 增量实现：Ubuntu/Linux 后端支持 + 自定义协作流增强
+
+> 本节记录本次继续补齐的跨平台后端与工作流运行时能力。
+
+### 102.1 功能 1：Ubuntu/Linux 后端支持
+
+已实现：
+
+- 新增 `src-tauri/crates/os-linux` 平台 crate，提供与 Windows 侧对齐的窗口枚举、激活、剪贴板、输入与重试接口。
+- `src-tauri/src/lib.rs` 改为按平台别名分发，Linux 与 Windows 共用同一套 Tauri 命令入口。
+- Linux 侧默认采用“粘贴不自动回车”的 `PasteOptions` 契约，与现有 Windows 测试保持一致。
+- 现有 Rust 测试已覆盖 workspace 编译与平台抽象联通。
+
+验证结果：
+
+- `cargo test -q` 通过。
+
+### 102.2 功能 2：自定义 AI 协作流运行时增强
+
+已实现：
+
+- `workflow-engine` 新增条件上下文与判定函数，支持：
+  - `status_is`
+  - `output_contains`
+  - `error_code_matches`
+- 新增循环展开辅助函数 `expandWorkflowLoopItems()`，支持按 `max_iterations` 限制展开。
+- 新增 `getRunnableWorkflowSteps()`，在现有 DAG 就绪逻辑上叠加条件过滤，支撑更细粒度的协作流调度。
+- 测试覆盖条件分支、输出判定、错误码判定与循环展开场景。
+
+验证结果：
+
+- `src/__tests__/domain/workflow-engine.test.ts` 通过。
+- `corepack pnpm test:ci` 通过，当前全量前端/域测试为 `220` 个用例全部通过。
+
+### 102.3 本次补齐后的状态
+
+- Ubuntu/Linux 后端不再停留在“仅 Windows”路径，Rust 侧已具备跨平台入口。
+- 工作流引擎已具备协作流第一版执行语义，可继续向审批、循环节点编排与 UI 编辑器扩展。
+- 仍未完成的外部交付动作是 GitHub 推送；当前受凭据/认证状态限制，未在本环境完成推送。
+
