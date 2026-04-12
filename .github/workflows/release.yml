@@ -140,7 +140,7 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
 
   publish-release:
-    if: ${{ always() && needs.create-release.result == 'success' && needs['build-tauri-linux'].result != 'failure' && needs['build-tauri-windows'].result != 'failure' && needs['build-tauri-linux'].result != 'cancelled' && needs['build-tauri-windows'].result != 'cancelled' }}
+    if: ${{ needs.create-release.result == 'success' && (needs['build-tauri-linux'].result == 'success' || needs['build-tauri-windows'].result == 'success') }}
     needs: [create-release, build-tauri-linux, build-tauri-windows]
     runs-on: ubuntu-latest
     steps:
