@@ -20,11 +20,6 @@ vi.mock("@tauri-apps/plugin-notification", () => ({
   sendNotification: vi.fn(),
 }));
 
-// ── Mock @tauri-apps/plugin-opener ──
-vi.mock("@tauri-apps/plugin-opener", () => ({
-  open: vi.fn(),
-}));
-
 // ── Mock matchMedia (used by some components) ──
 Object.defineProperty(window, "matchMedia", {
   writable: true,

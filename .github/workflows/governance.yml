@@ -38,11 +38,3 @@ jobs:
       - name: Governance validate
         run: pnpm governance:validate
 
-      - name: Generate evidence pack
-        run: pnpm governance:evidence
-
-      - name: Upload evidence artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: governance-evidence-pack
-          path: governance/examples/evidence-pack.generated.md

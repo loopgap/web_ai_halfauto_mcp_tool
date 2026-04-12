@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased] - 2026-04-11
+## [Unreleased] - 2026-04-12
 
 ### Added
 - Added scheduler and reports workflow, including `SchedulerPage`, `ReportsPage`, schedule storage, schedule engine, news report generation, and related API wiring.
@@ -11,13 +11,16 @@ All notable changes to this project are documented in this file.
 - Added Linux platform workspace crate `src-tauri/crates/os-linux/` to continue cross-platform backend separation work.
 
 ### Changed
-- Completed the Phase 1 and Phase 2 optimization plan: Zustand-based state decoupling, Rust core extraction into `crates/core`, virtualized run history, workflow telemetry hooks, and `task.go` task orchestration.
-- Reorganized the repository layout by moving project documentation under `docs/`, cleaning the workspace root, and normalizing README navigation.
+- Optimized local CI gates with incremental check and full CI modes.
 - Tightened CI/CD and build performance by standardizing pnpm setup, lowering Rust build concurrency on constrained runners, and removing redundant environment checks from governance jobs.
 
 ### Fixed
 - Removed dead backend configuration code and other technical debt to keep the Rust workspace warning-free under stricter clippy checks.
 - Improved Linux compatibility around platform-specific backend code paths and CI validation.
+- Fixed hooks to skip gracefully when local tools are missing instead of failing.
+
+### Other
+- Cleaned up unused dependencies (js-yaml, @tauri-apps/plugin-opener) and removed broken governance:evidence workflow.
 
 ## [0.4.0] - 2026-03-24
 

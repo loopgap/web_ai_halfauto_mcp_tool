@@ -105,7 +105,7 @@ export default defineConfig(async () => ({
       "lucide-react",
     ],
     // 排除 Tauri 原生模块
-    exclude: ["@tauri-apps/api", "@tauri-apps/plugin-notification", "@tauri-apps/plugin-opener"],
+    exclude: ["@tauri-apps/api", "@tauri-apps/plugin-notification"],
   },
 
   // ── CSS 优化 ──
