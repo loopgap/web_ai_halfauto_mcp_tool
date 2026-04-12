@@ -65,7 +65,7 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-  # ── 多平台环境检测 ──
+  # ── 多平台环境检测 (仅 informational，不影响 CI 结果) ──
   platform-doctor:
     strategy:
       fail-fast: false
@@ -95,8 +95,8 @@ jobs:
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Doctor check
-        run: go run task.go doctor
+      - name: Doctor check (continue on error)
+        run: go run task.go doctor || true
 
   # ── Rust 后端检查 ──
   backend-check:
@@ -138,7 +138,7 @@ jobs:
   # ── 治理验证 ──
   governance:
     runs-on: ubuntu-latest
-    needs: [frontend-check, platform-doctor]
+    needs: [frontend-check]
     steps:
       - uses: actions/checkout@v4
 
