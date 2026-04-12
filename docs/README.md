@@ -11,7 +11,7 @@
    - 启动应用的三种方式
    - 常见问题快速修复
 
-2. [**WelcomePage.tsx**](../src/components/WelcomePage.tsx) — 应用内首次使用向导
+2. **首次启动向导** — 应用内首次使用向导
    - 首次启动自动弹出
    - 3 步功能介绍
    - 可随时在 Settings 重新打开
@@ -22,46 +22,28 @@
 
 ### 用户指南
 
-- **[GUIDE.md](./GUIDE.md)** — 完整使用指南（1500+ 行）
+- **[GUIDE.md](./GUIDE.md)** — 完整使用指南（750+ 行）
   - 项目概览、环境要求、安装启动
   - 功能详解（Dashboard、Dispatch、Skills、Workflows 等）
   - 配置文件详解（routes.yaml, skills.yaml, workflows.yaml）
   - 治理与合规框架
   - 测试和开发指南
 
-- **[CONFIG.md](./CONFIG.md)** — 配置详解和示例 *(TODO: 待实现)*
-  - routes.yaml — 规则引擎和模型选择
-  - skills.yaml — 技能定义模板
-  - workflows.yaml — DAG 工作流示例
-  - 配置优先级和环境变量
-
 ### 故障排查
 
-- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** — 详细的故障排查指南（1000+ 行）
-  - 🚀 **快速诊断** — 自动诊断脚本 `pnpm first-run` / `pnpm doctor`
+- **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** — 详细的故障排查指南
+  - 🚀 **快速诊断** — 自动诊断脚本 `pnpm doctor`
   - 📋 **按症状索引** — 启动、编译、运行、测试等常见问题
-  - 🔧 **平台特定** — Windows / Linux / macOS 的实际支持边界与手动处理方案
+  - 🔧 **平台特定** — Windows / Linux / macOS 的实际支持边界
   - 🌐 **进阶诊断** — 调试模式、日志收集、性能分析
   - 📞 **获取帮助** — 如何有效地报告 Bug
-
-### 性能优化
-
-- **[PERFORMANCE.md](./PERFORMANCE.md)** — 性能优化和监控指南 *(TODO: 待实现)*
-  - ⚡ **性能基准** — 各阶段的目标和当前状态
-  - 🚀 **启动优化** — 快速启动的 5 种方法
-  - 🏗️ **构建优化** — 增量编译、并行构建、分离关键路径
-  - 📈 **运行时优化** — 性能监控、虚拟化、Memoization
-  - 📊 **分析工具** — Vite / DevTools / Tauri 分析方法
-  - 🔍 **问题排查** — 常见性能问题根因和解决方案
 
 ### 脚本文档
 
 - **[README-SCRIPTS.md](./README-SCRIPTS.md)** — 所有开发脚本详解
-  - 开发脚本（bootstrap.mjs、dev.mjs、doctor.mjs 等）
-  - 构建脚本（build.mjs、clean.mjs 等）
-  - CI/CD 脚本（ci-local.mjs、ci-linux.mjs 等）
-  - 发布脚本（release-tag.mjs、release-preflight.mjs 等）
-  - 脚本间的依赖关系图
+  - 开发脚本（dev, build, clean 等）
+  - 构建脚本（doctor, check, test 等）
+  - CI/CD 脚本（ci-local, ci 等）
 
 ---
 
@@ -80,12 +62,12 @@
 
 ### 测试套件
 
-195+ 个单元测试覆盖：
+**349 个测试**覆盖：
+- ✅ api（58 个测试）— 所有 Tauri invoke 封装
 - ✅ actions（52 个测试）— 质量门禁、注入、PII、速率限制
-- ✅ workflow-engine（26 个测试）— DAG、执行、补偿、暂停/恢复
-- ✅ self-heal（集成测试）— 断路器、治疗策略
-- ✅ feedback-learning（集成测试）— 权重调整、统计
-- ✅ 其他单元测试（130+）— coverage > 85%
+- ✅ workflow-engine（29 个测试）— DAG、执行、补偿、暂停/恢复
+- ✅ self-heal（14 个测试）— 断路器、治疗策略
+- ✅ 其他单元测试（196+）— coverage > 85%
 
 运行测试：
 ```bash
@@ -98,7 +80,7 @@ pnpm test              # 运行所有测试
 ```
 View Layer (React Components)
     ↓
-Store Layer (Redux-like Reducer)
+Store Layer (Zustand Reducer)
     ↓
 Domain Layer (业务逻辑模块)
     ↓
@@ -109,29 +91,68 @@ Data Layer (Tauri IPC / API)
 
 ---
 
+## 🎨 MiniMax AI 能力集成
+
+项目集成了 MiniMax MCP 服务，支持 AI 图片生成能力：
+
+### MiniMax-MCP (skills/minimax-mcp/)
+
+**功能**：TTS、语音克隆、视频生成、图片生成、音乐生成
+
+**环境配置**：
+```bash
+# 在 skills/minimax-mcp/.env 中设置
+MINIMAX_API_KEY=your_api_key
+MINIMAX_API_HOST=https://api.minimaxi.com
+```
+
+**可用工具**：
+- `text_to_audio` — 文本转语音
+- `list_voices` — 列出可用音色
+- `voice_clone` — 语音克隆
+- `generate_video` — 视频生成
+- `text_to_image` — 图片生成
+- `query_video_generation` — 查询视频生成状态
+- `music_generation` — 音乐生成
+- `voice_design` — 语音设计
+
+详见：[skills/minimax-mcp/README_INTEGRATION.md](../skills/minimax-mcp/README_INTEGRATION.md)
+
+### MiniMax-Coding-Plan-MCP (skills/minimax-coding-plan-mcp/)
+
+**功能**：Web 搜索、图片理解
+
+**环境配置**：
+```bash
+# 在 skills/minimax-coding-plan-mcp/.env 中设置
+MINIMAX_API_KEY=your_api_key
+MINIMAX_API_HOST=https://api.minimaxi.com
+```
+
+**可用工具**：
+- `web_search` — Web 搜索
+- `understand_image` — 图片理解
+
+详见：[skills/minimax-coding-plan-mcp/README_INTEGRATION.md](../skills/minimax-coding-plan-mcp/README_INTEGRATION.md)
+
+---
+
 ## 📊 诊断和监控
 
 ### 内置诊断工具
 
-#### `pnpm doctor` — 首次启动诊断
+#### `pnpm doctor` — 环境诊断
 快速检查环境、依赖、编译、测试：
 ```bash
 pnpm doctor
 ```
 检查项：
 - ✅ Node.js / pnpm / Rust 版本
-- ✅ Linux 系统依赖（apt 系自动修复，其他发行版给出手工提示）
+- ✅ Linux 系统依赖
 - ✅ 配置目录初始化
 - ✅ TypeScript 编译
 - ✅ 前端构建
 - ✅ 单元测试
-- ✅ 本地 CI 预检
-
-#### `pnpm doctor` — 深度诊断
-诊断命令：
-```bash
-pnpm doctor
-```
 
 #### Settings 内置诊断
 应用 Settings → 诊断面板：
@@ -152,10 +173,7 @@ pnpm doctor
 ```typescript
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 
-usePerformanceMonitor('ComponentName', {
-  threshold: 500,  // 警告阈值（ms）
-  logLevel: 'warn' // 记录级别
-});
+const metrics = usePerformanceMonitor(3000);
 ```
 
 ---
@@ -193,21 +211,6 @@ git push && git push --tags
 
 ---
 
-## 📈 版本历史
-
-- **v0.3.0**（当前）
-  - ✨ 新增：logging 模块、health-check 诊断、workflow 补偿
-  - 🧪 新增：195 个单元测试
-  - 📖 新增：快速启动指南、故障排查文档
-  - 🛠️ 新增：doctor 诊断
-
-- **v0.3.0**
-  - 初始版本
-
-详见 [CHANGELOG.md](../CHANGELOG.md)。
-
----
-
 ## 🎯 常见任务
 
 | 任务 | 命令 |
@@ -226,26 +229,13 @@ git push && git push --tags
 ## 📞 获取帮助
 
 ### 自动化诊断
-首选快速诊断工具（按顺序）：
+首选快速诊断工具：
 1. `pnpm doctor` — 诊断检查
 2. Settings → 诊断 → 导出诊断包（获取完整信息）
 
 ### 查阅文档
 1. [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) — 按症状快速查找
 2. [GUIDE.md](./GUIDE.md) — 完整功能说明
-3. [CONFIG.md](./CONFIG.md) — 配置示例 *(TODO: 待实现)*
-
-### 查看日志
-```bash
-# 应用日志
-tail -f ~/.ai-workbench/logs/*.log
-
-# 首次启动诊断
-cat ~/.ai-workbench/health/first-run-*.json
-
-# 完整诊断报告
-cat ~/.ai-workbench/health/doctor-*.json
-```
 
 ### 报告 Bug
 提供以下信息：
@@ -260,7 +250,7 @@ cat ~/.ai-workbench/health/doctor-*.json
 ## 🗞️ 本文档版本
 
 - **文档版本：** v0.3.0
-- **最后更新：** 2025 Q1
+- **最后更新：** 2026-04-12
 - **维护者：** AI Workbench 团队
 
 有任何文档改进建议？欢迎提出 Issue 或 PR！
