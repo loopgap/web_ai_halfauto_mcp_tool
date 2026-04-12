@@ -44,7 +44,7 @@ else
     fi
 
     echo ">> Rust clippy"
-    if ! cargo clippy --jobs 4 -- -D warnings -A dead_code 2>&1; then
+    if ! (cd src-tauri && cargo clippy --jobs 4 -- -D warnings -A dead_code) 2>&1; then
         echo "❌ Clippy failed"
         CI_RESULT=1
     fi
@@ -58,7 +58,7 @@ else
 
     echo ""
     echo ">> Backend tests"
-    if ! cargo test --jobs 4 2>&1; then
+    if ! (cd src-tauri && cargo test --jobs 4) 2>&1; then
         echo "❌ Backend tests failed"
         CI_RESULT=1
     fi

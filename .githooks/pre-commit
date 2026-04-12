@@ -39,7 +39,7 @@ else
     fi
 
     echo ">> Rust check"
-    if ! cargo check --jobs 4 2>&1; then
+    if ! (cd src-tauri && cargo check --jobs 4) 2>&1; then
         echo "❌ Cargo check failed"
         check_result=1
     fi
