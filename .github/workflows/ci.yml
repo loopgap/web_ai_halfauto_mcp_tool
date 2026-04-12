@@ -19,6 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   RUSTFLAGS: "-C debuginfo=0"
@@ -39,7 +40,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "24"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
@@ -62,8 +63,6 @@ jobs:
 
       - name: Vite build (frontend only)
         run: pnpm exec vite build
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
 
   # ── 多平台环境检测 (仅 informational，不影响 CI 结果) ──
   platform-doctor:
@@ -88,9 +87,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          node-version: "24"
+          cache: false
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -135,10 +133,9 @@ jobs:
         run: cargo test --jobs 4 -- --nocapture
         working-directory: src-tauri
 
-  # ── 治理验证 ──
+  # ── 治理验证 (独立运行，不依赖其他 job) ──
   governance:
     runs-on: ubuntu-latest
-    needs: [frontend-check]
     steps:
       - uses: actions/checkout@v4
 
@@ -150,7 +147,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "24"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
@@ -163,10 +160,10 @@ jobs:
       - name: API contract test
         run: pnpm test:governance:api
 
-  # ── Tauri 完整构建 (仅 main 分支) ──
+  # ── Tauri 完整构建 (仅 main 分支，简化依赖) ──
   build-release:
     if: github.ref == 'refs/heads/main'
-    needs: [frontend-check, backend-check]
+    needs: [backend-check]
     strategy:
       fail-fast: false
       matrix:
@@ -190,7 +187,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "24"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 

@@ -19,6 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   NODE_OPTIONS: "--max-old-space-size=4096"
@@ -52,7 +53,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "24"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
@@ -94,10 +95,6 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "AI Workbench ${{ github.ref_name }}"
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          # 标准 Tauri 产物:
-          # Linux: .deb, .AppImage
-          # Windows: .msi, .exe (NSIS)
-          # macOS: .dmg, .app (如果添加 macOS matrix)
 
   build-tauri-windows:
     needs: create-release
@@ -109,7 +106,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "24"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
