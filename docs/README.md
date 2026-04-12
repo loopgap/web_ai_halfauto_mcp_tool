@@ -6,7 +6,7 @@
 
 **首次使用？** → 从这里开始：
 
-1. [**QUICKSTART.md**](../QUICKSTART.md) — 5 分钟快速启动指南
+1. [**QUICKSTART.md**](./QUICKSTART.md) — 5 分钟快速启动指南
    - 一键式安装和初始化
    - 启动应用的三种方式
    - 常见问题快速修复
@@ -29,7 +29,7 @@
   - 治理与合规框架
   - 测试和开发指南
 
-- **[CONFIG.md](./CONFIG.md)** — 配置详解和示例
+- **[CONFIG.md](./CONFIG.md)** — 配置详解和示例 *(TODO: 待实现)*
   - routes.yaml — 规则引擎和模型选择
   - skills.yaml — 技能定义模板
   - workflows.yaml — DAG 工作流示例
@@ -46,7 +46,7 @@
 
 ### 性能优化
 
-- **[PERFORMANCE.md](./PERFORMANCE.md)** — 性能优化和监控指南
+- **[PERFORMANCE.md](./PERFORMANCE.md)** — 性能优化和监控指南 *(TODO: 待实现)*
   - ⚡ **性能基准** — 各阶段的目标和当前状态
   - 🚀 **启动优化** — 快速启动的 5 种方法
   - 🏗️ **构建优化** — 增量编译、并行构建、分离关键路径
@@ -90,8 +90,6 @@
 运行测试：
 ```bash
 pnpm test              # 运行所有测试
-pnpm test:watch       # 监视模式
-pnpm test:coverage    # 覆盖率报告
 ```
 
 ### 架构文档
@@ -115,10 +113,10 @@ Data Layer (Tauri IPC / API)
 
 ### 内置诊断工具
 
-#### `pnpm first-run` — 首次启动诊断
+#### `pnpm doctor` — 首次启动诊断
 快速检查环境、依赖、编译、测试：
 ```bash
-pnpm first-run
+pnpm doctor
 ```
 检查项：
 - ✅ Node.js / pnpm / Rust 版本
@@ -130,11 +128,9 @@ pnpm first-run
 - ✅ 本地 CI 预检
 
 #### `pnpm doctor` — 深度诊断
-生成详细诊断报告：
+诊断命令：
 ```bash
-pnpm doctor              # 打印到控制台
-pnpm doctor --report    # 保存文本报告
-pnpm doctor --fix       # 尝试自动修复
+pnpm doctor
 ```
 
 #### Settings 内置诊断
@@ -169,8 +165,7 @@ usePerformanceMonitor('ComponentName', {
 ### 本地 CI
 
 ```bash
-pnpm ci:local       # 完整 CI（13-15s）
-pnpm ci:local:fast  # 快速检查（8-10s，跳过 Rust）
+pnpm ci           # 完整 CI
 ```
 
 检查项：
@@ -189,15 +184,10 @@ GitHub Actions 工作流（见 .github/workflows/）：
 ### 发布流程
 
 ```bash
-# 1. 创建发布版本（自动更新版本号）
-pnpm release:tag minor     # 0.3.0 → 0.4.0
-pnpm release:tag patch     # 0.3.0 → 0.3.1
-pnpm release:tag 1.0.0     # 显式版本
+# 1. 更新版本号并创建 tag
+git tag v0.3.0
 
-# 2. 预检（可选）
-pnpm release:preflight
-
-# 3. 推送（自动触发 CI + Release Actions）
+# 2. 推送（自动触发 CI + Release Actions）
 git push && git push --tags
 ```
 
@@ -205,11 +195,11 @@ git push && git push --tags
 
 ## 📈 版本历史
 
-- **v0.4.0**（当前）
+- **v0.3.0**（当前）
   - ✨ 新增：logging 模块、health-check 诊断、workflow 补偿
   - 🧪 新增：195 个单元测试
-  - 📖 新增：快速启动指南、故障排查、性能优化文档
-  - 🛠️ 新增：first-run 诊断、doctor 深度诊断、release-tag 自动版本
+  - 📖 新增：快速启动指南、故障排查文档
+  - 🛠️ 新增：doctor 诊断
 
 - **v0.3.0**
   - 初始版本
@@ -222,13 +212,11 @@ git push && git push --tags
 
 | 任务 | 命令 |
 |------|------|
-| 启动应用 | `pnpm start` / `pnpm start:fe` |
-| 首次诊断 | `pnpm first-run` |
-| 深度诊断 | `pnpm doctor` |
-| 运行测试 | `pnpm test` / `pnpm test:coverage` |
-| 构建应用 | `pnpm build:app` |
-| 本地 CI | `pnpm ci:local` |
-| 发布版本 | `pnpm release:tag [版本]` |
+| 启动应用 | `pnpm dev` |
+| 诊断检查 | `pnpm doctor` |
+| 运行测试 | `pnpm test` |
+| 构建应用 | `pnpm build` |
+| 本地 CI | `pnpm ci` |
 | 查看性能 | Settings → Performance Panel |
 | 查看日志 | `~/.ai-workbench/logs/` |
 | 查看诊断 | `~/.ai-workbench/health/` |
@@ -239,14 +227,13 @@ git push && git push --tags
 
 ### 自动化诊断
 首选快速诊断工具（按顺序）：
-1. `pnpm first-run` — 快速检查（2-3 分钟）
-2. `pnpm doctor` — 深度诊断（3-5 分钟）
-3. Settings → 诊断 → 导出诊断包（获取完整信息）
+1. `pnpm doctor` — 诊断检查
+2. Settings → 诊断 → 导出诊断包（获取完整信息）
 
 ### 查阅文档
 1. [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) — 按症状快速查找
 2. [GUIDE.md](./GUIDE.md) — 完整功能说明
-3. [CONFIG.md](./CONFIG.md) — 配置示例
+3. [CONFIG.md](./CONFIG.md) — 配置示例 *(TODO: 待实现)*
 
 ### 查看日志
 ```bash
@@ -272,7 +259,7 @@ cat ~/.ai-workbench/health/doctor-*.json
 
 ## 🗞️ 本文档版本
 
-- **文档版本：** v0.4.0
+- **文档版本：** v0.3.0
 - **最后更新：** 2025 Q1
 - **维护者：** AI Workbench 团队
 

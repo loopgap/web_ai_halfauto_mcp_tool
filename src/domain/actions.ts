@@ -33,6 +33,26 @@ const logger = createLogger("actions");
 const MAX_TEXT_LEN = 120_000;
 const MAX_INPUT_LEN = 50_000;
 
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: { maxRetries: number; baseDelayMs: number; name: string },
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastError = e;
+      if (attempt < options.maxRetries) {
+        const delay = options.baseDelayMs * Math.pow(2, attempt);
+        logger.warn(`${options.name} failed (attempt ${attempt + 1}/${options.maxRetries + 1}), retrying in ${delay}ms`, { error: String(e) });
+        await new Promise((r) => setTimeout(r, delay));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // ───────── §28 Quality Gate 验收检查 ─────────
 
 export interface QualityCheckResult {
@@ -712,7 +732,7 @@ export async function executeDispatchFlow(
       step.status = "awaiting_send";
       dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "waiting_capture" } });
       dispatch({ type: "ADD_RUN", payload: run });
-      await api.saveRun(run).catch((e) => console.error('[actions] saveRun(stage) persist failed:', e));
+      await withRetry(() => api.saveRun(run), { maxRetries: 3, baseDelayMs: 500, name: "saveRun(stage)" });
       return { success: true, run, stagedHwnd: win.hwnd, dispatchTrace, browserWarning };
     }
 
@@ -728,7 +748,7 @@ export async function executeDispatchFlow(
 
     // ─── 4. Persist ───
     dispatch({ type: "ADD_RUN", payload: run });
-    await api.saveRun(run).catch((e) => console.error('[actions] saveRun(dispatch) persist failed:', e));
+    await withRetry(() => api.saveRun(run), { maxRetries: 3, baseDelayMs: 500, name: "saveRun(dispatch)" });
 
     // ─── 5. Feedback ───
     return { success: true, run, stagedHwnd: win.hwnd, dispatchTrace, browserWarning };
@@ -745,7 +765,7 @@ export async function executeDispatchFlow(
 
     dispatch({ type: "ADD_RUN", payload: run });
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
-    await api.saveRun(run).catch((e) => console.error('[actions] saveRun(error) persist failed:', e));
+    await withRetry(() => api.saveRun(run), { maxRetries: 3, baseDelayMs: 500, name: "saveRun(error)" });
 
     // 闭环一致性校验
     const consistency = validateRunConsistency(run);
@@ -956,7 +976,7 @@ export async function captureOutput(
     };
 
     // 保存 Artifact 到 vault
-    await api.saveArtifact(artifact).catch((e) => console.error('[actions] saveArtifact persist failed:', e));
+    await withRetry(() => api.saveArtifact(artifact), { maxRetries: 3, baseDelayMs: 500, name: "saveArtifact" });
 
     // §28 Quality Gate 验收
     const qualityResult = qualityGates && qualityGates.length > 0
@@ -977,7 +997,7 @@ export async function captureOutput(
     });
     dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "archived" } });
 
-    api.notify("AI Workbench", "输出已成功拉取并归档").catch(() => {});
+    api.notify("AI Workbench", "输出已成功拉取并归档").catch((e) => console.error("[actions] notify failed:", e));
 
     return {
       success: true,

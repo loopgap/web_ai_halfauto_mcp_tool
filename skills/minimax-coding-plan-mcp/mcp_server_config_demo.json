@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+      "MiniMax": {
+        "command": "uvx",
+        "args": [
+          "minimax-coding-plan-mcp"
+        ],
+        "env": {
+          "MINIMAX_API_KEY": "sk-cp-test123",
+          "MINIMAX_API_HOST": "https://api.minimax.chat"
+        }
+      }
+    }
+  }

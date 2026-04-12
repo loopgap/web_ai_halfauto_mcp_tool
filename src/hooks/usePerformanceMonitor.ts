@@ -112,7 +112,7 @@ export function usePerformanceMonitor(intervalMs: number = 2000, enabled: boolea
         memoryUsage,
         fps,
         longTaskCount: longTaskCountRef.current,
-        domNodeCount: document.querySelectorAll("*").length,
+        domNodeCount: document.getElementsByTagName("*").length,
         recentEvents: [...eventsRef.current],
         lastUpdate: Date.now(),
       });

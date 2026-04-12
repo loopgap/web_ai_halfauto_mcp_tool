@@ -1,6 +1,6 @@
 # AI Workbench 完整使用指南
 
-> 版本 v0.4.0 · 最后更新 2026-03-22
+> 版本 v0.3.0 · 最后更新 2026-03-22
 
 ---
 
@@ -202,7 +202,7 @@ ai-workbench/
 │   ├── test-governance-api-contract.mjs  # 治理 API 合约测试 (32 条)
 │   └── build-evidence-pack.mjs # 证据包生成
 │
-└── route.md                    # 技术路线蓝图 (99 节)
+└── route.md                    # 技术路线蓝图 (102 节)
 ```
 
 ---
@@ -667,7 +667,7 @@ pnpm release:tag 1.2.3    # 指定版本
 
 # 3. 推送触发 CI/CD (自动构建 + 发布)
 pnpm release:tag patch -- --push
-# 或手动: git push origin HEAD && git push origin v0.4.0
+# 或手动: git push origin HEAD && git push origin v0.3.0
 ```
 
 GitHub Actions Release 工作流将自动：
@@ -741,7 +741,7 @@ pnpm dev
 
 ## 技术路线图
 
-完整技术路线详见项目根目录的 [route.md](../route.md)，共 100 个章节，涵盖：
+完整技术路线详见项目根目录的 [route.md](../route.md)，共 102 个章节，涵盖：
 
 - §1-§3: 目标/架构/前端闭环
 - §4: 本地 SLM 体系

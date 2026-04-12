@@ -38,16 +38,17 @@ export type EventSideEffect = (event: WorkbenchEvent) => void;
 /**
  * 订阅 "workbench-event" Tauri 全局事件，
  * 根据 event_type 分发到 store action 或执行副作用。
+ * @returns unsubscribe function to manually clean up the subscription
  */
-export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSideEffect) {
+export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSideEffect): () => void {
   const dispatchRef = useRef(dispatch);
   dispatchRef.current = dispatch;
   const sideEffectRef = useRef(sideEffects);
   sideEffectRef.current = sideEffects;
+  const cleanupRef = useRef({ cancelled: false, unlisten: null as UnlistenFn | null });
 
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
-    let cancelled = false;
 
     const setup = async () => {
       const fn = await listen<WorkbenchEvent>("workbench-event", (event) => {
@@ -179,20 +180,26 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
         }
       });
       // Guard: if component unmounted while listen() was pending, clean up immediately
-      if (cancelled) {
+      if (cleanupRef.current.cancelled) {
         fn();
       } else {
         unlisten = fn;
+        cleanupRef.current.unlisten = unlisten;
       }
     };
 
     setup();
 
     return () => {
-      cancelled = true;
-      if (unlisten) unlisten();
+      cleanupRef.current.cancelled = true;
+      if (cleanupRef.current.unlisten) cleanupRef.current.unlisten();
     };
   }, []);
+
+  return () => {
+    cleanupRef.current.cancelled = true;
+    if (cleanupRef.current.unlisten) cleanupRef.current.unlisten();
+  };
 }
 
 // §37 完整 RunStatus（对齐 route.md §10 状态机）

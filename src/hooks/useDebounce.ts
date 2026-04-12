@@ -30,7 +30,7 @@ export function useDebouncedAction<T extends unknown[]>(
         setLoading(false);
       }
     },
-    [fn, delayMs, loading],
+    [fn, delayMs],
   );
 
   return [debouncedFn, loading];

@@ -2,19 +2,19 @@ mod config;
 
 use crate_core::{err, new_trace_id, now_ms, ApiError, AuditEvent, CmdResult};
 
-#[cfg(windows)]
-use os_win as platform;
 #[cfg(not(windows))]
 use os_linux as platform;
+#[cfg(windows)]
+use os_win as platform;
 
 use platform::clipboard;
+#[cfg(windows)]
+use platform::error::OsWinError as PlatformError;
+#[cfg(not(windows))]
+use platform::error::OsWinError as PlatformError;
 use platform::input::PasteOptions;
 use platform::window::{self, WindowInfo};
 use platform::DispatchRequest;
-#[cfg(windows)]
-use platform::error::OsWinError as PlatformError;
-#[cfg(not(windows))]
-use platform::error::OsWinError as PlatformError;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -22,8 +22,8 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
-use tauri::Manager;
 use tauri::Emitter;
+use tauri::Manager;
 
 const MAX_TEXT_LEN: usize = 120_000;
 const MAX_REGEX_PATTERNS: usize = 32;
@@ -32,6 +32,33 @@ const MAX_ACTIVATE_RETRY: u32 = 10;
 const MAX_DELAY_MS: u64 = 10_000;
 const MAX_TARGETS: usize = 256;
 const MIN_DISPATCH_INTERVAL_MS: u64 = 120;
+
+// ═══════════════════════════════════════════════════════════
+// Security Model — Desktop App Trust Boundary
+//
+// This is a desktop automation application, NOT a web service or API server.
+// All Tauri commands execute in the context of the LOCAL USER's desktop session.
+//
+// Trust basis:
+//   • The app runs as the local user with their permissions
+//   • The app has no network-facing API - it's a local-only workflow tool
+//   • Unlike web apps, there is no "untrusted client" concept - the frontend
+//     is a local UI bundled with the same binary as the backend
+//   • Adding authentication to Tauri commands would provide no additional
+//     security because the "auth check" would run inside the same trust
+//     boundary as the commands themselves
+//
+// Attack classes that don't apply:
+//   • CSRF: No session/cookie-based auth, no cross-origin requests
+//   • Auth bypass: No privileged operations exist outside the local desktop
+//   • SQL injection: Data lives in local JSON files, not a DB server
+//
+// What IS protected:
+//   • Input validation (rate limits, payload size limits, regex complexity)
+//   • Audit logging to local vault for forensics
+//   • Clipboard transaction safety (restore on failure)
+//   • State transition validation to prevent invalid run states
+// ═══════════════════════════════════════════════════════════
 
 static DISPATCH_GUARD: OnceLock<Mutex<DispatchGuard>> = OnceLock::new();
 /// §29.4 Confirm idempotency: track confirmed hwnds to prevent duplicate sends
@@ -73,7 +100,10 @@ pub struct FindByRegexArgs {
 
 fn now_iso_stub() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
     let date = config::chrono_date_stub();
     let time_of_day = secs % 86400;
     let h = time_of_day / 3600;
@@ -97,10 +127,14 @@ fn map_os_error(action: &str, e: PlatformError) -> ApiError {
         PlatformError::ClipboardFailed(detail) => {
             err("CLIPBOARD_BUSY", "Clipboard operation failed", Some(detail))
         }
-        PlatformError::InputFailed(detail) => {
-            err("INPUT_FAILED", "Keyboard input simulation failed", Some(detail))
+        PlatformError::InputFailed(detail) => err(
+            "INPUT_FAILED",
+            "Keyboard input simulation failed",
+            Some(detail),
+        ),
+        PlatformError::Timeout(ms) => {
+            err("TIMEOUT", "Operation timed out", Some(format!("{}ms", ms)))
         }
-        PlatformError::Timeout(ms) => err("TIMEOUT", "Operation timed out", Some(format!("{}ms", ms))),
         PlatformError::InvalidArg(detail) => {
             err("INVALID_ARG", "Invalid command argument", Some(detail))
         }
@@ -332,7 +366,8 @@ fn validate_targets_config(cfg: &config::TargetsConfig) -> CmdResult<()> {
 
 #[tauri::command]
 fn os_enum_windows(args: EnumWindowsArgs) -> CmdResult<Vec<WindowInfo>> {
-    window::enum_top_level_windows(args.include_invisible).map_err(|e| map_os_error("enum_windows", e))
+    window::enum_top_level_windows(args.include_invisible)
+        .map_err(|e| map_os_error("enum_windows", e))
 }
 
 #[tauri::command]
@@ -500,7 +535,8 @@ fn health_check(app_handle: tauri::AppHandle) -> CmdResult<Vec<config::TargetHea
         )
     })?;
 
-    let windows = window::enum_top_level_windows(false).map_err(|e| map_os_error("health_check_enum", e))?;
+    let windows =
+        window::enum_top_level_windows(false).map_err(|e| map_os_error("health_check_enum", e))?;
 
     let mut results = Vec::new();
     for (id, target) in &targets_cfg.targets {
@@ -529,7 +565,11 @@ fn evaluate_target_status(
                 return config::TargetHealth {
                     target_id: target_id.to_string(),
                     provider: target.provider.clone(),
-                    status: if win.is_minimized { config::TargetStatus::Inactive } else { config::TargetStatus::Ready },
+                    status: if win.is_minimized {
+                        config::TargetStatus::Inactive
+                    } else {
+                        config::TargetStatus::Ready
+                    },
                     matched: true,
                     matched_title: Some(win.title.clone()),
                     matched_hwnd: Some(bound_hwnd),
@@ -638,39 +678,55 @@ pub struct PreflightArgs {
 }
 
 #[tauri::command]
-fn preflight_target(app_handle: tauri::AppHandle, args: PreflightArgs) -> CmdResult<config::PreflightResult> {
+fn preflight_target(
+    app_handle: tauri::AppHandle,
+    args: PreflightArgs,
+) -> CmdResult<config::PreflightResult> {
     let targets_cfg = config::load_targets(&app_handle).map_err(|e| {
-        err("CONFIG_LOAD_FAILED", "Failed to load targets", Some(e.to_string()))
+        err(
+            "CONFIG_LOAD_FAILED",
+            "Failed to load targets",
+            Some(e.to_string()),
+        )
     })?;
 
     let target = targets_cfg.targets.get(&args.target_id).ok_or_else(|| {
-        err("TARGET_NOT_FOUND", "Target not found in config", Some(args.target_id.clone()))
+        err(
+            "TARGET_NOT_FOUND",
+            "Target not found in config",
+            Some(args.target_id.clone()),
+        )
     })?;
 
-    let windows = window::enum_top_level_windows(false)
-        .map_err(|e| map_os_error("preflight_enum", e))?;
+    let windows =
+        window::enum_top_level_windows(false).map_err(|e| map_os_error("preflight_enum", e))?;
 
     let health = evaluate_target_status(&args.target_id, target, &windows);
 
     let suggestion = match &health.status {
         config::TargetStatus::Ready => None,
         config::TargetStatus::Missing => Some("目标窗口未找到，请先打开对应 AI 网页端".to_string()),
-        config::TargetStatus::Ambiguous => Some("检测到多个匹配窗口，请进入绑定向导选择".to_string()),
+        config::TargetStatus::Ambiguous => {
+            Some("检测到多个匹配窗口，请进入绑定向导选择".to_string())
+        }
         config::TargetStatus::NeedsRebind => Some("已保存的窗口句柄已失效，请重新绑定".to_string()),
         config::TargetStatus::Inactive => Some("目标窗口处于最小化状态，请恢复窗口".to_string()),
     };
 
     // Write preflight event
-    let _ = config::write_vault_event(&app_handle, &config::VaultEvent {
-        ts_ms: now_ms(),
-        event_type: "preflight_check".to_string(),
-        run_id: None,
-        step_id: None,
-        trace_id: new_trace_id(),
-        action: "preflight_target".to_string(),
-        outcome: format!("{:?}", health.status),
-        detail: suggestion.clone(),
-    });
+    let _ = config::write_vault_event(
+        &app_handle,
+        &config::VaultEvent {
+            ts_ms: now_ms(),
+            event_type: "preflight_check".to_string(),
+            run_id: None,
+            step_id: None,
+            trace_id: new_trace_id(),
+            action: "preflight_target".to_string(),
+            outcome: format!("{:?}", health.status),
+            detail: suggestion.clone(),
+        },
+    );
 
     Ok(config::PreflightResult {
         target_id: args.target_id,
@@ -709,10 +765,15 @@ pub struct DispatchStageArgs {
     pub append_watermark: bool,
 }
 
-fn default_true_fn() -> bool { true }
+fn default_true_fn() -> bool {
+    true
+}
 
 #[tauri::command]
-fn dispatch_stage(app_handle: tauri::AppHandle, args: DispatchStageArgs) -> CmdResult<config::DispatchTrace> {
+fn dispatch_stage(
+    app_handle: tauri::AppHandle,
+    args: DispatchStageArgs,
+) -> CmdResult<config::DispatchTrace> {
     let ts_start = now_ms();
     let trace_id = new_trace_id();
     let clipboard_txn_id = format!("ctx-{}", &trace_id);
@@ -725,18 +786,27 @@ fn dispatch_stage(app_handle: tauri::AppHandle, args: DispatchStageArgs) -> CmdR
         let run_tag = args.run_id.as_deref().unwrap_or("unknown");
         let step_tag = args.step_id.as_deref().unwrap_or("-");
         let target_tag = args.target_id.as_deref().unwrap_or("-");
-        format!("{}\n[AIWB_RUN_ID={} STEP={} TARGET={}]", args.text, run_tag, step_tag, target_tag)
+        format!(
+            "{}\n[AIWB_RUN_ID={} STEP={} TARGET={}]",
+            args.text, run_tag, step_tag, target_tag
+        )
     } else {
         args.text.clone()
     };
 
     if final_text.len() > MAX_TEXT_LEN {
-        return Err(err("PAYLOAD_TOO_LARGE", "Text with watermark exceeds limit", None));
+        return Err(err(
+            "PAYLOAD_TOO_LARGE",
+            "Text with watermark exceeds limit",
+            None,
+        ));
     }
 
     // Rate limiting
     let guard = DISPATCH_GUARD.get_or_init(|| Mutex::new(DispatchGuard::default()));
-    let mut state = guard.lock().map_err(|_| err("INTERNAL_ERROR", "Lock poisoned", None))?;
+    let mut state = guard
+        .lock()
+        .map_err(|_| err("INTERNAL_ERROR", "Lock poisoned", None))?;
     if let Some(last) = state.last_dispatch_at {
         if last.elapsed() < Duration::from_millis(MIN_DISPATCH_INTERVAL_MS) {
             return Err(err("DISPATCH_RATE_LIMITED", "Dispatch too frequent", None));
@@ -771,41 +841,50 @@ fn dispatch_stage(app_handle: tauri::AppHandle, args: DispatchStageArgs) -> CmdR
     }
 
     // §9.6 Clipboard Transaction + §9.7 Focus Recipe
-    let result = platform::clipboard_transaction(move || {
-        // Activate first
-        window::activate_window(req.hwnd, req.activate_retry, req.activate_settle_delay_ms)?;
+    let result = platform::clipboard_transaction(
+        move || {
+            // Activate first
+            window::activate_window(req.hwnd, req.activate_retry, req.activate_settle_delay_ms)?;
 
-        // §9.7 Focus Recipe: run keystroke sequence after activation
-        if !args.focus_recipe.is_empty() {
-            platform::input::send_key_sequence(&args.focus_recipe, 80)?;
-        }
+            // §9.7 Focus Recipe: run keystroke sequence after activation
+            if !args.focus_recipe.is_empty() {
+                platform::input::send_key_sequence(&args.focus_recipe, 80)?;
+            }
 
-        // §9.5 Soft Lock: verify window is still foreground
-        let fg_now = window::get_foreground_hwnd();
-        if fg_now != req.hwnd {
-            return Err(PlatformError::ActivateFailed);
-        }
+            // §9.5 Soft Lock: verify window is still foreground
+            let fg_now = window::get_foreground_hwnd();
+            if fg_now != req.hwnd {
+                return Err(PlatformError::ActivateFailed);
+            }
 
-        // Set clipboard + paste
-        clipboard::clipboard_set_text(&req.text)?;
-        platform::input::send_ctrl_v(&req.opts)?;
+            // Set clipboard + paste
+            clipboard::clipboard_set_text(&req.text)?;
+            platform::input::send_ctrl_v(&req.opts)?;
 
-        Ok(())
-    }, args.restore_clipboard);
+            Ok(())
+        },
+        args.restore_clipboard,
+    );
 
     let ts_end = now_ms();
     let (outcome, detail_str) = match &result {
-        Ok(_) => { activation_ok = true; ("ok".to_string(), None) },
+        Ok(_) => {
+            activation_ok = true;
+            ("ok".to_string(), None)
+        }
         Err(e) => ("err".to_string(), Some(format!("{}", e))),
     };
 
-    write_audit(&app_handle, AuditEvent {
-        ts_ms: ts_end,
-        action: "dispatch_stage",
-        outcome: &outcome,
-        trace_id: &trace_id,
-        detail: detail_str.as_deref(),
-    });
+    write_audit(
+        &app_handle,
+        AuditEvent {
+            ts_ms: ts_end,
+            action: "dispatch_stage",
+            outcome: &outcome,
+            trace_id: &trace_id,
+            detail: detail_str.as_deref(),
+        },
+    );
 
     // §9.9 + §29.3 构建结构化 DispatchTrace
     let dispatch_trace = config::DispatchTrace {
@@ -837,15 +916,18 @@ fn dispatch_stage(app_handle: tauri::AppHandle, args: DispatchStageArgs) -> CmdR
     let _ = config::save_dispatch_trace(&app_handle, &dispatch_trace);
 
     // §38 Event Bus
-    let _ = app_handle.emit("workbench-event", serde_json::json!({
-        "event_type": "StepDispatched",
-        "run_id": args.run_id,
-        "step_id": args.step_id,
-        "target_id": args.target_id,
-        "trace_id": trace_id,
-        "ts_ms": ts_end,
-        "stage_ok": result.is_ok(),
-    }));
+    let _ = app_handle.emit(
+        "workbench-event",
+        serde_json::json!({
+            "event_type": "StepDispatched",
+            "run_id": args.run_id,
+            "step_id": args.step_id,
+            "target_id": args.target_id,
+            "trace_id": trace_id,
+            "ts_ms": ts_end,
+            "stage_ok": result.is_ok(),
+        }),
+    );
 
     result.map_err(|e| map_os_error("dispatch_stage", e))?;
     Ok(dispatch_trace)
@@ -862,12 +944,18 @@ fn dispatch_confirm(app_handle: tauri::AppHandle, args: DispatchConfirmArgs) -> 
     // §29.4 Idempotency: prevent duplicate confirm for same hwnd
     let confirm_set = CONFIRM_GUARD.get_or_init(|| Mutex::new(HashSet::new()));
     {
-        let mut confirmed = confirm_set.lock().map_err(|_| err("INTERNAL_ERROR", "Confirm lock poisoned", None))?;
+        let mut confirmed = confirm_set
+            .lock()
+            .map_err(|_| err("INTERNAL_ERROR", "Confirm lock poisoned", None))?;
         if confirmed.len() > 1000 {
             confirmed.clear();
         }
         if confirmed.contains(&args.hwnd) {
-            return Err(err("DISPATCH_DUPLICATE_CONFIRM", "Confirm already sent for this target (idempotency guard)", None));
+            return Err(err(
+                "DISPATCH_DUPLICATE_CONFIRM",
+                "Confirm already sent for this target (idempotency guard)",
+                None,
+            ));
         }
         confirmed.insert(args.hwnd);
     }
@@ -880,7 +968,11 @@ fn dispatch_confirm(app_handle: tauri::AppHandle, args: DispatchConfirmArgs) -> 
             .map_err(|e| map_os_error("dispatch_confirm_activate", e))?;
         let fg2 = window::get_foreground_hwnd();
         if fg2 != args.hwnd {
-            return Err(err("TARGET_ACTIVATE_FAILED", "Cannot confirm: target window is not foreground", None));
+            return Err(err(
+                "TARGET_ACTIVATE_FAILED",
+                "Cannot confirm: target window is not foreground",
+                None,
+            ));
         }
     }
 
@@ -893,13 +985,16 @@ fn dispatch_confirm(app_handle: tauri::AppHandle, args: DispatchConfirmArgs) -> 
     let result = platform::dispatch_confirm(&opts).map_err(|e| map_os_error("dispatch_confirm", e));
 
     let trace = new_trace_id();
-    write_audit(&app_handle, AuditEvent {
-        ts_ms: now_ms(),
-        action: "dispatch_confirm",
-        outcome: if result.is_ok() { "ok" } else { "err" },
-        trace_id: &trace,
-        detail: None,
-    });
+    write_audit(
+        &app_handle,
+        AuditEvent {
+            ts_ms: now_ms(),
+            action: "dispatch_confirm",
+            outcome: if result.is_ok() { "ok" } else { "err" },
+            trace_id: &trace,
+            detail: None,
+        },
+    );
 
     result
 }
@@ -915,8 +1010,8 @@ fn get_foreground_hwnd() -> CmdResult<u64> {
 
 #[tauri::command]
 fn detect_browsers() -> CmdResult<config::BrowserDetectionResult> {
-    let windows = window::enum_top_level_windows(false)
-        .map_err(|e| map_os_error("detect_browsers", e))?;
+    let windows =
+        window::enum_top_level_windows(false).map_err(|e| map_os_error("detect_browsers", e))?;
     let signatures = config::known_browser_signatures();
 
     let mut profile_map: std::collections::HashMap<String, config::BrowserProfile> =
@@ -971,18 +1066,19 @@ fn detect_browsers() -> CmdResult<config::BrowserDetectionResult> {
             continue;
         }
 
-        let entry = profile_map.entry(browser_id.clone()).or_insert_with(|| {
-            config::BrowserProfile {
-                browser_id: browser_id.clone(),
-                exe_name: exe.clone(),
-                class_name: win.class_name.clone(),
-                installed: true,
-                running: true,
-                window_count: 0,
-                supports_target: false,
-                health_score: 0,
-            }
-        });
+        let entry =
+            profile_map
+                .entry(browser_id.clone())
+                .or_insert_with(|| config::BrowserProfile {
+                    browser_id: browser_id.clone(),
+                    exe_name: exe.clone(),
+                    class_name: win.class_name.clone(),
+                    installed: true,
+                    running: true,
+                    window_count: 0,
+                    supports_target: false,
+                    health_score: 0,
+                });
         entry.window_count += 1;
 
         let mut score: u32 = 50;
@@ -1050,31 +1146,45 @@ pub struct RoutePromptArgs {
 }
 
 #[tauri::command]
-fn route_prompt(app_handle: tauri::AppHandle, args: RoutePromptArgs) -> CmdResult<config::RouteDecision> {
+fn route_prompt(
+    app_handle: tauri::AppHandle,
+    args: RoutePromptArgs,
+) -> CmdResult<config::RouteDecision> {
     if args.prompt.trim().is_empty() {
         return Err(err("INPUT_EMPTY", "Prompt is empty", None));
     }
     if args.prompt.len() > MAX_TEXT_LEN {
-        return Err(err("INPUT_TOO_LONG", "Prompt exceeds safe size", Some(format!("max {}", MAX_TEXT_LEN))));
+        return Err(err(
+            "INPUT_TOO_LONG",
+            "Prompt exceeds safe size",
+            Some(format!("max {}", MAX_TEXT_LEN)),
+        ));
     }
 
     let rules = config::load_router_rules(&app_handle).map_err(|e| {
-        err("CONFIG_LOAD_FAILED", "Failed to load router rules", Some(e.to_string()))
+        err(
+            "CONFIG_LOAD_FAILED",
+            "Failed to load router rules",
+            Some(e.to_string()),
+        )
     })?;
 
     let decision = config::route_prompt(&args.prompt, &rules);
 
     // 写入事件日志
-    let _ = config::write_vault_event(&app_handle, &config::VaultEvent {
-        ts_ms: now_ms(),
-        event_type: "route_decision".to_string(),
-        run_id: None,
-        step_id: None,
-        trace_id: decision.trace_id.clone(),
-        action: "route_prompt".to_string(),
-        outcome: decision.action.clone(),
-        detail: Some(decision.explanation.clone()),
-    });
+    let _ = config::write_vault_event(
+        &app_handle,
+        &config::VaultEvent {
+            ts_ms: now_ms(),
+            event_type: "route_decision".to_string(),
+            run_id: None,
+            step_id: None,
+            trace_id: decision.trace_id.clone(),
+            action: "route_prompt".to_string(),
+            outcome: decision.action.clone(),
+            detail: Some(decision.explanation.clone()),
+        },
+    );
 
     Ok(decision)
 }
@@ -1101,24 +1211,33 @@ fn save_route_feedback(app_handle: tauri::AppHandle, args: RouteFeedbackArgs) ->
         ts_ms: now_ms(),
     };
     config::save_route_feedback(&app_handle, &fb).map_err(|e| {
-        err("ARCHIVE_WRITE_FAILED", "Failed to save route feedback", Some(e.to_string()))
+        err(
+            "ARCHIVE_WRITE_FAILED",
+            "Failed to save route feedback",
+            Some(e.to_string()),
+        )
     })?;
 
-    let _ = config::write_vault_event(&app_handle, &config::VaultEvent {
-        ts_ms: now_ms(),
-        event_type: "RouteFeedback".to_string(),
-        run_id: None,
-        step_id: None,
-        trace_id: args.trace_id,
-        action: "save_route_feedback".to_string(),
-        outcome: fb.user_action.clone(),
-        detail: fb.override_intent.clone(),
-    });
+    let _ = config::write_vault_event(
+        &app_handle,
+        &config::VaultEvent {
+            ts_ms: now_ms(),
+            event_type: "RouteFeedback".to_string(),
+            run_id: None,
+            step_id: None,
+            trace_id: args.trace_id,
+            action: "save_route_feedback".to_string(),
+            outcome: fb.user_action.clone(),
+            detail: fb.override_intent.clone(),
+        },
+    );
 
     Ok(())
 }
 
-fn derive_governance_records_from_run(run: &config::RunRecord) -> (
+fn derive_governance_records_from_run(
+    run: &config::RunRecord,
+) -> (
     config::ChangeRecord,
     config::QualityGateResult,
     config::ReleaseDecisionRecord,
@@ -1178,7 +1297,11 @@ fn derive_governance_records_from_run(run: &config::RunRecord) -> (
         title: format!("Run {} governance snapshot", run.id),
         owner: "ai-workbench".to_string(),
         scope: format!("run_status={} target={}", run.status, run.target_id),
-        risk_level: if failed { "medium".to_string() } else { "low".to_string() },
+        risk_level: if failed {
+            "medium".to_string()
+        } else {
+            "low".to_string()
+        },
         run_id: Some(run.id.clone()),
         step_id: run.step_id.clone(),
         trace_id: Some(run.trace_id.clone()),
@@ -1223,7 +1346,10 @@ fn save_run(app_handle: tauri::AppHandle, run: config::RunRecord) -> CmdResult<(
                 return Err(err(
                     "STATE_TRANSITION_INVALID",
                     &format!("非法状态转换: {} → {}", old.status, status),
-                    Some(format!("合法目标: {:?}", config::valid_run_transitions(&old.status))),
+                    Some(format!(
+                        "合法目标: {:?}",
+                        config::valid_run_transitions(&old.status)
+                    )),
                 ));
             }
             // §10: archived/done 后禁止改正文
@@ -1238,19 +1364,35 @@ fn save_run(app_handle: tauri::AppHandle, run: config::RunRecord) -> CmdResult<(
     }
 
     config::save_run(&app_handle, &run).map_err(|e| {
-        err("ARCHIVE_WRITE_FAILED", "Failed to save run", Some(e.to_string()))
+        err(
+            "ARCHIVE_WRITE_FAILED",
+            "Failed to save run",
+            Some(e.to_string()),
+        )
     })?;
 
     // Governance auto-generation: every run produces change/quality/decision snapshots
     let (change, quality, decision) = derive_governance_records_from_run(&run);
     config::save_change_record(&app_handle, &change).map_err(|e| {
-        err("ARCHIVE_WRITE_FAILED", "Failed to save governance change record", Some(e.to_string()))
+        err(
+            "ARCHIVE_WRITE_FAILED",
+            "Failed to save governance change record",
+            Some(e.to_string()),
+        )
     })?;
     config::save_quality_gate_result(&app_handle, &quality).map_err(|e| {
-        err("ARCHIVE_WRITE_FAILED", "Failed to save governance quality result", Some(e.to_string()))
+        err(
+            "ARCHIVE_WRITE_FAILED",
+            "Failed to save governance quality result",
+            Some(e.to_string()),
+        )
     })?;
     config::save_release_decision(&app_handle, &decision).map_err(|e| {
-        err("ARCHIVE_WRITE_FAILED", "Failed to save governance release decision", Some(e.to_string()))
+        err(
+            "ARCHIVE_WRITE_FAILED",
+            "Failed to save governance release decision",
+            Some(e.to_string()),
+        )
     })?;
 
     // §38 Event Bus: emit run event via Tauri
@@ -1262,36 +1404,45 @@ fn save_run(app_handle: tauri::AppHandle, run: config::RunRecord) -> CmdResult<(
         "failed" => "StepFailed",
         _ => "RunUpdated",
     };
-    let _ = app_handle.emit("workbench-event", serde_json::json!({
-        "event_type": event_type,
-        "run_id": run_id.clone(),
-        "step_id": step_id.clone(),
-        "status": status.clone(),
-        "trace_id": trace_id.clone(),
-        "ts_ms": now_ms(),
-    }));
-    let _ = app_handle.emit("workbench-event", serde_json::json!({
-        "event_type": "GovernanceUpdated",
-        "run_id": run_id.clone(),
-        "step_id": step_id.clone(),
-        "trace_id": trace_id.clone(),
-        "change": change,
-        "quality": quality,
-        "decision": decision,
-        "ts_ms": now_ms(),
-    }));
+    let _ = app_handle.emit(
+        "workbench-event",
+        serde_json::json!({
+            "event_type": event_type,
+            "run_id": run_id.clone(),
+            "step_id": step_id.clone(),
+            "status": status.clone(),
+            "trace_id": trace_id.clone(),
+            "ts_ms": now_ms(),
+        }),
+    );
+    let _ = app_handle.emit(
+        "workbench-event",
+        serde_json::json!({
+            "event_type": "GovernanceUpdated",
+            "run_id": run_id.clone(),
+            "step_id": step_id.clone(),
+            "trace_id": trace_id.clone(),
+            "change": change,
+            "quality": quality,
+            "decision": decision,
+            "ts_ms": now_ms(),
+        }),
+    );
 
     // 写入事件日志
-    let _ = config::write_vault_event(&app_handle, &config::VaultEvent {
-        ts_ms: now_ms(),
-        event_type: event_type.to_string(),
-        run_id: Some(run.id.clone()),
-        step_id: run.step_id.clone(),
-        trace_id: run.trace_id.clone(),
-        action: "save_run".to_string(),
-        outcome: run.status.clone(),
-        detail: None,
-    });
+    let _ = config::write_vault_event(
+        &app_handle,
+        &config::VaultEvent {
+            ts_ms: now_ms(),
+            event_type: event_type.to_string(),
+            run_id: Some(run.id.clone()),
+            step_id: run.step_id.clone(),
+            trace_id: run.trace_id.clone(),
+            action: "save_run".to_string(),
+            outcome: run.status.clone(),
+            detail: None,
+        },
+    );
 
     Ok(())
 }
@@ -1299,7 +1450,11 @@ fn save_run(app_handle: tauri::AppHandle, run: config::RunRecord) -> CmdResult<(
 #[tauri::command]
 fn load_runs(app_handle: tauri::AppHandle) -> CmdResult<Vec<config::RunRecord>> {
     config::load_runs(&app_handle).map_err(|e| {
-        err("ARCHIVE_READ_FAILED", "Failed to load runs", Some(e.to_string()))
+        err(
+            "ARCHIVE_READ_FAILED",
+            "Failed to load runs",
+            Some(e.to_string()),
+        )
     })
 }
 
@@ -1311,16 +1466,23 @@ fn get_error_catalog() -> CmdResult<Vec<config::ErrorDefinition>> {
 #[tauri::command]
 fn write_event(app_handle: tauri::AppHandle, event: config::VaultEvent) -> CmdResult<()> {
     // §38 Event Bus: also emit to frontend
-    let _ = app_handle.emit("workbench-event", serde_json::json!({
-        "event_type": event.event_type,
-        "run_id": event.run_id,
-        "step_id": event.step_id,
-        "trace_id": event.trace_id,
-        "ts_ms": event.ts_ms,
-    }));
+    let _ = app_handle.emit(
+        "workbench-event",
+        serde_json::json!({
+            "event_type": event.event_type,
+            "run_id": event.run_id,
+            "step_id": event.step_id,
+            "trace_id": event.trace_id,
+            "ts_ms": event.ts_ms,
+        }),
+    );
 
     config::write_vault_event(&app_handle, &event).map_err(|e| {
-        err("ARCHIVE_WRITE_FAILED", "Failed to write event", Some(e.to_string()))
+        err(
+            "ARCHIVE_WRITE_FAILED",
+            "Failed to write event",
+            Some(e.to_string()),
+        )
     })
 }
 
@@ -1329,28 +1491,41 @@ fn write_event(app_handle: tauri::AppHandle, event: config::VaultEvent) -> CmdRe
 #[tauri::command]
 fn save_artifact(app_handle: tauri::AppHandle, artifact: config::Artifact) -> CmdResult<String> {
     let path = config::save_artifact(&app_handle, &artifact).map_err(|e| {
-        err("ARCHIVE_WRITE_FAILED", "Failed to save artifact", Some(e.to_string()))
+        err(
+            "ARCHIVE_WRITE_FAILED",
+            "Failed to save artifact",
+            Some(e.to_string()),
+        )
     })?;
 
     // §38 Event: artifact saved
-    let _ = app_handle.emit("workbench-event", serde_json::json!({
-        "event_type": "ArtifactSaved",
-        "artifact_id": artifact.artifact_id,
-        "run_id": artifact.run_id,
-        "step_id": artifact.step_id,
-        "ts_ms": now_ms(),
-    }));
+    let _ = app_handle.emit(
+        "workbench-event",
+        serde_json::json!({
+            "event_type": "ArtifactSaved",
+            "artifact_id": artifact.artifact_id,
+            "run_id": artifact.run_id,
+            "step_id": artifact.step_id,
+            "ts_ms": now_ms(),
+        }),
+    );
 
-    let _ = config::write_vault_event(&app_handle, &config::VaultEvent {
-        ts_ms: now_ms(),
-        event_type: "ArtifactSaved".to_string(),
-        run_id: Some(artifact.run_id),
-        step_id: artifact.step_id,
-        trace_id: artifact.artifact_id.clone(),
-        action: "save_artifact".to_string(),
-        outcome: "ok".to_string(),
-        detail: Some(format!("type={}, producer={}", artifact.artifact_type, artifact.producer)),
-    });
+    let _ = config::write_vault_event(
+        &app_handle,
+        &config::VaultEvent {
+            ts_ms: now_ms(),
+            event_type: "ArtifactSaved".to_string(),
+            run_id: Some(artifact.run_id),
+            step_id: artifact.step_id,
+            trace_id: artifact.artifact_id.clone(),
+            action: "save_artifact".to_string(),
+            outcome: "ok".to_string(),
+            detail: Some(format!(
+                "type={}, producer={}",
+                artifact.artifact_type, artifact.producer
+            )),
+        },
+    );
 
     Ok(path)
 }
@@ -1358,9 +1533,16 @@ fn save_artifact(app_handle: tauri::AppHandle, artifact: config::Artifact) -> Cm
 // ───────── Dispatch Trace Commands (§9.9) ─────────
 
 #[tauri::command]
-fn save_dispatch_trace(app_handle: tauri::AppHandle, trace: config::DispatchTrace) -> CmdResult<()> {
+fn save_dispatch_trace(
+    app_handle: tauri::AppHandle,
+    trace: config::DispatchTrace,
+) -> CmdResult<()> {
     config::save_dispatch_trace(&app_handle, &trace).map_err(|e| {
-        err("ARCHIVE_WRITE_FAILED", "Failed to save dispatch trace", Some(e.to_string()))
+        err(
+            "ARCHIVE_WRITE_FAILED",
+            "Failed to save dispatch trace",
+            Some(e.to_string()),
+        )
     })
 }
 
@@ -1399,12 +1581,15 @@ fn governance_validate(
         )
     })?;
 
-    let _ = app_handle.emit("workbench-event", serde_json::json!({
-        "event_type": "GovernanceValidation",
-        "change_id": change_id,
-        "report": report.clone(),
-        "ts_ms": now_ms(),
-    }));
+    let _ = app_handle.emit(
+        "workbench-event",
+        serde_json::json!({
+            "event_type": "GovernanceValidation",
+            "change_id": change_id,
+            "report": report.clone(),
+            "ts_ms": now_ms(),
+        }),
+    );
 
     Ok(report)
 }
@@ -1444,14 +1629,17 @@ fn governance_emit_telemetry(
             Some(e.to_string()),
         )
     })?;
-    let _ = app_handle.emit("workbench-event", serde_json::json!({
-        "event_type": "TelemetryEmitted",
-        "change_id": event.change_id,
-        "run_id": event.run_id,
-        "step_id": event.step_id,
-        "trace_id": event.trace_id,
-        "ts_ms": now_ms(),
-    }));
+    let _ = app_handle.emit(
+        "workbench-event",
+        serde_json::json!({
+            "event_type": "TelemetryEmitted",
+            "change_id": event.change_id,
+            "run_id": event.run_id,
+            "step_id": event.step_id,
+            "trace_id": event.trace_id,
+            "ts_ms": now_ms(),
+        }),
+    );
     Ok(())
 }
 
@@ -1530,7 +1718,11 @@ fn cleanup_vault(app_handle: tauri::AppHandle, older_than_days: u32) -> CmdResul
         }
     }
 
-    tracing::info!("vault_cleanup: deleted {} runs older than {} days", deleted, older_than_days);
+    tracing::info!(
+        "vault_cleanup: deleted {} runs older than {} days",
+        deleted,
+        older_than_days
+    );
     Ok(deleted)
 }
 
@@ -1623,7 +1815,10 @@ mod governance_tests {
         let run = sample_run("failed", Some("POLICY_DENIED"));
         let (_change, quality, decision) = derive_governance_records_from_run(&run);
         assert_eq!(quality.hard_gates.get("no_open_p0_p1"), Some(&false));
-        assert_eq!(quality.hard_gates.get("security_high_resolved"), Some(&false));
+        assert_eq!(
+            quality.hard_gates.get("security_high_resolved"),
+            Some(&false)
+        );
         assert!(matches!(
             decision.decision,
             config::ReleaseDecision::GoWithRisk | config::ReleaseDecision::NoGo

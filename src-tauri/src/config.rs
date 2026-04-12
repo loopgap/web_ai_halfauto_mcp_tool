@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};
 
-fn atomic_write<P: AsRef<std::path::Path>, C: AsRef<[u8]>>(path: P, contents: C) -> std::io::Result<()> {
+fn atomic_write<P: AsRef<std::path::Path>, C: AsRef<[u8]>>(
+    path: P,
+    contents: C,
+) -> std::io::Result<()> {
     let path = path.as_ref();
     let tmp_path = path.with_extension("tmp");
     std::fs::write(&tmp_path, contents)?;
@@ -214,11 +217,41 @@ pub struct SelfHealAction {
 /// 自愈注册表 — 错误码→修复策略
 pub fn self_heal_registry() -> Vec<SelfHealAction> {
     vec![
-        SelfHealAction { strategy_id: "retry_activate".into(), description: "重新激活目标窗口".into(), action_type: "retry".into(), max_attempts: 3, cooldown_ms: 500 },
-        SelfHealAction { strategy_id: "delay_retry".into(), description: "等待后重试".into(), action_type: "retry_with_backoff".into(), max_attempts: 3, cooldown_ms: 1000 },
-        SelfHealAction { strategy_id: "retry_with_backoff".into(), description: "指数退避重试".into(), action_type: "retry_with_backoff".into(), max_attempts: 3, cooldown_ms: 2000 },
-        SelfHealAction { strategy_id: "reset_config".into(), description: "重置配置为默认值".into(), action_type: "reset_config".into(), max_attempts: 1, cooldown_ms: 0 },
-        SelfHealAction { strategy_id: "escalate".into(), description: "升级为人工处理".into(), action_type: "escalate".into(), max_attempts: 1, cooldown_ms: 0 },
+        SelfHealAction {
+            strategy_id: "retry_activate".into(),
+            description: "重新激活目标窗口".into(),
+            action_type: "retry".into(),
+            max_attempts: 3,
+            cooldown_ms: 500,
+        },
+        SelfHealAction {
+            strategy_id: "delay_retry".into(),
+            description: "等待后重试".into(),
+            action_type: "retry_with_backoff".into(),
+            max_attempts: 3,
+            cooldown_ms: 1000,
+        },
+        SelfHealAction {
+            strategy_id: "retry_with_backoff".into(),
+            description: "指数退避重试".into(),
+            action_type: "retry_with_backoff".into(),
+            max_attempts: 3,
+            cooldown_ms: 2000,
+        },
+        SelfHealAction {
+            strategy_id: "reset_config".into(),
+            description: "重置配置为默认值".into(),
+            action_type: "reset_config".into(),
+            max_attempts: 1,
+            cooldown_ms: 0,
+        },
+        SelfHealAction {
+            strategy_id: "escalate".into(),
+            description: "升级为人工处理".into(),
+            action_type: "escalate".into(),
+            max_attempts: 1,
+            cooldown_ms: 0,
+        },
     ]
 }
 
@@ -574,68 +607,439 @@ pub struct ErrorDefinition {
 /// 统一错误码目录 — route.md §9
 pub fn error_catalog() -> Vec<ErrorDefinition> {
     vec![
-        ErrorDefinition { code: "INPUT_EMPTY".into(), category: "INPUT".into(), user_message: "输入内容为空".into(), fix_suggestion: "请输入非空文本".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "INPUT_TOO_LONG".into(), category: "INPUT".into(), user_message: "输入超出长度限制".into(), fix_suggestion: "缩短输入文本后重试".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "INPUT_INVALID_FORMAT".into(), category: "INPUT".into(), user_message: "输入格式无效".into(), fix_suggestion: "检查输入格式".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "PAYLOAD_TOO_LARGE".into(), category: "INPUT".into(), user_message: "内容超出载荷限制".into(), fix_suggestion: "缩短 prompt 后重试".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "TARGET_NOT_FOUND".into(), category: "TARGET".into(), user_message: "未找到匹配的目标窗口".into(), fix_suggestion: "请先打开目标 AI 网页端".into(), alert_level: "error".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "TARGET_ACTIVATE_FAILED".into(), category: "TARGET".into(), user_message: "目标窗口无法激活".into(), fix_suggestion: "手动切换到窗口后重试".into(), alert_level: "error".into(), auto_fix_strategy: Some("retry_activate".into()) },
-        ErrorDefinition { code: "DISPATCH_RATE_LIMITED".into(), category: "DISPATCH".into(), user_message: "投递过于频繁".into(), fix_suggestion: "等待片刻后重试".into(), alert_level: "warn".into(), auto_fix_strategy: Some("delay_retry".into()) },
-        ErrorDefinition { code: "DISPATCH_TIMEOUT".into(), category: "DISPATCH".into(), user_message: "投递超时".into(), fix_suggestion: "检查目标窗口是否响应".into(), alert_level: "error".into(), auto_fix_strategy: Some("retry_with_backoff".into()) },
-        ErrorDefinition { code: "DISPATCH_FAILED".into(), category: "DISPATCH".into(), user_message: "投递失败".into(), fix_suggestion: "检查窗口状态后重试".into(), alert_level: "error".into(), auto_fix_strategy: Some("retry_activate".into()) },
-        ErrorDefinition { code: "DISPATCH_DUPLICATE_CONFIRM".into(), category: "DISPATCH".into(), user_message: "重复确认发送（幂等保护）".into(), fix_suggestion: "该发送已确认，无需重复操作".into(), alert_level: "info".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "CLIPBOARD_BUSY".into(), category: "CLIPBOARD".into(), user_message: "剪贴板被占用".into(), fix_suggestion: "关闭占用剪贴板的程序后重试".into(), alert_level: "warn".into(), auto_fix_strategy: Some("delay_retry".into()) },
-        ErrorDefinition { code: "CLIPBOARD_FAILED".into(), category: "CLIPBOARD".into(), user_message: "剪贴板操作失败".into(), fix_suggestion: "清空剪贴板后重试".into(), alert_level: "error".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "CONFIG_LOAD_FAILED".into(), category: "CONFIG".into(), user_message: "配置文件加载失败".into(), fix_suggestion: "检查配置文件格式".into(), alert_level: "error".into(), auto_fix_strategy: Some("reset_config".into()) },
-        ErrorDefinition { code: "CONFIG_SAVE_FAILED".into(), category: "CONFIG".into(), user_message: "配置保存失败".into(), fix_suggestion: "检查磁盘空间与权限".into(), alert_level: "error".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "CONFIG_INVALID".into(), category: "CONFIG".into(), user_message: "配置格式无效".into(), fix_suggestion: "参考默认配置模板修复".into(), alert_level: "error".into(), auto_fix_strategy: Some("reset_config".into()) },
-        ErrorDefinition { code: "POLICY_DENIED".into(), category: "POLICY".into(), user_message: "安全策略阻止了此操作".into(), fix_suggestion: "检查安全策略配置".into(), alert_level: "critical".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "POLICY_APPROVAL_TIMEOUT".into(), category: "POLICY".into(), user_message: "审批超时自动拒绝".into(), fix_suggestion: "重新发起审批".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "APPROVAL_REQUIRED".into(), category: "APPROVAL".into(), user_message: "此操作需要二次确认".into(), fix_suggestion: "确认后继续".into(), alert_level: "info".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "PLUGIN_LOAD_FAILED".into(), category: "PLUGIN".into(), user_message: "插件加载失败".into(), fix_suggestion: "检查插件版本兼容性".into(), alert_level: "error".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "PLUGIN_SIGNATURE_INVALID".into(), category: "PLUGIN".into(), user_message: "插件签名校验失败".into(), fix_suggestion: "使用受信任的插件".into(), alert_level: "critical".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "ARCHIVE_WRITE_FAILED".into(), category: "ARCHIVE".into(), user_message: "归档写入失败".into(), fix_suggestion: "检查磁盘空间".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "ARCHIVE_READ_FAILED".into(), category: "ARCHIVE".into(), user_message: "归档读取失败".into(), fix_suggestion: "检查文件完整性".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "INTERNAL_ERROR".into(), category: "INTERNAL".into(), user_message: "内部系统错误".into(), fix_suggestion: "重启应用后重试".into(), alert_level: "critical".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "INTERNAL_LOCK_POISONED".into(), category: "INTERNAL".into(), user_message: "内部锁状态异常".into(), fix_suggestion: "重启应用".into(), alert_level: "critical".into(), auto_fix_strategy: None },
+        ErrorDefinition {
+            code: "INPUT_EMPTY".into(),
+            category: "INPUT".into(),
+            user_message: "输入内容为空".into(),
+            fix_suggestion: "请输入非空文本".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "INPUT_TOO_LONG".into(),
+            category: "INPUT".into(),
+            user_message: "输入超出长度限制".into(),
+            fix_suggestion: "缩短输入文本后重试".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "INPUT_INVALID_FORMAT".into(),
+            category: "INPUT".into(),
+            user_message: "输入格式无效".into(),
+            fix_suggestion: "检查输入格式".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "PAYLOAD_TOO_LARGE".into(),
+            category: "INPUT".into(),
+            user_message: "内容超出载荷限制".into(),
+            fix_suggestion: "缩短 prompt 后重试".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "TARGET_NOT_FOUND".into(),
+            category: "TARGET".into(),
+            user_message: "未找到匹配的目标窗口".into(),
+            fix_suggestion: "请先打开目标 AI 网页端".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "TARGET_ACTIVATE_FAILED".into(),
+            category: "TARGET".into(),
+            user_message: "目标窗口无法激活".into(),
+            fix_suggestion: "手动切换到窗口后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("retry_activate".into()),
+        },
+        ErrorDefinition {
+            code: "DISPATCH_RATE_LIMITED".into(),
+            category: "DISPATCH".into(),
+            user_message: "投递过于频繁".into(),
+            fix_suggestion: "等待片刻后重试".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: Some("delay_retry".into()),
+        },
+        ErrorDefinition {
+            code: "DISPATCH_TIMEOUT".into(),
+            category: "DISPATCH".into(),
+            user_message: "投递超时".into(),
+            fix_suggestion: "检查目标窗口是否响应".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("retry_with_backoff".into()),
+        },
+        ErrorDefinition {
+            code: "DISPATCH_FAILED".into(),
+            category: "DISPATCH".into(),
+            user_message: "投递失败".into(),
+            fix_suggestion: "检查窗口状态后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("retry_activate".into()),
+        },
+        ErrorDefinition {
+            code: "DISPATCH_DUPLICATE_CONFIRM".into(),
+            category: "DISPATCH".into(),
+            user_message: "重复确认发送（幂等保护）".into(),
+            fix_suggestion: "该发送已确认，无需重复操作".into(),
+            alert_level: "info".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "CLIPBOARD_BUSY".into(),
+            category: "CLIPBOARD".into(),
+            user_message: "剪贴板被占用".into(),
+            fix_suggestion: "关闭占用剪贴板的程序后重试".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: Some("delay_retry".into()),
+        },
+        ErrorDefinition {
+            code: "CLIPBOARD_FAILED".into(),
+            category: "CLIPBOARD".into(),
+            user_message: "剪贴板操作失败".into(),
+            fix_suggestion: "清空剪贴板后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "CONFIG_LOAD_FAILED".into(),
+            category: "CONFIG".into(),
+            user_message: "配置文件加载失败".into(),
+            fix_suggestion: "检查配置文件格式".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("reset_config".into()),
+        },
+        ErrorDefinition {
+            code: "CONFIG_SAVE_FAILED".into(),
+            category: "CONFIG".into(),
+            user_message: "配置保存失败".into(),
+            fix_suggestion: "检查磁盘空间与权限".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "CONFIG_INVALID".into(),
+            category: "CONFIG".into(),
+            user_message: "配置格式无效".into(),
+            fix_suggestion: "参考默认配置模板修复".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("reset_config".into()),
+        },
+        ErrorDefinition {
+            code: "POLICY_DENIED".into(),
+            category: "POLICY".into(),
+            user_message: "安全策略阻止了此操作".into(),
+            fix_suggestion: "检查安全策略配置".into(),
+            alert_level: "critical".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "POLICY_APPROVAL_TIMEOUT".into(),
+            category: "POLICY".into(),
+            user_message: "审批超时自动拒绝".into(),
+            fix_suggestion: "重新发起审批".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "APPROVAL_REQUIRED".into(),
+            category: "APPROVAL".into(),
+            user_message: "此操作需要二次确认".into(),
+            fix_suggestion: "确认后继续".into(),
+            alert_level: "info".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "PLUGIN_LOAD_FAILED".into(),
+            category: "PLUGIN".into(),
+            user_message: "插件加载失败".into(),
+            fix_suggestion: "检查插件版本兼容性".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "PLUGIN_SIGNATURE_INVALID".into(),
+            category: "PLUGIN".into(),
+            user_message: "插件签名校验失败".into(),
+            fix_suggestion: "使用受信任的插件".into(),
+            alert_level: "critical".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "ARCHIVE_WRITE_FAILED".into(),
+            category: "ARCHIVE".into(),
+            user_message: "归档写入失败".into(),
+            fix_suggestion: "检查磁盘空间".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "ARCHIVE_READ_FAILED".into(),
+            category: "ARCHIVE".into(),
+            user_message: "归档读取失败".into(),
+            fix_suggestion: "检查文件完整性".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "INTERNAL_ERROR".into(),
+            category: "INTERNAL".into(),
+            user_message: "内部系统错误".into(),
+            fix_suggestion: "重启应用后重试".into(),
+            alert_level: "critical".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "INTERNAL_LOCK_POISONED".into(),
+            category: "INTERNAL".into(),
+            user_message: "内部锁状态异常".into(),
+            fix_suggestion: "重启应用".into(),
+            alert_level: "critical".into(),
+            auto_fix_strategy: None,
+        },
         // §66 BROWSER_* — 浏览器智能检测与选择
-        ErrorDefinition { code: "BROWSER_NOT_AVAILABLE".into(), category: "BROWSER".into(), user_message: "未检测到可用的浏览器窗口".into(), fix_suggestion: "请打开目标浏览器后重试".into(), alert_level: "error".into(), auto_fix_strategy: Some("redetect_browser".into()) },
-        ErrorDefinition { code: "BROWSER_SELECT_CONFLICT".into(), category: "BROWSER".into(), user_message: "多个浏览器窗口冲突，无法自动选择".into(), fix_suggestion: "请手动选择目标浏览器窗口".into(), alert_level: "warn".into(), auto_fix_strategy: Some("manual_select".into()) },
-        ErrorDefinition { code: "BROWSER_FALLBACK_FAILED".into(), category: "BROWSER".into(), user_message: "浏览器回退失败".into(), fix_suggestion: "尝试进入绑定向导重新绑定".into(), alert_level: "error".into(), auto_fix_strategy: Some("bind_wizard".into()) },
+        ErrorDefinition {
+            code: "BROWSER_NOT_AVAILABLE".into(),
+            category: "BROWSER".into(),
+            user_message: "未检测到可用的浏览器窗口".into(),
+            fix_suggestion: "请打开目标浏览器后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("redetect_browser".into()),
+        },
+        ErrorDefinition {
+            code: "BROWSER_SELECT_CONFLICT".into(),
+            category: "BROWSER".into(),
+            user_message: "多个浏览器窗口冲突，无法自动选择".into(),
+            fix_suggestion: "请手动选择目标浏览器窗口".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: Some("manual_select".into()),
+        },
+        ErrorDefinition {
+            code: "BROWSER_FALLBACK_FAILED".into(),
+            category: "BROWSER".into(),
+            user_message: "浏览器回退失败".into(),
+            fix_suggestion: "尝试进入绑定向导重新绑定".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("bind_wizard".into()),
+        },
         // §66 CAPTURE_* — 输出采集
-        ErrorDefinition { code: "CAPTURE_EMPTY".into(), category: "CAPTURE".into(), user_message: "采集到的输出内容为空".into(), fix_suggestion: "请复制模型输出后重试".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "CAPTURE_WATERMARK_MISSING".into(), category: "CAPTURE".into(), user_message: "输出中缺少 Run-ID 水印".into(), fix_suggestion: "请手动选择归档目标 step".into(), alert_level: "info".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "CAPTURE_BIND_FAILED".into(), category: "CAPTURE".into(), user_message: "输出与 step 绑定失败".into(), fix_suggestion: "手动选择归档到具体 step".into(), alert_level: "warn".into(), auto_fix_strategy: None },
+        ErrorDefinition {
+            code: "CAPTURE_EMPTY".into(),
+            category: "CAPTURE".into(),
+            user_message: "采集到的输出内容为空".into(),
+            fix_suggestion: "请复制模型输出后重试".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "CAPTURE_WATERMARK_MISSING".into(),
+            category: "CAPTURE".into(),
+            user_message: "输出中缺少 Run-ID 水印".into(),
+            fix_suggestion: "请手动选择归档目标 step".into(),
+            alert_level: "info".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "CAPTURE_BIND_FAILED".into(),
+            category: "CAPTURE".into(),
+            user_message: "输出与 step 绑定失败".into(),
+            fix_suggestion: "手动选择归档到具体 step".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
         // §66 GOVERNANCE_* — 治理门禁
-        ErrorDefinition { code: "GOVERNANCE_VALIDATE_FAILED".into(), category: "GOVERNANCE".into(), user_message: "治理门禁验证失败".into(), fix_suggestion: "检查变更记录和质量门禁是否完整".into(), alert_level: "error".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "GOVERNANCE_EVIDENCE_MISSING".into(), category: "GOVERNANCE".into(), user_message: "证据包生成不完整".into(), fix_suggestion: "补充缺失的验证记录".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "GOVERNANCE_DECISION_CONFLICT".into(), category: "GOVERNANCE".into(), user_message: "门禁评分与决策结论不一致".into(), fix_suggestion: "检查评分卡与硬门禁结果".into(), alert_level: "error".into(), auto_fix_strategy: None },
+        ErrorDefinition {
+            code: "GOVERNANCE_VALIDATE_FAILED".into(),
+            category: "GOVERNANCE".into(),
+            user_message: "治理门禁验证失败".into(),
+            fix_suggestion: "检查变更记录和质量门禁是否完整".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "GOVERNANCE_EVIDENCE_MISSING".into(),
+            category: "GOVERNANCE".into(),
+            user_message: "证据包生成不完整".into(),
+            fix_suggestion: "补充缺失的验证记录".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "GOVERNANCE_DECISION_CONFLICT".into(),
+            category: "GOVERNANCE".into(),
+            user_message: "门禁评分与决策结论不一致".into(),
+            fix_suggestion: "检查评分卡与硬门禁结果".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
         // §66 UI_* — 前端渲染与状态异常
-        ErrorDefinition { code: "UI_STATE_INVALID".into(), category: "UI".into(), user_message: "页面状态异常".into(), fix_suggestion: "刷新页面恢复到初始状态".into(), alert_level: "warn".into(), auto_fix_strategy: Some("refresh_page".into()) },
-        ErrorDefinition { code: "UI_RENDER_ERROR".into(), category: "UI".into(), user_message: "页面渲染异常".into(), fix_suggestion: "刷新页面后重试".into(), alert_level: "error".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "UI_EVENT_BUS_STALE".into(), category: "UI".into(), user_message: "事件总线消息过期或乱序".into(), fix_suggestion: "刷新列表获取最新状态".into(), alert_level: "info".into(), auto_fix_strategy: Some("refresh_data".into()) },
+        ErrorDefinition {
+            code: "UI_STATE_INVALID".into(),
+            category: "UI".into(),
+            user_message: "页面状态异常".into(),
+            fix_suggestion: "刷新页面恢复到初始状态".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: Some("refresh_page".into()),
+        },
+        ErrorDefinition {
+            code: "UI_RENDER_ERROR".into(),
+            category: "UI".into(),
+            user_message: "页面渲染异常".into(),
+            fix_suggestion: "刷新页面后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "UI_EVENT_BUS_STALE".into(),
+            category: "UI".into(),
+            user_message: "事件总线消息过期或乱序".into(),
+            fix_suggestion: "刷新列表获取最新状态".into(),
+            alert_level: "info".into(),
+            auto_fix_strategy: Some("refresh_data".into()),
+        },
         // §66 DISPATCH_* additional
-        ErrorDefinition { code: "DISPATCH_FOCUS_DRIFT".into(), category: "DISPATCH".into(), user_message: "投递过程中焦点发生漂移".into(), fix_suggestion: "重新激活目标窗口后重试".into(), alert_level: "error".into(), auto_fix_strategy: Some("retry_activate".into()) },
+        ErrorDefinition {
+            code: "DISPATCH_FOCUS_DRIFT".into(),
+            category: "DISPATCH".into(),
+            user_message: "投递过程中焦点发生漂移".into(),
+            fix_suggestion: "重新激活目标窗口后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("retry_activate".into()),
+        },
         // §66 STATE_* for completeness
-        ErrorDefinition { code: "STATE_TRANSITION_INVALID".into(), category: "INTERNAL".into(), user_message: "非法状态转换".into(), fix_suggestion: "刷新状态后重试".into(), alert_level: "error".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "STATE_CONSTRAINT_VIOLATED".into(), category: "INTERNAL".into(), user_message: "状态约束被违反".into(), fix_suggestion: "已完成的记录禁止修改".into(), alert_level: "error".into(), auto_fix_strategy: None },
+        ErrorDefinition {
+            code: "STATE_TRANSITION_INVALID".into(),
+            category: "INTERNAL".into(),
+            user_message: "非法状态转换".into(),
+            fix_suggestion: "刷新状态后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "STATE_CONSTRAINT_VIOLATED".into(),
+            category: "INTERNAL".into(),
+            user_message: "状态约束被违反".into(),
+            fix_suggestion: "已完成的记录禁止修改".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
         // ───────── SECURITY_* — 安全防护 ─────────
-        ErrorDefinition { code: "SECURITY_PROMPT_INJECTION".into(), category: "SECURITY".into(), user_message: "检测到可疑 Prompt 注入".into(), fix_suggestion: "请移除可疑指令后重试".into(), alert_level: "critical".into(), auto_fix_strategy: Some("sanitize_input".into()) },
-        ErrorDefinition { code: "SECURITY_RATE_LIMIT_EXCEEDED".into(), category: "SECURITY".into(), user_message: "操作频率超出安全阈值".into(), fix_suggestion: "请等待冷却期后重试".into(), alert_level: "warn".into(), auto_fix_strategy: Some("delay_retry".into()) },
-        ErrorDefinition { code: "SECURITY_UNAUTHORIZED".into(), category: "SECURITY".into(), user_message: "未授权的操作".into(), fix_suggestion: "请确认操作权限".into(), alert_level: "critical".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "SECURITY_INPUT_SANITIZE_FAILED".into(), category: "SECURITY".into(), user_message: "输入消毒失败".into(), fix_suggestion: "请检查输入内容是否包含恶意代码".into(), alert_level: "error".into(), auto_fix_strategy: Some("sanitize_input".into()) },
-        ErrorDefinition { code: "SECURITY_PII_DETECTED".into(), category: "SECURITY".into(), user_message: "检测到个人敏感信息（PII）".into(), fix_suggestion: "请移除身份证号、手机号等敏感信息".into(), alert_level: "warn".into(), auto_fix_strategy: Some("redact_pii".into()) },
-        ErrorDefinition { code: "SECURITY_OUTPUT_VALIDATION_FAILED".into(), category: "SECURITY".into(), user_message: "输出安全校验未通过".into(), fix_suggestion: "输出包含受限内容，已自动过滤".into(), alert_level: "warn".into(), auto_fix_strategy: Some("filter_output".into()) },
+        ErrorDefinition {
+            code: "SECURITY_PROMPT_INJECTION".into(),
+            category: "SECURITY".into(),
+            user_message: "检测到可疑 Prompt 注入".into(),
+            fix_suggestion: "请移除可疑指令后重试".into(),
+            alert_level: "critical".into(),
+            auto_fix_strategy: Some("sanitize_input".into()),
+        },
+        ErrorDefinition {
+            code: "SECURITY_RATE_LIMIT_EXCEEDED".into(),
+            category: "SECURITY".into(),
+            user_message: "操作频率超出安全阈值".into(),
+            fix_suggestion: "请等待冷却期后重试".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: Some("delay_retry".into()),
+        },
+        ErrorDefinition {
+            code: "SECURITY_UNAUTHORIZED".into(),
+            category: "SECURITY".into(),
+            user_message: "未授权的操作".into(),
+            fix_suggestion: "请确认操作权限".into(),
+            alert_level: "critical".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "SECURITY_INPUT_SANITIZE_FAILED".into(),
+            category: "SECURITY".into(),
+            user_message: "输入消毒失败".into(),
+            fix_suggestion: "请检查输入内容是否包含恶意代码".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("sanitize_input".into()),
+        },
+        ErrorDefinition {
+            code: "SECURITY_PII_DETECTED".into(),
+            category: "SECURITY".into(),
+            user_message: "检测到个人敏感信息（PII）".into(),
+            fix_suggestion: "请移除身份证号、手机号等敏感信息".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: Some("redact_pii".into()),
+        },
+        ErrorDefinition {
+            code: "SECURITY_OUTPUT_VALIDATION_FAILED".into(),
+            category: "SECURITY".into(),
+            user_message: "输出安全校验未通过".into(),
+            fix_suggestion: "输出包含受限内容，已自动过滤".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: Some("filter_output".into()),
+        },
         // ───────── AGENT_* — Agent 模式 ─────────
-        ErrorDefinition { code: "AGENT_LOOP_DETECTED".into(), category: "AGENT".into(), user_message: "检测到 Agent 执行循环".into(), fix_suggestion: "已自动中断循环，请调整任务描述后重试".into(), alert_level: "error".into(), auto_fix_strategy: Some("break_loop".into()) },
-        ErrorDefinition { code: "AGENT_MAX_STEPS_EXCEEDED".into(), category: "AGENT".into(), user_message: "Agent 执行步骤超过上限".into(), fix_suggestion: "请缩小任务范围或增大步骤限制".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "AGENT_BUDGET_EXCEEDED".into(), category: "AGENT".into(), user_message: "Agent 预算已耗尽".into(), fix_suggestion: "当前任务预算不足，请调整预算或简化任务".into(), alert_level: "error".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "AGENT_PRECONDITION_FAILED".into(), category: "AGENT".into(), user_message: "Agent 前置条件未满足".into(), fix_suggestion: "请确认已启用 Agent 模式并完成预算检查".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "AGENT_OUTPUT_UNSAFE".into(), category: "AGENT".into(), user_message: "Agent 输出未通过安全扫描".into(), fix_suggestion: "输出包含潜在风险内容，已拦截".into(), alert_level: "critical".into(), auto_fix_strategy: Some("filter_output".into()) },
+        ErrorDefinition {
+            code: "AGENT_LOOP_DETECTED".into(),
+            category: "AGENT".into(),
+            user_message: "检测到 Agent 执行循环".into(),
+            fix_suggestion: "已自动中断循环，请调整任务描述后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("break_loop".into()),
+        },
+        ErrorDefinition {
+            code: "AGENT_MAX_STEPS_EXCEEDED".into(),
+            category: "AGENT".into(),
+            user_message: "Agent 执行步骤超过上限".into(),
+            fix_suggestion: "请缩小任务范围或增大步骤限制".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "AGENT_BUDGET_EXCEEDED".into(),
+            category: "AGENT".into(),
+            user_message: "Agent 预算已耗尽".into(),
+            fix_suggestion: "当前任务预算不足，请调整预算或简化任务".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "AGENT_PRECONDITION_FAILED".into(),
+            category: "AGENT".into(),
+            user_message: "Agent 前置条件未满足".into(),
+            fix_suggestion: "请确认已启用 Agent 模式并完成预算检查".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "AGENT_OUTPUT_UNSAFE".into(),
+            category: "AGENT".into(),
+            user_message: "Agent 输出未通过安全扫描".into(),
+            fix_suggestion: "输出包含潜在风险内容，已拦截".into(),
+            alert_level: "critical".into(),
+            auto_fix_strategy: Some("filter_output".into()),
+        },
         // ───────── CLOSED_LOOP_* — 闭环检测 ─────────
-        ErrorDefinition { code: "CLOSED_LOOP_TIMEOUT".into(), category: "CLOSED_LOOP".into(), user_message: "闭环流程超时".into(), fix_suggestion: "检查目标窗口响应状态".into(), alert_level: "error".into(), auto_fix_strategy: Some("retry_with_backoff".into()) },
-        ErrorDefinition { code: "CLOSED_LOOP_QUALITY_FAIL".into(), category: "CLOSED_LOOP".into(), user_message: "闭环质量门未通过".into(), fix_suggestion: "输出不满足质量要求，请重新投递或调整参数".into(), alert_level: "warn".into(), auto_fix_strategy: None },
-        ErrorDefinition { code: "CLOSED_LOOP_INCONSISTENT".into(), category: "CLOSED_LOOP".into(), user_message: "闭环状态不一致".into(), fix_suggestion: "检测到状态不一致，请刷新后重试".into(), alert_level: "error".into(), auto_fix_strategy: Some("refresh_data".into()) },
+        ErrorDefinition {
+            code: "CLOSED_LOOP_TIMEOUT".into(),
+            category: "CLOSED_LOOP".into(),
+            user_message: "闭环流程超时".into(),
+            fix_suggestion: "检查目标窗口响应状态".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("retry_with_backoff".into()),
+        },
+        ErrorDefinition {
+            code: "CLOSED_LOOP_QUALITY_FAIL".into(),
+            category: "CLOSED_LOOP".into(),
+            user_message: "闭环质量门未通过".into(),
+            fix_suggestion: "输出不满足质量要求，请重新投递或调整参数".into(),
+            alert_level: "warn".into(),
+            auto_fix_strategy: None,
+        },
+        ErrorDefinition {
+            code: "CLOSED_LOOP_INCONSISTENT".into(),
+            category: "CLOSED_LOOP".into(),
+            user_message: "闭环状态不一致".into(),
+            fix_suggestion: "检测到状态不一致，请刷新后重试".into(),
+            alert_level: "error".into(),
+            auto_fix_strategy: Some("refresh_data".into()),
+        },
     ]
 }
 
@@ -686,7 +1090,7 @@ pub struct StepRecord {
     #[serde(default)]
     pub target_id: Option<String>,
     #[serde(default)]
-    pub input_artifacts: Vec<String>,   // artifact_ids
+    pub input_artifacts: Vec<String>, // artifact_ids
     #[serde(default)]
     pub output_artifact: Option<String>, // artifact_id
     #[serde(default)]
@@ -891,7 +1295,10 @@ pub fn ensure_config_dir(app: &tauri::AppHandle) -> Result<(), Box<dyn std::erro
     fs::create_dir_all(&dir)?;
 
     // ─── Vault 统一数据面 (§2) ───
-    let base = app.path().app_config_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let base = app
+        .path()
+        .app_config_dir()
+        .unwrap_or_else(|_| PathBuf::from("."));
     fs::create_dir_all(base.join("vault").join("runs"))?;
     fs::create_dir_all(base.join("vault").join("events"))?;
     fs::create_dir_all(base.join("vault").join("audit"))?;
@@ -974,9 +1381,7 @@ pub fn load_skills(app: &tauri::AppHandle) -> Result<Vec<Skill>, Box<dyn std::er
     Ok(skills)
 }
 
-pub fn load_workflows(
-    app: &tauri::AppHandle,
-) -> Result<Vec<Workflow>, Box<dyn std::error::Error>> {
+pub fn load_workflows(app: &tauri::AppHandle) -> Result<Vec<Workflow>, Box<dyn std::error::Error>> {
     let dir = config_dir(app).join("workflows");
     let mut workflows = Vec::new();
     if dir.exists() {
@@ -1164,7 +1569,8 @@ fn default_router_rules() -> RouterRulesConfig {
 }
 
 fn write_default_skills(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-    let skills = [r#"id: collect.realtime_brief
+    let skills = [
+        r#"id: collect.realtime_brief
 version: "1.0.0"
 title: 实时信息要点收集
 intent_tags: [realtime, collect, news]
@@ -1739,7 +2145,8 @@ safety_level: dangerous
 cost_class: medium
 latency_class: high
 determinism: non_deterministic
-"#];
+"#,
+    ];
 
     for (i, skill_yaml) in skills.iter().enumerate() {
         let filename = format!("skill_{}.yaml", i + 1);
@@ -1749,7 +2156,8 @@ determinism: non_deterministic
 }
 
 fn write_default_workflows(dir: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
-    let workflows = [r#"id: robotics.realtime_to_proposal
+    let workflows = [
+        r#"id: robotics.realtime_to_proposal
 version: "1.0.0"
 title: 实时信息→分析→成稿（多模型协作）
 policy:
@@ -2006,7 +2414,8 @@ steps:
     dispatch:
       mode: prefer_provider
       prefer_providers: [chatgpt]
-"#];
+"#,
+    ];
 
     for (i, wf_yaml) in workflows.iter().enumerate() {
         let filename = format!("workflow_{}.yaml", i + 1);
@@ -2018,7 +2427,10 @@ steps:
 // ───────── Vault I/O (§2 统一数据面) ─────────
 
 pub(crate) fn vault_dir(app: &tauri::AppHandle) -> PathBuf {
-    let base = app.path().app_config_dir().unwrap_or_else(|_| PathBuf::from("."));
+    let base = app
+        .path()
+        .app_config_dir()
+        .unwrap_or_else(|_| PathBuf::from("."));
     base.join("vault")
 }
 
@@ -2050,7 +2462,10 @@ pub fn load_runs(app: &tauri::AppHandle) -> Result<Vec<RunRecord>, Box<dyn std::
     Ok(runs)
 }
 
-pub fn write_vault_event(app: &tauri::AppHandle, event: &VaultEvent) -> Result<(), Box<dyn std::error::Error>> {
+pub fn write_vault_event(
+    app: &tauri::AppHandle,
+    event: &VaultEvent,
+) -> Result<(), Box<dyn std::error::Error>> {
     let dir = vault_dir(app).join("events");
     fs::create_dir_all(&dir)?;
     let date = chrono_date_stub();
@@ -2061,7 +2476,10 @@ pub fn write_vault_event(app: &tauri::AppHandle, event: &VaultEvent) -> Result<(
     Ok(())
 }
 
-pub fn save_health_snapshot(app: &tauri::AppHandle, health: &[TargetHealth]) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_health_snapshot(
+    app: &tauri::AppHandle,
+    health: &[TargetHealth],
+) -> Result<(), Box<dyn std::error::Error>> {
     let dir = vault_dir(app).join("health");
     fs::create_dir_all(&dir)?;
     let path = dir.join("latest.json");
@@ -2071,7 +2489,10 @@ pub fn save_health_snapshot(app: &tauri::AppHandle, health: &[TargetHealth]) -> 
 }
 
 /// §35 保存 Artifact 到 vault/artifacts/
-pub fn save_artifact(app: &tauri::AppHandle, artifact: &Artifact) -> Result<String, Box<dyn std::error::Error>> {
+pub fn save_artifact(
+    app: &tauri::AppHandle,
+    artifact: &Artifact,
+) -> Result<String, Box<dyn std::error::Error>> {
     let dir = vault_dir(app).join("artifacts");
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.json", artifact.artifact_id));
@@ -2081,7 +2502,10 @@ pub fn save_artifact(app: &tauri::AppHandle, artifact: &Artifact) -> Result<Stri
 }
 
 /// §9.9 保存 DispatchTrace 到 vault/audit/
-pub fn save_dispatch_trace(app: &tauri::AppHandle, trace: &DispatchTrace) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_dispatch_trace(
+    app: &tauri::AppHandle,
+    trace: &DispatchTrace,
+) -> Result<(), Box<dyn std::error::Error>> {
     let dir = vault_dir(app).join("audit");
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("dispatch_trace_{}.json", trace.trace_id));
@@ -2092,7 +2516,10 @@ pub fn save_dispatch_trace(app: &tauri::AppHandle, trace: &DispatchTrace) -> Res
 
 pub fn chrono_date_stub() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_secs();
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
     let days = (secs / 86400) as i64;
     // Civil date from day count (Algorithm by Howard Hinnant)
     // Reference: http://howardhinnant.github.io/date_algorithms.html
@@ -2112,14 +2539,16 @@ pub fn chrono_date_stub() -> String {
 // ───────── Rule Engine v2 (§5 规则匹配引擎) ─────────
 
 /// §5 规则管道 (8 stages): normalize → hard_match → keyword_match → pattern_match → semantic_match → policy_filter → rank → explain
-pub fn route_prompt(
-    prompt: &str,
-    rules: &RouterRulesConfig,
-) -> RouteDecision {
+pub fn route_prompt(prompt: &str, rules: &RouterRulesConfig) -> RouteDecision {
     // ─── Stage 1: normalize ───
     let normalized = prompt.to_lowercase();
-    let trace_id = format!("route-{}", std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis());
+    let trace_id = format!(
+        "route-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+    );
 
     let mut candidates: Vec<RouteCandidate> = Vec::new();
 
@@ -2129,12 +2558,14 @@ pub fn route_prompt(
         let mut match_types: Vec<&str> = Vec::new();
 
         // ─── Stage 2: hard_match — exact full-keyword match (highest weight) ───
-        let hard_hits: usize = rule.keywords.iter()
+        let hard_hits: usize = rule
+            .keywords
+            .iter()
             .filter(|kw| {
                 let kw_lower = kw.to_lowercase();
                 // Exact word boundary match: the keyword appears as a standalone token
                 normalized.split_whitespace().any(|w| w == kw_lower)
-                    || normalized.contains(&kw_lower)  // fallback to substring for CJK
+                    || normalized.contains(&kw_lower) // fallback to substring for CJK
             })
             .count();
         let hard_match_score = if !rule.keywords.is_empty() && hard_hits == rule.keywords.len() {
@@ -2149,7 +2580,9 @@ pub fn route_prompt(
         }
 
         // ─── Stage 3: keyword_match — partial keyword match ───
-        let keyword_hits: usize = rule.keywords.iter()
+        let keyword_hits: usize = rule
+            .keywords
+            .iter()
             .filter(|kw| normalized.contains(&kw.to_lowercase()))
             .count();
         let keyword_score = if !rule.keywords.is_empty() {
@@ -2159,7 +2592,9 @@ pub fn route_prompt(
         };
         breakdown.insert("keyword_match".to_string(), keyword_score);
         score += keyword_score * 0.3;
-        if keyword_hits > 0 { match_types.push("keyword"); }
+        if keyword_hits > 0 {
+            match_types.push("keyword");
+        }
 
         // ─── Stage 4: pattern_match — regex patterns ───
         let mut pattern_score = 0.0;
@@ -2173,7 +2608,9 @@ pub fn route_prompt(
         }
         breakdown.insert("pattern_match".to_string(), pattern_score);
         score += pattern_score * 0.2;
-        if pattern_score > 0.0 { match_types.push("pattern"); }
+        if pattern_score > 0.0 {
+            match_types.push("pattern");
+        }
 
         // ─── Stage 5: semantic_match — stub (placeholder for local SLM §4) ───
         // When local SLM is available, this stage will compute embedding similarity.
@@ -2188,15 +2625,24 @@ pub fn route_prompt(
         // Clamp to [0, 1]
         score = score.clamp(0.0, 1.0);
 
-        let match_type = if match_types.is_empty() { "none" } else {
+        let match_type = if match_types.is_empty() {
+            "none"
+        } else {
             // Join match types: e.g., "hard+keyword+pattern"
             // Use the most specific combined description
-            if match_types.len() >= 3 { "hard+keyword+pattern" }
-            else if match_types.contains(&"hard") && match_types.contains(&"keyword") { "hard+keyword" }
-            else if match_types.contains(&"keyword") && match_types.contains(&"pattern") { "keyword+pattern" }
-            else if match_types.contains(&"hard") { "hard" }
-            else if match_types.contains(&"keyword") { "keyword" }
-            else { "pattern" }
+            if match_types.len() >= 3 {
+                "hard+keyword+pattern"
+            } else if match_types.contains(&"hard") && match_types.contains(&"keyword") {
+                "hard+keyword"
+            } else if match_types.contains(&"keyword") && match_types.contains(&"pattern") {
+                "keyword+pattern"
+            } else if match_types.contains(&"hard") {
+                "hard"
+            } else if match_types.contains(&"keyword") {
+                "keyword"
+            } else {
+                "pattern"
+            }
         };
 
         if score > 0.0 {
@@ -2217,30 +2663,54 @@ pub fn route_prompt(
     candidates.retain(|c| !c.providers.is_empty() || c.fanout);
 
     // ─── Stage 7: rank ───
-    candidates.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    candidates.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     candidates.truncate(3); // §5: top3 candidates
 
     // ─── Stage 8: explain — determine action based on confidence thresholds (§5) ───
     let defaults = rules.defaults.as_ref();
     let auto_threshold = defaults.map(|d| d.confidence_auto_threshold).unwrap_or(0.8);
-    let confirm_threshold = defaults.map(|d| d.confidence_confirm_threshold).unwrap_or(0.6);
+    let confirm_threshold = defaults
+        .map(|d| d.confidence_confirm_threshold)
+        .unwrap_or(0.6);
 
     let (selected, confidence, action, explanation) = if let Some(top) = candidates.first() {
         let conf = top.score;
         if conf >= auto_threshold {
-            (Some(top.clone()), conf, "auto_execute".to_string(),
-             format!("置信度 {:.2} >= {:.2}, 自动执行 intent={}, 命中规则={}, 打分明细={:?}",
-                     conf, auto_threshold, top.intent, top.matched_rule_id, top.score_breakdown))
+            (
+                Some(top.clone()),
+                conf,
+                "auto_execute".to_string(),
+                format!(
+                    "置信度 {:.2} >= {:.2}, 自动执行 intent={}, 命中规则={}, 打分明细={:?}",
+                    conf, auto_threshold, top.intent, top.matched_rule_id, top.score_breakdown
+                ),
+            )
         } else if conf >= confirm_threshold {
             (Some(top.clone()), conf, "user_confirm".to_string(),
              format!("置信度 {:.2} 在 [{:.2}, {:.2}) 之间, 需用户确认 intent={}, 命中规则={}, 打分明细={:?}",
                      conf, confirm_threshold, auto_threshold, top.intent, top.matched_rule_id, top.score_breakdown))
         } else {
-            (None, conf, "fallback_default".to_string(),
-             format!("置信度 {:.2} < {:.2}, 回退默认路径", conf, confirm_threshold))
+            (
+                None,
+                conf,
+                "fallback_default".to_string(),
+                format!(
+                    "置信度 {:.2} < {:.2}, 回退默认路径",
+                    conf, confirm_threshold
+                ),
+            )
         }
     } else {
-        (None, 0.0, "fallback_default".to_string(), "无匹配规则, 回退默认路径".to_string())
+        (
+            None,
+            0.0,
+            "fallback_default".to_string(),
+            "无匹配规则, 回退默认路径".to_string(),
+        )
     };
 
     RouteDecision {
@@ -2263,7 +2733,10 @@ pub struct RouteFeedback {
     pub ts_ms: u128,
 }
 
-pub fn save_route_feedback(app: &tauri::AppHandle, fb: &RouteFeedback) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_route_feedback(
+    app: &tauri::AppHandle,
+    fb: &RouteFeedback,
+) -> Result<(), Box<dyn std::error::Error>> {
     let dir = vault_dir(app).join("route_feedback");
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("feedback_{}.json", fb.trace_id));
@@ -2392,7 +2865,10 @@ pub fn release_decision_from_score(total: u16) -> ReleaseDecision {
     }
 }
 
-pub fn save_change_record(app: &tauri::AppHandle, change: &ChangeRecord) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_change_record(
+    app: &tauri::AppHandle,
+    change: &ChangeRecord,
+) -> Result<(), Box<dyn std::error::Error>> {
     let dir = governance_dir(app).join("changes");
     fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.json", change.change_id));
@@ -2422,7 +2898,10 @@ pub fn save_release_decision(
     Ok(())
 }
 
-pub fn save_telemetry_event(app: &tauri::AppHandle, event: &TelemetryEvent) -> Result<(), Box<dyn std::error::Error>> {
+pub fn save_telemetry_event(
+    app: &tauri::AppHandle,
+    event: &TelemetryEvent,
+) -> Result<(), Box<dyn std::error::Error>> {
     let dir = vault_dir(app).join("audit");
     fs::create_dir_all(&dir)?;
     let date = chrono_date_stub();
@@ -2436,7 +2915,9 @@ pub fn load_change_record(
     app: &tauri::AppHandle,
     change_id: &str,
 ) -> Result<Option<ChangeRecord>, Box<dyn std::error::Error>> {
-    let path = governance_dir(app).join("changes").join(format!("{}.json", change_id));
+    let path = governance_dir(app)
+        .join("changes")
+        .join(format!("{}.json", change_id));
     if !path.exists() {
         return Ok(None);
     }
@@ -2448,7 +2929,9 @@ pub fn load_quality_gate_result(
     app: &tauri::AppHandle,
     change_id: &str,
 ) -> Result<Option<QualityGateResult>, Box<dyn std::error::Error>> {
-    let path = governance_dir(app).join("quality").join(format!("{}.json", change_id));
+    let path = governance_dir(app)
+        .join("quality")
+        .join(format!("{}.json", change_id));
     if !path.exists() {
         return Ok(None);
     }
@@ -2460,7 +2943,9 @@ pub fn load_release_decision(
     app: &tauri::AppHandle,
     change_id: &str,
 ) -> Result<Option<ReleaseDecisionRecord>, Box<dyn std::error::Error>> {
-    let path = governance_dir(app).join("decisions").join(format!("{}.json", change_id));
+    let path = governance_dir(app)
+        .join("decisions")
+        .join(format!("{}.json", change_id));
     if !path.exists() {
         return Ok(None);
     }
@@ -2513,5 +2998,9 @@ pub fn governance_latest(
     let Some(decision) = load_release_decision(app, change_id)? else {
         return Ok(None);
     };
-    Ok(Some(GovernanceSnapshot { change, quality, decision }))
+    Ok(Some(GovernanceSnapshot {
+        change,
+        quality,
+        decision,
+    }))
 }

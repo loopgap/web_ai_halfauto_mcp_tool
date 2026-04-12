@@ -37,24 +37,51 @@ export function generateTraceId(): string {
   return `t${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function sanitizeForLog(text: string): string {
+  return text
+    .replace(/(?:password|token|secret|api[_-]?key)\s*[:=]\s*\S+/gi, "[REDACTED]")
+    .replace(/[A-Za-z0-9+/]{32,}/g, "[REDACTED_BASE64]");
+}
+
+function sanitizeContext(ctx: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!ctx) return undefined;
+  const sanitized: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(ctx)) {
+    if (typeof v === "string") {
+      sanitized[k] = sanitizeForLog(v);
+    } else if (typeof v === "object" && v !== null) {
+      sanitized[k] = sanitizeContext(v as Record<string, unknown>);
+    } else {
+      sanitized[k] = v;
+    }
+  }
+  return sanitized;
+}
+
 /** 写入日志 (内部) */
 function writeLog(entry: LogEntry): void {
   if (LEVEL_PRIORITY[entry.level] < LEVEL_PRIORITY[currentMinLevel]) return;
 
+  const sanitizedEntry: LogEntry = {
+    ...entry,
+    message: sanitizeForLog(entry.message),
+    context: sanitizeContext(entry.context),
+  };
+
   // 控制台输出 (dev 模式)
-  const prefix = `[${entry.module}]`;
-  switch (entry.level) {
-    case "debug": console.debug(prefix, entry.message, entry.context ?? ""); break;
-    case "info":  console.info(prefix, entry.message, entry.context ?? "");  break;
-    case "warn":  console.warn(prefix, entry.message, entry.context ?? "");  break;
-    case "error": console.error(prefix, entry.message, entry.context ?? ""); break;
+  const prefix = `[${sanitizedEntry.module}]`;
+  switch (sanitizedEntry.level) {
+    case "debug": console.debug(prefix, sanitizedEntry.message, sanitizedEntry.context ?? ""); break;
+    case "info":  console.info(prefix, sanitizedEntry.message, sanitizedEntry.context ?? "");  break;
+    case "warn":  console.warn(prefix, sanitizedEntry.message, sanitizedEntry.context ?? "");  break;
+    case "error": console.error(prefix, sanitizedEntry.message, sanitizedEntry.context ?? ""); break;
   }
 
   // 本地缓冲持久化 (ring buffer)
   try {
     const raw = localStorage.getItem(LOG_BUFFER_KEY);
     const buffer: LogEntry[] = raw ? JSON.parse(raw) : [];
-    buffer.push(entry);
+    buffer.push(sanitizedEntry);
     if (buffer.length > MAX_BUFFER_SIZE) {
       buffer.splice(0, buffer.length - MAX_BUFFER_SIZE);
     }
