@@ -1,17 +1,85 @@
 #!/bin/sh
-# ═══════════════════════════════════════════════════════════
+# ============================================================
 # Git Pre-Commit Hook — 快速本地门禁
-# ═══════════════════════════════════════════════════════════
+# 增量模式: 只检查/测试变更的文件
+# ============================================================
 
 echo "== [pre-commit] Running fast local gate =="
 
-go run task.go check
+# 尝试使用 task.go，如果失败则直接运行命令
+check_result=0
 
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "== [pre-commit] BLOCKED: Fix failures above before committing =="
-  echo "  Use: git commit --no-verify  to bypass (not recommended)"
-  exit 1
+if command -v go >/dev/null 2>&1; then
+    go run task.go check 2>&1 || check_result=$?
+else
+    # 无 Go 环境，直接运行底层命令
+    echo "[pre-commit] Go not found, running checks directly..."
+
+    echo ">> TypeScript check"
+    if ! pnpm exec tsc --noEmit 2>&1; then
+        echo "❌ TypeScript check failed"
+        check_result=1
+    fi
+
+    echo ">> Rust check"
+    if ! cargo check --jobs 4 2>&1; then
+        echo "❌ Cargo check failed"
+        check_result=1
+    fi
 fi
 
+if [ $check_result -ne 0 ]; then
+    echo ""
+    echo "❌ [pre-commit] BLOCKED: Fix check failures above before committing"
+    echo "  Use: git commit --no-verify  to bypass (not recommended)"
+    exit 1
+fi
+
+echo ""
+echo "== [pre-commit] Running incremental tests =="
+
+# 运行增量测试 (不阻塞提交)
+test_result=0
+
+if command -v go >/dev/null 2>&1; then
+    go run task.go test 2>&1 || test_result=$?
+else
+    # 无 Go 环境，直接运行测试
+    echo "[pre-commit] Go not found, running tests directly..."
+
+    CHANGED_FILES=$(git diff --name-only HEAD 2>/dev/null | grep -E '^src/.*\.(ts|tsx)$' | grep -v '__tests__' || true)
+
+    if [ -z "$CHANGED_FILES" ]; then
+        echo "[incremental] No source files changed"
+    elif echo "$CHANGED_FILES" | grep -q '^src/api\.ts$'; then
+        echo "⚠️  [pre-commit] api.ts changed - full test recommended"
+        test_result=100
+    else
+        TEST_FILES=""
+        for file in $CHANGED_FILES; do
+            test_file=$(echo "$file" | sed 's|^src/|src/__tests__/|' | sed 's|\.ts$|.test.ts|' | sed 's|\.tsx$|.test.tsx|')
+            if [ -f "$test_file" ]; then
+                TEST_FILES="$TEST_FILES $test_file"
+            fi
+        done
+
+        if [ -n "$TEST_FILES" ]; then
+            echo ">> Running: pnpm vitest run$TEST_FILES"
+            pnpm vitest run $TEST_FILES 2>&1 || test_result=$?
+        fi
+    fi
+fi
+
+if [ $test_result -eq 100 ]; then
+    echo ""
+    echo "⚠️  [pre-commit] api.ts 变更检测，建议运行全量测试"
+    echo "  提交已允许，但推送前请运行: pnpm test && cargo test"
+elif [ $test_result -ne 0 ]; then
+    echo ""
+    echo "⚠️  [pre-commit] Tests failed but commit allowed"
+    echo "  Fix tests before pushing or use: git push --no-verify"
+fi
+
+echo ""
+echo "✅ [pre-commit] Gate passed (incremental mode)"
 exit 0

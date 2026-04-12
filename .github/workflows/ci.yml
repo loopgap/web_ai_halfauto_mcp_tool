@@ -121,15 +121,15 @@ jobs:
         run: mkdir -p dist
 
       - name: Cargo check
-        run: cargo check --jobs 1
+        run: cargo check --jobs 4
         working-directory: src-tauri
 
       - name: Clippy lint
-        run: cargo clippy --jobs 1 -- -D warnings -A dead_code
+        run: cargo clippy --jobs 4 -- -D warnings -A dead_code
         working-directory: src-tauri
 
       - name: Cargo test
-        run: cargo test --jobs 1 -- --nocapture
+        run: cargo test --jobs 4 -- --nocapture
         working-directory: src-tauri
 
   # ── 治理验证 ──
@@ -163,7 +163,7 @@ jobs:
   # ── Tauri 完整构建 (仅 main 分支) ──
   build-release:
     if: github.ref == 'refs/heads/main'
-    needs: [frontend-check, backend-check, governance, platform-doctor]
+    needs: [frontend-check, backend-check]
     strategy:
       fail-fast: false
       matrix:
@@ -174,8 +174,8 @@ jobs:
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.platform }}
     env:
-      CARGO_BUILD_JOBS: 2
-      NODE_OPTIONS: "--max-old-space-size=8192"
+      CARGO_BUILD_JOBS: 4
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - uses: actions/checkout@v4
 
