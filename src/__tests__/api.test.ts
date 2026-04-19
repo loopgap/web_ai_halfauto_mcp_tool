@@ -158,7 +158,7 @@ const MOCK_ROUTE_DECISION = {
 
 const MOCK_RUN_RECORD = {
   id: "run-1",
-  ts_start: Date.now(),
+  ts_start: 1776533000000,
   skill_id: "skill-1",
   target_id: "notepad",
   provider: "notepad",
@@ -176,7 +176,7 @@ const MOCK_ERROR_DEFINITION = {
 };
 
 const MOCK_VAULT_EVENT = {
-  ts_ms: Date.now(),
+  ts_ms: 1776533000000,
   event_type: "test_event",
   trace_id: "trace-1",
   action: "test",
@@ -194,8 +194,8 @@ const MOCK_PREFLIGHT_RESULT = {
 
 const MOCK_DISPATCH_TRACE = {
   trace_id: "trace-1",
-  ts_start: Date.now() - 1000,
-  ts_end: Date.now(),
+  ts_start: 1776533000000 - 1000,
+  ts_end: 1776533000000,
   duration_ms: 1000,
   candidate_windows: [],
   activation_ok: true,
@@ -220,7 +220,7 @@ const MOCK_ARTIFACT = {
   run_id: "run-1",
   type: "text",
   producer: "user",
-  created_at: Date.now(),
+  created_at: 1776533000000,
   content: "Test content",
 };
 
@@ -293,13 +293,13 @@ const MOCK_VAULT_STATS = {
 const MOCK_SCHEDULE = {
   id: "sched-1",
   workflow_id: "wf-1",
-  trigger: { type: "once" as const, once_at: Date.now() + 86400000 },
+  trigger: { type: "once" as const, once_at: 1776533000000 + 86400000 },
   enabled: true,
-  next_run_at: Date.now() + 86400000,
+  next_run_at: 1776533000000 + 86400000,
   last_run_at: undefined,
   failure_count: 0,
-  created_at: Date.now(),
-  updated_at: Date.now(),
+  created_at: 1776533000000,
+  updated_at: 1776533000000,
 };
 
 const MOCK_NEWS_SOURCE = {
@@ -317,14 +317,14 @@ const MOCK_NEWS_ITEM = {
   source_name: "Test Source",
   title: "Test News",
   content: "Test content",
-  published_at: Date.now(),
-  fetched_at: Date.now(),
+  published_at: 1776533000000,
+  fetched_at: 1776533000000,
 };
 
 const MOCK_REPORT_DOCUMENT = {
   id: "report-1",
   title: "Test Report",
-  generated_at: Date.now(),
+  generated_at: 1776533000000,
   format: "markdown" as const,
   content: "# Test Report\n\nTest content",
   source_ids: ["source-1"],
@@ -787,7 +787,7 @@ describe("Governance v2", () => {
     it("emits telemetry event", async () => {
       mockInvoke.mockResolvedValueOnce(undefined);
       const event = {
-        ts_ms: Date.now(),
+        ts_ms: 1776533000000,
         project: "test",
         module: "test",
         feature: "test",
@@ -1002,16 +1002,16 @@ describe("News / Report v1", () => {
       const result = await generateNewsReport({
         title: "Test Report",
         sourceIds: ["source-1"],
-        sinceTs: Date.now() - 86400000,
-        untilTs: Date.now(),
+        sinceTs: 1776533000000 - 86400000,
+        untilTs: 1776533000000,
       });
       expect(result).toEqual(MOCK_REPORT_DOCUMENT);
       expect(mockInvoke).toHaveBeenCalledWith("generate_news_report", {
         args: {
           title: "Test Report",
           source_ids: ["source-1"],
-          since_ts: Date.now() - 86400000,
-          until_ts: Date.now(),
+          since_ts: 1776533000000 - 86400000,
+          until_ts: 1776533000000,
         },
       });
     });
