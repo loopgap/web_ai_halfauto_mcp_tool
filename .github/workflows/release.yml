@@ -2,9 +2,6 @@ name: Release
 
 # 标准 Tauri 发布工作流
 # 触发方式: 推送形如 v* 的 tag
-#   统一发布:   git tag v0.1.0 && git push origin v0.1.0
-#   仅 Linux:   git tag v0.1.0-linux && git push origin v0.1.0-linux
-#   仅 Windows: git tag v0.1.0-windows && git push origin v0.1.0-windows
 
 on:
   push:
@@ -19,7 +16,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
   NODE_OPTIONS: "--max-old-space-size=4096"
@@ -50,17 +46,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.11.0 --activate
 
       - name: Install system dependencies (Linux)
         run: |
@@ -103,17 +99,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
-
-      - name: Enable Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.11.0 --activate
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -140,7 +136,7 @@ jobs:
           releaseId: ${{ needs.create-release.outputs.release_id }}
 
   publish-release:
-    if: ${{ needs.create-release.result == 'success' && (needs['build-tauri-linux'].result == 'success' || needs['build-tauri-windows'].result == 'success') }}
+    if: ${{ always() && needs.create-release.result == 'success' && (needs['build-tauri-linux'].result == 'success' || needs['build-tauri-windows'].result == 'success') }}
     needs: [create-release, build-tauri-linux, build-tauri-windows]
     runs-on: ubuntu-latest
     steps:
@@ -151,6 +147,6 @@ jobs:
             await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              release_id: ${{ needs.create-release.outputs.release_id }},
+              release_id: "${{ needs.create-release.outputs.release_id }}",
               draft: false,
             });
