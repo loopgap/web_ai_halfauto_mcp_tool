@@ -33,7 +33,7 @@ pub fn clipboard_set_text(text: &str) -> OsWinResult<()> {
             std::ptr::copy_nonoverlapping(wide.as_ptr() as *const u8, ptr as *mut u8, byte_len);
             let _ = GlobalUnlock(hmem);
 
-            SetClipboardData(CF_UNICODETEXT.0 as u32, HANDLE(hmem.0))
+            SetClipboardData(CF_UNICODETEXT.0 as u32, Some(HANDLE(hmem.0)))
                 .map_err(|e| OsWinError::ClipboardFailed(format!("SetClipboardData: {}", e)))?;
         }
         Ok(())
@@ -103,7 +103,7 @@ fn retry_clipboard_open(timeout_ms: u64, interval_ms: u64) -> OsWinResult<()> {
 
     let start = std::time::Instant::now();
     loop {
-        let opened = unsafe { OpenClipboard(HWND::default()) };
+        let opened = unsafe { OpenClipboard(Some(HWND::default())) };
         if opened.is_ok() {
             return Ok(());
         }

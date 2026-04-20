@@ -68,6 +68,8 @@ secrets.json
 
 # ── Generated / temp files ────────────────────────────────────────────────────
 doctor-report.txt
+error.txt
+old_lockfile.txt
 *.generated.md
 generated/
 *.tmp

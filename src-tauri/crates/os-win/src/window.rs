@@ -4,7 +4,7 @@ use crate::error::{OsWinError, OsWinResult};
 
 #[cfg(windows)]
 use windows::Win32::{
-    Foundation::{BOOL, HWND, LPARAM, TRUE},
+    Foundation::{HWND, LPARAM, TRUE},
     UI::WindowsAndMessaging::{
         BringWindowToTop, EnumWindows, GetClassNameW, GetForegroundWindow,
         GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
@@ -12,6 +12,9 @@ use windows::Win32::{
         SetForegroundWindow, ShowWindow, SW_RESTORE,
     },
 };
+
+#[cfg(windows)]
+use windows::core::BOOL;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
@@ -109,7 +112,7 @@ pub fn enum_top_level_windows(_include_invisible: bool) -> OsWinResult<Vec<Windo
 pub fn activate_window(hwnd: u64, retry: u32, settle_delay_ms: u64) -> OsWinResult<()> {
     let hwnd_win = HWND(hwnd as *mut std::ffi::c_void);
 
-    if !unsafe { IsWindow(hwnd_win) }.as_bool() {
+    if !unsafe { IsWindow(Some(hwnd_win)) }.as_bool() {
         return Err(OsWinError::WindowNotFound);
     }
 
@@ -230,7 +233,7 @@ pub fn get_foreground_hwnd() -> u64 {
 #[cfg(windows)]
 pub fn is_window_valid(hwnd: u64) -> bool {
     let h = HWND(hwnd as *mut std::ffi::c_void);
-    unsafe { IsWindow(h) }.as_bool()
+    unsafe { IsWindow(Some(h)) }.as_bool()
 }
 
 #[cfg(not(windows))]
