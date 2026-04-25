@@ -1,7 +1,12 @@
+extern crate os_win;
+
 #[cfg(test)]
 mod tests {
     use os_win::error::OsWinError;
     use os_win::input::PasteOptions;
+    use os_win::DispatchRequest;
+
+    // ─── Portable tests (compile on all platforms) ───
 
     #[test]
     fn test_paste_options_default() {
@@ -13,7 +18,7 @@ mod tests {
 
     #[test]
     fn test_dispatch_request_construction() {
-        let req = os_win::DispatchRequest {
+        let req = DispatchRequest {
             hwnd: 12345,
             text: "Hello AI".to_string(),
             opts: PasteOptions::default(),
@@ -48,15 +53,6 @@ mod tests {
     }
 
     #[test]
-    fn test_find_window_invalid_regex() {
-        let result = os_win::window::find_window_by_title_regex(
-            &["[invalid regex".to_string()],
-            false,
-        );
-        assert!(matches!(result, Err(OsWinError::InvalidArg(_))));
-    }
-
-    #[test]
     fn test_error_display() {
         let e = OsWinError::WindowNotFound;
         assert_eq!(e.to_string(), "No window matched the criteria");
@@ -68,16 +64,28 @@ mod tests {
         assert_eq!(e.to_string(), "Clipboard operation failed: test error");
     }
 
-    #[cfg(windows)]
+    // ─── Windows-only tests (require Windows API) ───
+
     #[test]
+    #[cfg(windows)]
+    fn test_find_window_invalid_regex() {
+        let result = os_win::window::find_window_by_title_regex(
+            &["[invalid regex".to_string()],
+            false,
+        );
+        assert!(matches!(result, Err(OsWinError::InvalidArg(_))));
+    }
+
+    #[test]
+    #[cfg(windows)]
     fn test_enum_windows_returns_some() {
         // On a running Windows system, there should always be some windows
         let windows = os_win::window::enum_top_level_windows(false).unwrap();
         assert!(!windows.is_empty(), "Should find at least one visible window");
     }
 
-    #[cfg(windows)]
     #[test]
+    #[cfg(windows)]
     fn test_enum_windows_with_invisible() {
         let visible = os_win::window::enum_top_level_windows(false).unwrap();
         let all = os_win::window::enum_top_level_windows(true).unwrap();
@@ -87,8 +95,8 @@ mod tests {
         );
     }
 
-    #[cfg(windows)]
     #[test]
+    #[cfg(windows)]
     fn test_clipboard_roundtrip() {
         let test_text = "AI Workbench test 测试 🤖";
         os_win::clipboard::clipboard_set_text(test_text).unwrap();
@@ -96,15 +104,15 @@ mod tests {
         assert_eq!(got, test_text);
     }
 
-    #[cfg(windows)]
     #[test]
+    #[cfg(windows)]
     fn test_activate_invalid_hwnd() {
         let result = os_win::window::activate_window(0xDEADBEEF, 0, 10);
         assert!(matches!(result, Err(OsWinError::WindowNotFound)));
     }
 
-    #[cfg(windows)]
     #[test]
+    #[cfg(windows)]
     fn test_find_window_no_match() {
         let result = os_win::window::find_window_by_title_regex(
             &["THIS_WINDOW_DOES_NOT_EXIST_12345".to_string()],

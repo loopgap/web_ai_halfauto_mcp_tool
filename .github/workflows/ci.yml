@@ -30,15 +30,15 @@ jobs:
   frontend-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.3.0
         with:
           version: 10.11.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.3.0
         with:
           node-version: "24"
           cache: pnpm
@@ -55,7 +55,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: test-results
           path: test-results.xml
@@ -72,15 +72,15 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.3.0
         with:
           version: 10.11.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.3.0
         with:
           node-version: "24"
 
@@ -90,11 +90,12 @@ jobs:
       - name: Doctor check (continue on error)
         run: go run task.go doctor || true
 
-  # ── Rust 后端检查 ──
+  # ── Rust 后端检查 (Linux) ──
+  # 注意: os-win 只在 Windows 上完整编译和测试
   backend-check:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Install system dependencies
         run: |
@@ -123,23 +124,57 @@ jobs:
         run: cargo clippy --jobs 4 -- -D warnings -A dead_code
         working-directory: src-tauri
 
-      - name: Cargo test
-        run: cargo test --jobs 4 -- --nocapture
+      - name: Cargo test (portable tests only)
+        run: |
+          # Run config_tests which are platform-independent
+          cargo test --test config_tests --jobs 4
+          # Run core crate tests (if any)
+          cargo test -p core --jobs 4 || true
+        working-directory: src-tauri
+
+  # ── Rust 后端检查 (Windows) ──
+  # 在 Windows 上运行完整测试，包括 os-win
+  backend-check-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-on-failure: true
+
+      - name: Cargo check
+        run: cargo check --jobs 4
+        working-directory: src-tauri
+
+      - name: Clippy lint
+        run: cargo clippy --jobs 4 -- -D warnings -A dead_code
+        working-directory: src-tauri
+
+      - name: Cargo test (full workspace)
+        run: cargo test --workspace --jobs 4
         working-directory: src-tauri
 
   # ── 治理验证 (独立运行，不依赖其他 job) ──
   governance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.3.0
         with:
           version: 10.11.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.3.0
         with:
           node-version: "24"
           cache: pnpm
@@ -157,7 +192,7 @@ jobs:
   # ── Tauri 完整构建 (仅 main 分支，简化依赖) ──
   build-release:
     if: github.ref == 'refs/heads/main'
-    needs: [backend-check]
+    needs: [backend-check, backend-check-windows]
     strategy:
       fail-fast: false
       matrix:
@@ -171,15 +206,15 @@ jobs:
       CARGO_BUILD_JOBS: 4
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.3.0
         with:
           version: 10.11.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.3.0
         with:
           node-version: "24"
           cache: pnpm
@@ -211,7 +246,7 @@ jobs:
           projectPath: .
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: build-${{ matrix.target }}
           path: |
