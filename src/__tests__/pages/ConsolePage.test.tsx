@@ -488,7 +488,9 @@ describe("ConsolePage", () => {
 
   describe("Input validation", () => {
     it("shows validation error for input exceeding max length", async () => {
-      (actions.validateInput as any).mockReturnValue("输入长度不能超过 100 个字符");
+      // Mock validateInput to return truthy to trigger error display
+      // Component generates its own error message format
+      (actions.validateInput as any).mockReturnValue("error");
       
       render(<ConsolePage />);
       
@@ -501,7 +503,7 @@ describe("ConsolePage", () => {
       });
       
       await waitFor(() => {
-        expect(screen.getByText("输入长度不能超过 100 个字符")).toBeTruthy();
+        expect(screen.getByText(/参数 'query' 太长/)).toBeTruthy();
       });
     });
 

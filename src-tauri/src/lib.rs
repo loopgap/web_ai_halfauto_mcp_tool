@@ -1,3 +1,4 @@
+// QA Test Comment - Incremental Build Verification
 mod config;
 
 use crate_core::{err, new_trace_id, now_ms, ApiError, AuditEvent, CmdResult};

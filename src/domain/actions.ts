@@ -31,7 +31,7 @@ import { createLogger } from "./logging";
 const logger = createLogger("actions");
 
 const MAX_TEXT_LEN = 120_000;
-const MAX_INPUT_LEN = 50_000;
+export const MAX_INPUT_LEN = 50_000;
 
 async function withRetry<T>(
   fn: () => Promise<T>,

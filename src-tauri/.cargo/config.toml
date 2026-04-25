@@ -3,8 +3,8 @@
 # ═══════════════════════════════════════════════
 
 [build]
-# 限制并行编译作业数（防止内存占用过高）
-jobs = 2
+# 使用 sccache 加速编译缓存复用（sccache 路径需在 PATH 中）
+# rustc-wrapper = "sccache"  # 注释：sccache 安装完成后取消注释
 
 # Windows: 使用 LLD 链接器 + 链接优化
 [target.x86_64-pc-windows-msvc]
@@ -12,22 +12,24 @@ linker = "rust-lld.exe"
 rustflags = [
     "-C", "link-arg=/OPT:REF",
     "-C", "link-arg=/OPT:ICF",
-    "-C", "debuginfo=0",
 ]
 
 # Windows GNU: 优化链接
 [target.x86_64-pc-windows-gnu]
 rustflags = [
     "-C", "link-arg=-Wl,--gc-sections",
-    "-C", "debuginfo=0",
 ]
 
-# Linux: 减少调试信息，尝试使用 mold 链接器
+# Linux: 优化链接
 [target.x86_64-unknown-linux-gnu]
-rustflags = ["-C", "debuginfo=0"]
+rustflags = ["-C", "link-arg=-Wl,--gc-sections"]
 
 [net]
 git-fetch-with-cli = true
 
 [registries.crates-io]
 protocol = "sparse"
+
+[profile.dev]
+# 调试符号分离到单独文件，不打入二进制，减少 40-60% 体积
+split-debuginfo = "unpacked"

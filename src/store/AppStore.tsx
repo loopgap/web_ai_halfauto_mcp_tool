@@ -139,7 +139,33 @@ function domainReducer(state: DomainState, action: AppAction): DomainState {
     case "SET_HEALTH": return { ...state, health: action.payload };
     case "SET_ROUTER_RULES": return { ...state, routerRules: action.payload };
     case "SET_RUNS": return { ...state, runs: action.payload };
-    case "ADD_RUN": return { ...state, runs: [action.payload, ...state.runs] };
+    case "ADD_RUN": {
+      const now = Date.now();
+      const updatedSkills = state.skills.map((s) =>
+        s.id === action.payload.skill_id ? { ...s, lastUsedAt: now } : s
+      );
+      const updatedTargets = state.targets
+        ? {
+            ...state.targets,
+            targets: Object.fromEntries(
+              Object.entries(state.targets.targets).map(([id, t]) =>
+                id === action.payload.target_id ? [id, { ...t, lastUsedAt: now }] : [id, t]
+              )
+            ),
+          }
+        : null;
+      // runs 数组淘汰机制：限制最大 200 条，清除超过 24 小时的条目
+      const oneDayMs = 24 * 60 * 60 * 1000;
+      const filteredRuns = state.runs
+        .filter((r) => now - r.ts_start < oneDayMs)
+        .slice(0, 199); // 预留一个新条目的空间
+      return {
+        ...state,
+        runs: [action.payload, ...filteredRuns],
+        skills: updatedSkills,
+        targets: updatedTargets,
+      };
+    }
     case "UPDATE_RUN": {
       const existing = state.runs.find((r) => r.id === action.payload.id);
       if (existing && (existing.status === "done" || existing.status === "closed")) {
@@ -206,9 +232,9 @@ export const useAppStore = create<AppState & { dispatch: (action: AppAction) => 
     dispatch: (action) =>
       set((state) => {
         const s1 = domainReducer(state, action);
-        const s2 = uiReducer(s1 as any, action);
-        const s3 = govReducer(s2 as any, action);
-        return s3 as any;
+        const s2 = uiReducer(s1 as unknown as UIState, action);
+        const s3 = govReducer(s2 as unknown as GovState, action);
+        return s3 as unknown as AppState;
       }),
   }))
 );

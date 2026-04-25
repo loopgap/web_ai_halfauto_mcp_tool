@@ -8,6 +8,7 @@ import {
   validateInput,
   lookupError,
   getRecoveryActions,
+  MAX_INPUT_LEN,
 } from "../domain/actions";
 import type { InjectionMode, RouteDecision } from "../types";
 import StepProgress from "../components/StepProgress";
@@ -32,6 +33,25 @@ import {
 export default function ConsolePage() {
   const skills = useAppStore(s => s.skills);
   const targets = useAppStore(s => s.targets);
+
+  // 按最近使用时间降序排列
+  const sortedSkills = useMemo(
+    () => [...skills].sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)),
+    [skills]
+  );
+
+  const sortedTargets = useMemo(() => {
+    if (!targets) return null;
+    return {
+      ...targets,
+      targets: Object.fromEntries(
+        Object.entries(targets.targets).sort(
+          ([, a], [, b]) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)
+        )
+      ),
+    };
+  }, [targets]);
+  const health = useAppStore(s => s.health);
   const runs = useAppStore(s => s.runs);
   const errorCatalog = useAppStore(s => s.errorCatalog);
   const pageStates = useAppStore(s => s.pageStates);
@@ -48,12 +68,14 @@ export default function ConsolePage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [inputErrors, setInputErrors] = useState<Record<string, string>>({});
   const [stagedHwnd, setStagedHwnd] = useState<number | null>(null);
+  const [stagedTargetName, setStagedTargetName] = useState<string>("");
   const [twoPhaseMode, setTwoPhaseMode] = useState(true);
   const [autoBrowserSelect, setAutoBrowserSelect] = useState(true);
   const [autoInject, setAutoInject] = useState(true);
   const [injectionMode, setInjectionMode] = useState<InjectionMode>("balanced");
   const [lastErrorCode, setLastErrorCode] = useState<string>("");
   const [browserWarning, setBrowserWarning] = useState<string>("");
+  const [isStaging, setIsStaging] = useState(false);
 
   const pageState = pageStates.console || "idle";
   const currentSkill = useMemo(() => skills.find((s) => s.id === selectedSkill), [skills, selectedSkill]);
@@ -91,8 +113,12 @@ export default function ConsolePage() {
       const err = validateInput(key, value, maxLen);
       setInputErrors((prev) => {
         const next = { ...prev };
-        if (err) next[key] = err;
-        else delete next[key];
+        if (err) {
+          const remaining = (maxLen ?? MAX_INPUT_LEN) - value.length;
+          next[key] = `参数 '${key}' 太长：还剩 ${remaining} 字符可输入`;
+        } else {
+          delete next[key];
+        }
         return next;
       });
     },
@@ -113,39 +139,48 @@ export default function ConsolePage() {
     setErrorMsg("");
     setLastErrorCode("");
     setStagedHwnd(null);
+    setStagedTargetName("");
     setBrowserWarning("");
-    const result = await executeDispatchFlow(
-      {
-        skill: currentSkill,
-        targetId: selectedTarget,
-        targets,
-        inputValues,
-        routeDecision: routeDecision ?? undefined,
-        stageOnly: twoPhaseMode,
-        autoBrowserSelect,
-        autoInject,
-        injectionMode,
-      },
-      dispatch,
-    );
+    // Optimistic 状态：立即显示反馈
+    setIsStaging(true);
+    let result;
+    try {
+      result = await executeDispatchFlow(
+        {
+          skill: currentSkill,
+          targetId: selectedTarget,
+          targets,
+          inputValues,
+          routeDecision: routeDecision ?? undefined,
+          stageOnly: twoPhaseMode,
+          autoBrowserSelect,
+          autoInject,
+          injectionMode,
+        },
+        dispatch,
+      );
 
-    if (result.success && result.run) {
-      setLastRunId(result.run.id);
-      if (result.browserWarning) {
-        setBrowserWarning(result.browserWarning);
-        toast("warning", "\u68c0\u6d4b\u5230\u672a\u8bc6\u522b\u7684\u6d4f\u89c8\u5668\uff0c\u8bf7\u67e5\u770b\u63d0\u793a");
+      if (result.success && result.run) {
+        setLastRunId(result.run.id);
+        if (result.browserWarning) {
+          setBrowserWarning(result.browserWarning);
+          toast("warning", "\u68c0\u6d4b\u5230\u672a\u8bc6\u522b\u7684\u6d4f\u89c8\u5668\uff0c\u8bf7\u67e5\u770b\u63d0\u793a");
+        }
+        if (twoPhaseMode && result.stagedHwnd) {
+          setStagedHwnd(result.stagedHwnd);
+          setStagedTargetName(selectedTarget);
+          toast("info", `\u5df2\u7c98\u8d34\u5230 ${selectedTarget}\uff0c\u8bf7\u786e\u8ba4\u540e\u70b9\u51fb Send Now`);
+        } else {
+          toast("success", "\u6295\u9012\u6210\u529f\uff0c\u7b49\u5f85\u56de\u6536\u8f93\u51fa");
+        }
+      } else if (result.error) {
+        const def = lookupError(errorCatalog, result.error.code);
+        setErrorMsg(def ? `${def.user_message}\n\u63d0\u793a: ${def.fix_suggestion}` : result.error.message);
+        setLastErrorCode(result.error.code);
+        toast("error", `\u6295\u9012\u5931\u8d25: ${result.error.code}`);
       }
-      if (twoPhaseMode && result.stagedHwnd) {
-        setStagedHwnd(result.stagedHwnd);
-        toast("info", "\u5df2\u7c98\u8d34\u5230\u76ee\u6807\u7a97\u53e3\uff0c\u8bf7\u786e\u8ba4\u540e\u70b9\u51fb Send Now");
-      } else {
-        toast("success", "\u6295\u9012\u6210\u529f\uff0c\u7b49\u5f85\u56de\u6536\u8f93\u51fa");
-      }
-    } else if (result.error) {
-      const def = lookupError(errorCatalog, result.error.code);
-      setErrorMsg(def ? `${def.user_message}\n\u63d0\u793a: ${def.fix_suggestion}` : result.error.message);
-      setLastErrorCode(result.error.code);
-      toast("error", `\u6295\u9012\u5931\u8d25: ${result.error.code}`);
+    } finally {
+      setIsStaging(false);
     }
   }, [currentSkill, targets, selectedTarget, inputValues, routeDecision, showConfirm, twoPhaseMode, autoBrowserSelect, autoInject, injectionMode, dispatch, errorCatalog, toast]);
 
@@ -155,6 +190,7 @@ export default function ConsolePage() {
     const result = await confirmSend(stagedHwnd, lastRunId, dispatch);
     if (result.success) {
       setStagedHwnd(null);
+      setStagedTargetName("");
       toast("success", "\u5df2\u53d1\u9001\uff01\u7b49\u5f85\u76ee\u6807\u7a97\u53e3\u56de\u590d\u540e\u6267\u884c Capture");
     } else if (result.error) {
       setErrorMsg(result.error.message);
@@ -228,7 +264,7 @@ export default function ConsolePage() {
               }}
             >
               <option value="">{"\u002d\u002d \u9009\u62e9\u6280\u80fd \u002d\u002d"}</option>
-              {skills.map((s) => (
+              {sortedSkills.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.title} ({s.id}) v{s.version}
                 </option>
@@ -300,12 +336,17 @@ export default function ConsolePage() {
               onChange={(e) => setSelectedTarget(e.target.value)}
             >
               <option value="">{"\u002d\u002d \u9009\u62e9\u76ee\u6807\u7a97\u53e3 \u002d\u002d"}</option>
-              {targets &&
-                Object.entries(targets.targets).map(([id, t]) => (
-                  <option key={id} value={id}>
-                    {id} ({t.provider})
-                  </option>
-                ))}
+              {sortedTargets &&
+                Object.entries(sortedTargets.targets).map(([id, t]) => {
+                  const targetHealth = health?.find(h => h.target_id === id);
+                  const isReady = targetHealth?.status === "ready";
+                  const hasHealthData = !!targetHealth;
+                  return (
+                    <option key={id} value={id}>
+                      {hasHealthData ? (isReady ? "🟢" : "🔴") : "⚪"} {id} ({t.provider})
+                    </option>
+                  );
+                })}
             </select>
           </div>
 
@@ -416,7 +457,7 @@ export default function ConsolePage() {
               ) : (
                 <Play size={16} />
               )}
-              {pageState === "dispatching" ? "\u6295\u9012\u4e2d..." : twoPhaseMode ? "Stage \u7c98\u8d34" : "\u6295\u9012 Dispatch"}
+              {isStaging ? "\u6b63\u5728\u7c98\u8d34..." : pageState === "dispatching" ? "\u6295\u9012\u4e2d..." : twoPhaseMode ? "Stage \u7c98\u8d34" : "\u6295\u9012 Dispatch"}
             </button>
 
             {/* Send Now — 两阶段确认 */}
@@ -442,6 +483,22 @@ export default function ConsolePage() {
               {"Capture \u8f93\u51fa"}
             </button>
           </div>
+
+          {/* 状态锚点 — 两阶段等待确认 */}
+          {stagedHwnd && stagedTargetName && (
+            <div className="flex items-center gap-3 px-4 py-3 bg-amber-900/30 border border-amber-600 rounded-lg text-sm animate-fade-in">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 text-amber-200 font-medium">
+                  <CheckCircle size={16} className="text-green-400" />
+                  <span>{"\u5df2\u7c98\u8d34\u5230"} <span className="text-amber-100 font-semibold">{stagedTargetName}</span></span>
+                </div>
+                <div className="flex items-center gap-2 text-amber-300/70 text-xs pl-6">
+                  <Loader2 size={12} className="animate-spin" />
+                  {"\u7b49\u5f85\u786e\u8ba4\u53d1\u9001\uff0c\u70b9\u51fb\u4e0a\u65b9\u7684 Send Now \u6309\u94ae"}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 高危确认对话框 */}
           {showConfirm && currentSkill && (

@@ -81,6 +81,8 @@ export interface TargetEntry {
   provider: string;
   match: TargetMatchConfig;
   behavior: TargetBehavior;
+  /** 最近使用时间戳 (毫秒) */
+  lastUsedAt?: number;
 }
 
 export interface TargetDefaults {
@@ -149,6 +151,8 @@ export interface Skill {
   latency_class: string;
   determinism: string;
   cache_policy?: string;
+  /** 最近使用时间戳 (毫秒) */
+  lastUsedAt?: number;
 }
 
 // ───────── Workflow Schema v3 (§7 DAG++) ─────────

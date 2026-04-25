@@ -79,8 +79,9 @@ describe("AppStore", () => {
       { wrapper }
     );
 
-    const run1 = { id: "r1", ts_start: 1000, skill_id: "s1", target_id: "t1", provider: "p", prompt: "p1", status: "done", trace_id: "tr1" };
-    const run2 = { id: "r2", ts_start: 2000, skill_id: "s1", target_id: "t1", provider: "p", prompt: "p2", status: "pending", trace_id: "tr2" };
+    const now = Date.now();
+    const run1 = { id: "r1", ts_start: now - 1000, skill_id: "s1", target_id: "t1", provider: "p", prompt: "p1", status: "done", trace_id: "tr1" };
+    const run2 = { id: "r2", ts_start: now - 2000, skill_id: "s1", target_id: "t1", provider: "p", prompt: "p2", status: "pending", trace_id: "tr2" };
 
     act(() => {
       result.current.dispatch({ type: "ADD_RUN", payload: run1 as never });
