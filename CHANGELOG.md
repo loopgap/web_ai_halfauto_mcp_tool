@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased] - 2026-04-26
+
+## [0.4.2] - 2026-04-26
+
+### Fixed
+- Fixed CI test failures by moving os_win_tests to correct crate location (crates/os-win/tests/)
+- Renamed core crate to crate-core to fix thiserror derive macro conflict with std::core
+- Updated GitHub Actions to latest versions (checkout@v4.2.2, setup-node@v4.3.0, etc.) to fix Node.js 20 deprecation warnings
+- Added backend-check-windows job for full Windows testing on Windows runners
+
+### Changed
+- Split backend-check into Linux (portable tests only) and Windows (full workspace tests) jobs
+- build-release now depends on both backend-check and backend-check-windows
+
+### Other
+- Improved two-phase dispatch UX and input validation
+
 ## [Unreleased] - 2026-04-12
 
 ### Added

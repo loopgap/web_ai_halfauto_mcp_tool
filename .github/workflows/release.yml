@@ -27,7 +27,7 @@ jobs:
       release_id: ${{ steps.create.outputs.id }}
       tag_name: ${{ github.ref_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Create GitHub Release
         id: create
@@ -44,15 +44,15 @@ jobs:
     if: ${{ !contains(github.ref_name, '-windows') }}
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.3.0
         with:
           version: 10.11.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.3.0
         with:
           node-version: "24"
           cache: pnpm
@@ -97,15 +97,15 @@ jobs:
     if: ${{ !contains(github.ref_name, '-linux') }}
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.2.2
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.3.0
         with:
           version: 10.11.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.3.0
         with:
           node-version: "24"
           cache: pnpm
@@ -141,7 +141,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Publish release
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.3.0
         with:
           script: |
             await github.rest.repos.updateRelease({
