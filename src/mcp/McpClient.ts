@@ -34,7 +34,6 @@ export class McpClient {
   private pendingRequests: Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }> = new Map();
   private isInitialized = false;
   private initPromise: Promise<void> | null = null;
-  private abortController: AbortController | null = null;
   private options: Required<McpClientOptions>;
 
   constructor(options: McpClientOptions = {}) {
