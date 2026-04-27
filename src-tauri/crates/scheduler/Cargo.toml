@@ -1,0 +1,13 @@
+[package]
+name = "scheduler"
+version = "0.1.0"
+edition = "2021"
+description = "Task scheduler core data structures and strategies"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "1.0"
+
+[dev-dependencies]
+serde_json = "1"
+tokio = { version = "1", features = ["rt", "macros"] }
