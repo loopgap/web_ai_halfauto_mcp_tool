@@ -10,6 +10,7 @@ export interface TargetNodeData {
   isConfigured?: boolean;
   /** 是否选中以便编辑 */
   selected?: boolean;
+  [key: string]: unknown;
 }
 
 /**

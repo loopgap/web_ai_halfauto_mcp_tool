@@ -7,12 +7,13 @@ interface RouteDecisionProps {
 }
 
 export default function RouteDecision({ decision }: RouteDecisionProps) {
+  const decisionIntent = decision.selected?.intent ?? decision.top_candidates[0]?.intent ?? "";
   const handleAccept = () => {
-    recordRouteFeedback(decision.trace_id, decision.decision_intent, "accept", undefined);
+    recordRouteFeedback(decision.trace_id, decisionIntent, "accept", undefined);
   };
 
   const handleReject = () => {
-    recordRouteFeedback(decision.trace_id, decision.decision_intent, "reject", undefined);
+    recordRouteFeedback(decision.trace_id, decisionIntent, "reject", undefined);
   };
 
   return (

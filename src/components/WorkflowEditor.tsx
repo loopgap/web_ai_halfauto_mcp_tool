@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -11,7 +11,6 @@ import {
   type OnConnect,
   type NodeTypes,
   type Connection,
-  type IsValidConnection,
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
@@ -59,7 +58,7 @@ const initialNodes: Node[] = [
       label: '示例目标',
       windowTitle: 'Visual Studio Code',
       isConfigured: true,
-    } as TargetNodeData,
+    } as unknown as TargetNodeData,
     type: 'target',
   },
   {
@@ -71,13 +70,13 @@ const initialNodes: Node[] = [
       serverVersion: '0.1.0',
       isConnected: true,
       tools: ['ping', 'echo'],
-    } as McpNodeData,
+    } as unknown as McpNodeData,
     type: 'mcp',
   },
 ];
 
 /** 默认边样式配置 */
-const defaultEdgeOptions: Edge = {
+const defaultEdgeOptions = {
   type: 'smoothstep',
   animated: true,
   style: { stroke: '#6366f1', strokeWidth: 2 },
@@ -99,7 +98,7 @@ const defaultEdgeOptions: Edge = {
  */
 export default function WorkflowEditor() {
   const [nodes, setNodes] = useState<Node[]>(initialNodes);
-  const [edges, setEdges] = useState<Edge[]>(initialEdges);
+  const [edges, setEdges] = useState<Edge[]>([]);
 
   // 选中的节点和边
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -122,20 +121,23 @@ export default function WorkflowEditor() {
   );
 
   /** 连线校验 - 防止循环连接和自连接 */
-  const isValidConnection: IsValidConnection = useCallback(
-    (connection: Connection) => {
+  const isValidConnection = useCallback(
+    (connection: Connection | Edge) => {
       // 防止自连接
-      if (connection.source === connection.target) {
+      if ('source' in connection && 'target' in connection && connection.source === connection.target) {
         return false;
       }
 
       // 防止重复连接
-      const exists = edges.some(
-        (e) =>
-          e.source === connection.source && e.target === connection.target
-      );
-      if (exists) {
-        return false;
+      const source = 'source' in connection ? connection.source : null;
+      const target = 'target' in connection ? connection.target : null;
+      if (source && target) {
+        const exists = edges.some(
+          (e) => e.source === source && e.target === target
+        );
+        if (exists) {
+          return false;
+        }
       }
 
       return true;
@@ -207,7 +209,7 @@ export default function WorkflowEditor() {
           label: '新目标',
           windowTitle: '未选择窗口',
           isConfigured: false,
-        } as TargetNodeData;
+        } as unknown as TargetNodeData;
       }
 
       // McpNode 特殊数据
@@ -218,7 +220,7 @@ export default function WorkflowEditor() {
           serverVersion: '0.1.0',
           isConnected: false,
           tools: [],
-        } as McpNodeData;
+        } as unknown as McpNodeData;
       }
 
       const newNode: Node = {

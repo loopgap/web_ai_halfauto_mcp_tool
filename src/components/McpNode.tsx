@@ -11,6 +11,7 @@ export interface McpNodeData {
   tools?: string[];
   /** 是否选中以便编辑 */
   selected?: boolean;
+  [key: string]: unknown;
 }
 
 /**
@@ -24,7 +25,7 @@ export interface McpNodeData {
  * @note MCP 连接逻辑通过 McpClient 处理
  */
 function McpNode({ data, selected }: NodeProps) {
-  const nodeData = data as McpNodeData;
+  const nodeData = data as unknown as McpNodeData;
   const { label, serverName, serverVersion, isConnected, tools } = nodeData;
 
   return (
