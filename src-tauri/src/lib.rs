@@ -1,6 +1,12 @@
 // QA Test Comment - Incremental Build Verification
 mod config;
+mod context;
 
+#[cfg(test)]
+mod mcp_security_test;
+
+use crate::context::AppContext;
+use crate::context::TauriContext;
 use crate_core::{err, new_trace_id, now_ms, ApiError, AuditEvent, CmdResult};
 
 #[cfg(not(windows))]
@@ -19,12 +25,12 @@ use platform::DispatchRequest;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::fs::{self};
+use std::io::{Read, Write};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tauri::Emitter;
-use tauri::Manager;
+
 
 const MAX_TEXT_LEN: usize = 120_000;
 const MAX_REGEX_PATTERNS: usize = 32;
@@ -33,6 +39,40 @@ const MAX_ACTIVATE_RETRY: u32 = 10;
 const MAX_DELAY_MS: u64 = 10_000;
 const MAX_TARGETS: usize = 256;
 const MIN_DISPATCH_INTERVAL_MS: u64 = 120;
+
+/// §Security: 将 IO 错误Kind 转换为安全的错误码字符串,避免泄露系统路径等信息
+fn io_error_kind_safe(kind: std::io::ErrorKind) -> &'static str {
+    match kind {
+        std::io::ErrorKind::NotFound => "not_found",
+        std::io::ErrorKind::PermissionDenied => "permission_denied",
+        std::io::ErrorKind::ConnectionRefused => "connection_refused",
+        std::io::ErrorKind::ConnectionReset => "connection_reset",
+        std::io::ErrorKind::ConnectionAborted => "connection_aborted",
+        std::io::ErrorKind::NotConnected => "not_connected",
+        std::io::ErrorKind::AddrInUse => "addr_in_use",
+        std::io::ErrorKind::AddrNotAvailable => "addr_not_available",
+        std::io::ErrorKind::BrokenPipe => "broken_pipe",
+        std::io::ErrorKind::AlreadyExists => "already_exists",
+        std::io::ErrorKind::WouldBlock => "would_block",
+        std::io::ErrorKind::InvalidInput => "invalid_input",
+        std::io::ErrorKind::InvalidData => "invalid_data",
+        std::io::ErrorKind::TimedOut => "timed_out",
+        std::io::ErrorKind::WriteZero => "write_zero",
+        std::io::ErrorKind::Interrupted => "interrupted",
+        std::io::ErrorKind::Other => "other",
+        _ => "io_error",
+    }
+}
+
+/// §Security: 将 StdError 转换为安全的错误码字符串,避免泄露系统路径等信息
+fn std_error_safe(e: Box<dyn std::error::Error>) -> String {
+    // 尝试向下转型为 io::Error 以获取安全的错误码
+    // Box<dyn Error> 可以使用 downcast_ref，因为 Error extends Any
+    match e.downcast::<std::io::Error>() {
+        Ok(io_err) => io_error_kind_safe(io_err.kind()).to_string(),
+        Err(_) => "unknown_error".to_string(),
+    }
+}
 
 // ═══════════════════════════════════════════════════════════
 // Security Model — Desktop App Trust Boundary
@@ -64,6 +104,8 @@ const MIN_DISPATCH_INTERVAL_MS: u64 = 120;
 static DISPATCH_GUARD: OnceLock<Mutex<DispatchGuard>> = OnceLock::new();
 /// §29.4 Confirm idempotency: track confirmed hwnds to prevent duplicate sends
 static CONFIRM_GUARD: OnceLock<Mutex<HashSet<u64>>> = OnceLock::new();
+/// §G2.2 Audit thread safety: protect concurrent file writes
+static AUDIT_GUARD: OnceLock<Mutex<()>> = OnceLock::new();
 
 #[derive(Debug, Default)]
 struct DispatchGuard {
@@ -139,33 +181,58 @@ fn map_os_error(action: &str, e: PlatformError) -> ApiError {
         PlatformError::InvalidArg(detail) => {
             err("INVALID_ARG", "Invalid command argument", Some(detail))
         }
-        PlatformError::WinApiFailed(detail) => {
-            err("WIN_API_FAILED", "Windows API call failed", Some(detail))
+        PlatformError::WinApiFailed(_detail) => {
+            err("WIN_API_FAILED", "Windows API call failed", Some("api_error".to_string()))
         }
     }
 }
 
-fn write_audit(app_handle: &tauri::AppHandle, event: AuditEvent<'_>) {
-    let Ok(base) = app_handle.path().app_config_dir() else {
-        eprintln!("Audit error: failed to get app config dir");
-        return;
-    };
-    let dir = base.join("audit");
-    if let Err(e) = fs::create_dir_all(&dir) {
-        eprintln!("Audit error: failed to create audit dir: {}", e);
+/// Write audit event to security audit log
+/// Supports both Tauri mode (via AppHandle) and standalone mode (via context)
+pub fn write_audit(app_handle: &tauri::AppHandle, event: AuditEvent<'_>) {
+    let ctx = TauriContext::new(app_handle.clone());
+    write_audit_with_context(&ctx, event);
+}
+
+/// Write audit event using AppContext
+pub fn write_audit_with_context(ctx: &dyn AppContext, event: AuditEvent<'_>) {
+    // §G2.2 Acquire lock for thread-safe file operations
+    let _lock = AUDIT_GUARD.get_or_init(|| Mutex::new(())).lock().unwrap();
+
+    let audit_path = ctx.audit_dir();
+    let security_path = audit_path.join("security_events.jsonl");
+
+    // Ensure directory exists
+    if let Err(e) = std::fs::create_dir_all(&audit_path) {
+        eprintln!("[audit] Failed to create audit dir: {}", e);
         return;
     }
-    let path = dir.join("security_events.jsonl");
-    let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) else {
-        eprintln!("Audit error: failed to open audit file");
-        return;
+
+    let entry = serde_json::json!({
+        "ts_ms": event.ts_ms,
+        "action": event.action,
+        "outcome": event.outcome,
+        "detail": event.detail,
+        "trace_id": event.trace_id,
+    });
+
+    let line = serde_json::to_string(&entry).unwrap_or_default();
+
+    let mut file = match std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&security_path)
+    {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("[audit] Failed to open audit file: {}", e);
+            return;
+        }
     };
-    let Ok(line) = serde_json::to_string(&event) else {
-        eprintln!("Audit error: failed to serialize event");
-        return;
-    };
+
+    use std::io::Write;
     if let Err(e) = writeln!(file, "{}", line) {
-        eprintln!("Audit error: failed to write to audit file: {}", e);
+        eprintln!("[audit] Failed to write audit entry: {}", e);
     }
 }
 
@@ -407,12 +474,27 @@ fn os_find_window_by_title_regex(args: FindByRegexArgs) -> CmdResult<WindowInfo>
 }
 
 #[tauri::command]
-fn os_clipboard_get_text() -> CmdResult<String> {
-    clipboard::clipboard_get_text().map_err(|e| map_os_error("clipboard_get_text", e))
+fn os_clipboard_get_text(app_handle: tauri::AppHandle) -> CmdResult<String> {
+    let result = clipboard::clipboard_get_text().map_err(|e| map_os_error("clipboard_get_text", e));
+    let (outcome, detail, trace_id) = match &result {
+        Ok(_) => ("ok", None, "n/a".to_string()),
+        Err(e) => ("err", Some(e.code.as_str()), e.trace_id.clone()),
+    };
+    write_audit(
+        &app_handle,
+        AuditEvent {
+            ts_ms: now_ms(),
+            action: "os_clipboard_get_text",
+            outcome,
+            trace_id: &trace_id,
+            detail,
+        },
+    );
+    result
 }
 
 #[tauri::command]
-fn os_clipboard_set_text(text: String) -> CmdResult<()> {
+fn os_clipboard_set_text(app_handle: tauri::AppHandle, text: String) -> CmdResult<()> {
     if text.contains('\0') {
         return Err(err(
             "INVALID_ARG",
@@ -427,7 +509,22 @@ fn os_clipboard_set_text(text: String) -> CmdResult<()> {
             Some(format!("max text length is {}", MAX_TEXT_LEN)),
         ));
     }
-    clipboard::clipboard_set_text(&text).map_err(|e| map_os_error("clipboard_set_text", e))
+    let result = clipboard::clipboard_set_text(&text).map_err(|e| map_os_error("clipboard_set_text", e));
+    let (outcome, detail, trace_id) = match &result {
+        Ok(_) => ("ok", None, "n/a".to_string()),
+        Err(e) => ("err", Some(e.code.as_str()), e.trace_id.clone()),
+    };
+    write_audit(
+        &app_handle,
+        AuditEvent {
+            ts_ms: now_ms(),
+            action: "os_clipboard_set_text",
+            outcome,
+            trace_id: &trace_id,
+            detail,
+        },
+    );
+    result
 }
 
 #[tauri::command]
@@ -473,7 +570,7 @@ fn load_targets_config(app_handle: tauri::AppHandle) -> CmdResult<config::Target
         err(
             "CONFIG_LOAD_FAILED",
             "Failed to load targets config",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -488,7 +585,7 @@ fn save_targets_config(
         err(
             "CONFIG_SAVE_FAILED",
             "Failed to save targets config",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -499,7 +596,7 @@ fn load_skills(app_handle: tauri::AppHandle) -> CmdResult<Vec<config::Skill>> {
         err(
             "CONFIG_LOAD_FAILED",
             "Failed to load skills",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -510,7 +607,7 @@ fn load_workflows(app_handle: tauri::AppHandle) -> CmdResult<Vec<config::Workflo
         err(
             "CONFIG_LOAD_FAILED",
             "Failed to load workflows",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -521,7 +618,21 @@ fn load_router_rules(app_handle: tauri::AppHandle) -> CmdResult<config::RouterRu
         err(
             "CONFIG_LOAD_FAILED",
             "Failed to load router rules",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
+        )
+    })
+}
+
+#[tauri::command]
+fn save_router_rules(
+    app_handle: tauri::AppHandle,
+    rules: config::RouterRulesConfig,
+) -> CmdResult<()> {
+    config::save_router_rules(&app_handle, &rules).map_err(|e| {
+        err(
+            "CONFIG_SAVE_FAILED",
+            "Failed to save router rules",
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -532,7 +643,7 @@ fn health_check(app_handle: tauri::AppHandle) -> CmdResult<Vec<config::TargetHea
         err(
             "CONFIG_LOAD_FAILED",
             "Failed to load targets for health check",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
 
@@ -687,7 +798,7 @@ fn preflight_target(
         err(
             "CONFIG_LOAD_FAILED",
             "Failed to load targets",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
 
@@ -951,14 +1062,14 @@ fn dispatch_confirm(app_handle: tauri::AppHandle, args: DispatchConfirmArgs) -> 
         if confirmed.len() > 1000 {
             confirmed.clear();
         }
-        if confirmed.contains(&args.hwnd) {
+        // §G2.1 Use insert() return value to atomically check-and-set
+        if !confirmed.insert(args.hwnd) {
             return Err(err(
                 "DISPATCH_DUPLICATE_CONFIRM",
                 "Confirm already sent for this target (idempotency guard)",
                 None,
             ));
         }
-        confirmed.insert(args.hwnd);
     }
 
     // §9.5 Soft Lock: verify foreground is target
@@ -1166,7 +1277,7 @@ fn route_prompt(
         err(
             "CONFIG_LOAD_FAILED",
             "Failed to load router rules",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
 
@@ -1215,7 +1326,7 @@ fn save_route_feedback(app_handle: tauri::AppHandle, args: RouteFeedbackArgs) ->
         err(
             "ARCHIVE_WRITE_FAILED",
             "Failed to save route feedback",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
 
@@ -1234,6 +1345,182 @@ fn save_route_feedback(app_handle: tauri::AppHandle, args: RouteFeedbackArgs) ->
     );
 
     Ok(())
+}
+
+#[tauri::command]
+fn get_route_feedbacks(app_handle: tauri::AppHandle) -> CmdResult<Vec<config::RouteFeedback>> {
+    config::load_route_feedbacks(&app_handle).map_err(|e| {
+        err(
+            "ARCHIVE_READ_FAILED",
+            "Failed to load route feedbacks",
+            Some(std_error_safe(e)),
+        )
+    })
+}
+
+// ═══════════════════════════════════════════════════════════
+// MCP Server (§6 MCP协议)
+// ═══════════════════════════════════════════════════════════
+
+/// MCP Server configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpServerConfig {
+    pub command: String,
+    pub args: Vec<String>,
+    pub env: HashMap<String, String>,
+}
+
+/// Static storage for MCP child process
+static MCP_CHILD: OnceLock<Mutex<Option<std::process::Child>>> = OnceLock::new();
+
+/// Allowed MCP server commands (whitelist)
+const ALLOWED_COMMANDS: [&str; 3] = ["node", "python3", "python"];
+
+/// Dangerous patterns that should be blocked in args
+const DANGEROUS_PATTERNS: [&str; 4] = ["|", ";", "&&", "rm -rf"];
+
+/// Start MCP Server subprocess
+#[tauri::command]
+fn mcp_start(app_handle: tauri::AppHandle, config: McpServerConfig) -> CmdResult<String> {
+    let trace_id = new_trace_id();
+
+    // Command whitelist validation
+    if !ALLOWED_COMMANDS.contains(&config.command.as_str()) {
+        let detail = format!(
+            "Command '{}' not in whitelist. Allowed: {:?}",
+            config.command, ALLOWED_COMMANDS
+        );
+        write_audit(
+            &app_handle,
+            AuditEvent {
+                ts_ms: now_ms(),
+                action: "mcp_start",
+                outcome: "rejected",
+                trace_id: &trace_id,
+                detail: Some(&detail),
+            },
+        );
+        return Err(err("MCP_INVALID_COMMAND", "Command not allowed", Some(detail)));
+    }
+
+    // Check args for dangerous patterns
+    for arg in &config.args {
+        for pattern in &DANGEROUS_PATTERNS {
+            if arg.contains(pattern) {
+                let detail = format!(
+                    "Dangerous pattern '{}' found in arg '{}'",
+                    pattern, arg
+                );
+                write_audit(
+                    &app_handle,
+                    AuditEvent {
+                        ts_ms: now_ms(),
+                        action: "mcp_start",
+                        outcome: "rejected",
+                        trace_id: &trace_id,
+                        detail: Some(&detail),
+                    },
+                );
+                return Err(err(
+                    "MCP_INVALID_ARG",
+                    "Dangerous pattern in arguments",
+                    Some(detail),
+                ));
+            }
+        }
+    }
+
+    // Kill existing process if any
+    if let Some(mut child) = MCP_CHILD.get_or_init(|| Mutex::new(None)).lock().map_err(|e| {
+        err("MCP_LOCK_ERROR", &format!("Failed to acquire MCP lock: {}", e), None)
+    })?.take() {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+
+    // Build command
+    let mut cmd = std::process::Command::new(&config.command);
+    cmd.args(&config.args);
+
+    // Set environment
+    for (key, value) in &config.env {
+        cmd.env(key, value);
+    }
+
+    // Configure stdin/stdout pipes
+    cmd.stdin(std::process::Stdio::piped());
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::inherit());
+
+    // Spawn child process
+    let child = cmd.spawn().map_err(|e| {
+        let detail = format!("Failed to start MCP server: {}", e);
+        write_audit(
+            &app_handle,
+            AuditEvent {
+                ts_ms: now_ms(),
+                action: "mcp_start",
+                outcome: "failed",
+                trace_id: &trace_id,
+                detail: Some(&detail),
+            },
+        );
+        err("MCP_START_FAILED", "Failed to start MCP server", Some("spawn_failed".to_string()))
+    })?;
+
+    let pid = child.id();
+    *MCP_CHILD.get_or_init(|| Mutex::new(None)).lock().map_err(|e| {
+        err("MCP_LOCK_ERROR", &format!("Failed to acquire MCP lock: {}", e), None)
+    })? = Some(child);
+
+    write_audit(
+        &app_handle,
+        AuditEvent {
+            ts_ms: now_ms(),
+            action: "mcp_start",
+            outcome: "success",
+            trace_id: &trace_id,
+            detail: Some(format!("MCP server started with PID {}", pid).as_str()),
+        },
+    );
+
+    Ok(format!("MCP server started with PID {}", pid))
+}
+
+/// Send JSON-RPC request to MCP Server
+#[tauri::command]
+fn mcp_request(request: String) -> CmdResult<String> {
+    let mut child_lock = MCP_CHILD.get_or_init(|| Mutex::new(None)).lock().map_err(|e| {
+        err("MCP_LOCK_ERROR", &format!("Failed to acquire MCP lock: {}", e), None)
+    })?;
+
+    let child = child_lock.as_mut().ok_or_else(|| {
+        err("MCP_NOT_RUNNING", "MCP server is not running. Call mcp_start first.", None)
+    })?;
+
+    let stdin = child.stdin.as_mut().ok_or_else(|| {
+        err("MCP_STDIN_ERROR", "Failed to access MCP stdin", None)
+    })?;
+
+    let stdout = child.stdout.as_mut().ok_or_else(|| {
+        err("MCP_STDOUT_ERROR", "Failed to access MCP stdout", None)
+    })?;
+
+    // Write request
+    stdin.write_all(request.as_bytes()).map_err(|e| {
+        err("MCP_WRITE_ERROR", &format!("Failed to write to MCP stdin: {}", e), None)
+    })?;
+    stdin.flush().map_err(|e| {
+        err("MCP_FLUSH_ERROR", &format!("Failed to flush MCP stdin: {}", e), None)
+    })?;
+
+    // Read response
+    let mut response = String::new();
+    stdout.read_to_string(&mut response).map_err(|e| {
+        err("MCP_READ_ERROR", &format!("Failed to read from MCP stdout: {}", e), None)
+    })?;
+
+    Ok(response)
 }
 
 fn derive_governance_records_from_run(
@@ -1255,7 +1542,7 @@ fn derive_governance_records_from_run(
     hard_gates.insert("no_open_p0_p1".to_string(), !failed);
     hard_gates.insert("security_high_resolved".to_string(), !security_failed);
     hard_gates.insert("critical_e2e_passed".to_string(), !failed);
-    hard_gates.insert("rollback_validated".to_string(), true);
+    hard_gates.insert("rollback_validated".to_string(), !failed); // §G3.3 Use actual failed status
 
     let scorecard = if failed {
         config::Scorecard {
@@ -1368,7 +1655,7 @@ fn save_run(app_handle: tauri::AppHandle, run: config::RunRecord) -> CmdResult<(
         err(
             "ARCHIVE_WRITE_FAILED",
             "Failed to save run",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
 
@@ -1378,21 +1665,21 @@ fn save_run(app_handle: tauri::AppHandle, run: config::RunRecord) -> CmdResult<(
         err(
             "ARCHIVE_WRITE_FAILED",
             "Failed to save governance change record",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
     config::save_quality_gate_result(&app_handle, &quality).map_err(|e| {
         err(
             "ARCHIVE_WRITE_FAILED",
             "Failed to save governance quality result",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
     config::save_release_decision(&app_handle, &decision).map_err(|e| {
         err(
             "ARCHIVE_WRITE_FAILED",
             "Failed to save governance release decision",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
 
@@ -1454,7 +1741,7 @@ fn load_runs(app_handle: tauri::AppHandle) -> CmdResult<Vec<config::RunRecord>> 
         err(
             "ARCHIVE_READ_FAILED",
             "Failed to load runs",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -1482,7 +1769,7 @@ fn write_event(app_handle: tauri::AppHandle, event: config::VaultEvent) -> CmdRe
         err(
             "ARCHIVE_WRITE_FAILED",
             "Failed to write event",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -1495,7 +1782,7 @@ fn save_artifact(app_handle: tauri::AppHandle, artifact: config::Artifact) -> Cm
         err(
             "ARCHIVE_WRITE_FAILED",
             "Failed to save artifact",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
 
@@ -1542,7 +1829,7 @@ fn save_dispatch_trace(
         err(
             "ARCHIVE_WRITE_FAILED",
             "Failed to save dispatch trace",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -1578,7 +1865,7 @@ fn governance_validate(
         err(
             "GOVERNANCE_VALIDATE_FAILED",
             "Failed to validate governance record",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
 
@@ -1613,7 +1900,7 @@ fn governance_latest(
         err(
             "GOVERNANCE_READ_FAILED",
             "Failed to load governance snapshot",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })
 }
@@ -1627,7 +1914,7 @@ fn governance_emit_telemetry(
         err(
             "TELEMETRY_WRITE_FAILED",
             "Failed to write telemetry event",
-            Some(e.to_string()),
+            Some(std_error_safe(e)),
         )
     })?;
     let _ = app_handle.emit(
@@ -1748,6 +2035,7 @@ pub fn run() {
             load_skills,
             load_workflows,
             load_router_rules,
+            save_router_rules,
             health_check,
             route_prompt,
             save_run,
@@ -1764,14 +2052,17 @@ pub fn run() {
             save_artifact,
             save_dispatch_trace,
             save_route_feedback,
+            get_route_feedbacks,
             governance_validate,
             governance_latest,
             governance_emit_telemetry,
             get_vault_stats,
             cleanup_vault,
+            mcp_start,
+            mcp_request,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .expect("error while running tauri application - check configuration");
 }
 
 #[cfg(test)]
