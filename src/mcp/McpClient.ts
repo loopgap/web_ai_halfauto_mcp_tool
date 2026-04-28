@@ -30,8 +30,15 @@ export interface McpClientOptions {
  * 通过 Web Worker 与 MCP Server 通信
  */
 export class McpClient {
+  /// Maximum pending requests
+  private static readonly MAX_PENDING_REQUESTS = 100;
+
   private worker: Worker | null = null;
-  private pendingRequests: Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }> = new Map();
+  private pendingRequests: Map<string, {
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+    timeoutId?: ReturnType<typeof setTimeout>;
+  }> = new Map();
   private isInitialized = false;
   private initPromise: Promise<void> | null = null;
   private options: Required<McpClientOptions>;
@@ -100,6 +107,11 @@ export class McpClient {
   ): Promise<T> {
     if (!this.isInitialized) {
       throw new Error("MCP Client not initialized");
+    }
+
+    // Check concurrency limit
+    if (this.pendingRequests.size >= McpClient.MAX_PENDING_REQUESTS) {
+      throw new Error('Too many pending requests, please wait');
     }
 
     // 检查是否已中止

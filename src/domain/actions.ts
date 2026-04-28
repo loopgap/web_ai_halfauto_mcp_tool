@@ -26,7 +26,7 @@ import type {
 } from "../types";
 import * as api from "../api";
 import * as injection from "./injection";
-import { createLogger } from "./logging";
+import { createLogger, sanitizeForLog } from "./logging";
 
 const logger = createLogger("actions");
 
@@ -85,12 +85,6 @@ export function checkQualityGates(text: string, gates: QualityGate[]): QualityCh
 }
 
 // ───────── 脱敏工具 (§3 前端安全 — 错误日志自动脱敏) ─────────
-
-function sanitizeForLog(text: string): string {
-  return text
-    .replace(/(?:password|token|secret|api[_-]?key)\s*[:=]\s*\S+/gi, "[REDACTED]")
-    .replace(/[A-Za-z0-9+/]{32,}/g, "[REDACTED_BASE64]");
-}
 
 // ───────── 安全防护层 (Security Hardening) ─────────
 
@@ -235,12 +229,8 @@ export function validatePrompt(text: string): string | null {
 }
 
 /** §60-§61 浏览器智能检测 — exe + class_name + title 启发式匹配，支持 12 种主流浏览器 */
-function detectBrowserId(win: WindowInfo): BrowserId {
+function detectByExe(win: WindowInfo): BrowserId | null {
   const exe = (win.exe_name ?? "").toLowerCase();
-  const cls = (win.class_name ?? "").toLowerCase();
-  const title = (win.title ?? "").toLowerCase();
-
-  // ── 精确 exe 匹配 (优先级最高) ──
   if (exe.includes("firefox") || exe.includes("firefox.exe")) return "firefox";
   if (exe.includes("waterfox")) return "waterfox";
   if (exe.includes("librewolf")) return "librewolf";
@@ -253,8 +243,12 @@ function detectBrowserId(win: WindowInfo): BrowserId {
   if (exe.includes("arc")) return "arc";
   if (exe.includes("chromium")) return "chromium";
   if (exe.includes("chrome")) return "chrome";
+  return null;
+}
 
-  // ── class_name 启发式 (exe 不可用时回退) ──
+function detectByClassName(win: WindowInfo): BrowserId | null {
+  const cls = (win.class_name ?? "").toLowerCase();
+  const title = (win.title ?? "").toLowerCase();
   if (cls.includes("mozillawindowclass")) {
     if (title.includes("waterfox")) return "waterfox";
     if (title.includes("librewolf")) return "librewolf";
@@ -263,20 +257,26 @@ function detectBrowserId(win: WindowInfo): BrowserId {
     return "firefox";
   }
   if (cls.includes("chrome_widgetwin_1")) {
-    if (title.includes("edge") || exe.includes("edge")) return "edge";
+    if (title.includes("edge")) return "edge";
     if (title.includes("brave")) return "brave";
     if (title.includes("vivaldi")) return "vivaldi";
     if (title.includes("opera")) return "opera";
     if (title.includes("arc")) return "arc";
     return "chrome";
   }
+  return null;
+}
 
-  // ── title 兜底启发式 ──
+function detectByTitle(win: WindowInfo): BrowserId | null {
+  const title = (win.title ?? "").toLowerCase();
   if (title.includes("firefox")) return "firefox";
   if (title.includes("chrome")) return "chrome";
   if (title.includes("edge")) return "edge";
+  return null;
+}
 
-  return "other";
+function detectBrowserId(win: WindowInfo): BrowserId {
+  return detectByExe(win) ?? detectByClassName(win) ?? detectByTitle(win) ?? "other";
 }
 
 /** 判断浏览器 ID 是否为已知预设类型 */
@@ -1053,7 +1053,7 @@ export async function recordRouteFeedback(
   decisionIntent: string,
   userAction: "accept" | "reject" | "override",
   overrideIntent?: string,
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   try {
     await api.saveRouteFeedback({
       trace_id: traceId,
@@ -1061,8 +1061,11 @@ export async function recordRouteFeedback(
       user_action: userAction,
       override_intent: overrideIntent,
     });
-  } catch {
-    console.warn("[§5] Failed to save route feedback");
+    return { success: true };
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.warn("[§5] Failed to save route feedback:", errorMsg);
+    return { success: false, error: errorMsg };
   }
 }
 

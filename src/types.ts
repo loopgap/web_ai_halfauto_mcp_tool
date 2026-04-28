@@ -97,6 +97,9 @@ export interface TargetsConfig {
 
 // ───────── Skill Schema v3 (§6) ─────────
 
+/** MCP 传输模式 */
+export type McpMode = "tauri" | "http" | "standalone";
+
 export interface SkillInput {
   type: string;
   required: boolean;
@@ -105,7 +108,7 @@ export interface SkillInput {
 }
 
 export interface SkillDispatch {
-  mode: string;
+  mode: McpMode;
   prefer_providers: string[];
   fixed_target: string | null;
   fanout_targets: string[];
@@ -464,6 +467,13 @@ export interface BrowserCandidate {
 }
 
 export type InjectionMode = "strict" | "balanced" | "lean";
+
+export interface DispatchOptions {
+  twoPhaseMode: boolean;
+  autoBrowserSelect: boolean;
+  autoInject: boolean;
+  injectionMode: InjectionMode;
+}
 
 export interface InstructionBlock {
   block_id: string;

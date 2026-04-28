@@ -438,6 +438,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowErrors(!showErrors)}
+          aria-expanded={showErrors}
+          aria-controls="section-error"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center">
@@ -453,7 +455,7 @@ export default function SettingsPage() {
         </button>
 
         {showErrors && (
-          <div className="mt-4 space-y-4">
+          <div id="section-error" className="mt-4 space-y-4">
             {Object.entries(errorsByCategory).map(([cat, errors]) => (
               <div key={cat}>
                 <h4 className="text-sm font-semibold text-slate-300 mb-2 uppercase">
@@ -494,6 +496,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowSelfHeal(!showSelfHeal)}
+          aria-expanded={showSelfHeal}
+          aria-controls="section-selfheal"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-pink-500/15 flex items-center justify-center">
@@ -509,7 +513,7 @@ export default function SettingsPage() {
         </button>
 
         {showSelfHeal && selfHealActions.length > 0 && (
-          <div className="mt-4 space-y-2">
+          <div id="section-selfheal" className="mt-4 space-y-2">
             {selfHealActions.map((a) => (
               <div
                 key={a.strategy_id}
@@ -537,6 +541,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowSlm(!showSlm)}
+          aria-expanded={showSlm}
+          aria-controls="section-slm"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center">
@@ -548,7 +554,7 @@ export default function SettingsPage() {
         </button>
 
         {showSlm && (
-          <div className="mt-4 space-y-4">
+          <div id="section-slm" className="mt-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="px-4 py-3.5 inner-panel rounded-xl">
                 <div className="text-xs text-slate-500">已加载模型</div>
@@ -593,6 +599,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowFeedback(!showFeedback)}
+          aria-expanded={showFeedback}
+          aria-controls="section-feedback"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-blue-500/15 flex items-center justify-center">
@@ -604,7 +612,7 @@ export default function SettingsPage() {
         </button>
 
         {showFeedback && (
-          <div className="mt-4 space-y-3">
+          <div id="section-feedback" className="mt-4 space-y-3">
             {feedbackStats.length === 0 ? (
               <p className="text-sm text-slate-500">暂无反馈数据。当用户纠正路由选择后，反馈记录将自动收集并进行自适应权重调整。</p>
             ) : (
@@ -629,6 +637,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowFocusRecipe(!showFocusRecipe)}
+          aria-expanded={showFocusRecipe}
+          aria-controls="section-focusrecipe"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-cyan-500/15 flex items-center justify-center">
@@ -640,7 +650,7 @@ export default function SettingsPage() {
         </button>
 
         {showFocusRecipe && (
-          <div className="mt-4">
+          <div id="section-focusrecipe" className="mt-4">
             <FocusRecipeEditor recipe={focusRecipe} onChange={setFocusRecipe} onTest={(recipe) => console.log("[FocusRecipe] test:", recipe)} />
           </div>
         )}
@@ -667,6 +677,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowExport(!showExport)}
+          aria-expanded={showExport}
+          aria-controls="section-export"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-teal-500/15 flex items-center justify-center">
@@ -677,7 +689,7 @@ export default function SettingsPage() {
           {showExport ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
         </button>
         {showExport && (
-          <div className="mt-4 space-y-3">
+          <div id="section-export" className="mt-4 space-y-3">
             <p className="text-xs text-slate-500">将当前 targets、skills、workflows、router_rules 导出为 JSON，或将 Run 记录导出为 Markdown。</p>
             <div className="flex flex-wrap gap-2">
               <button className="btn-primary text-sm" onClick={handleExportConfig}>
@@ -714,6 +726,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => { setShowVault(!showVault); if (!showVault && !vaultStats) handleLoadVaultStats(); }}
+          aria-expanded={showVault}
+          aria-controls="section-vault"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-slate-500/15 flex items-center justify-center">
@@ -724,7 +738,7 @@ export default function SettingsPage() {
           {showVault ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
         </button>
         {showVault && (
-          <div className="mt-4 space-y-3">
+          <div id="section-vault" className="mt-4 space-y-3">
             {vaultStats && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="px-4 py-3 inner-panel rounded-xl">
@@ -779,6 +793,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => { setShowDiag(!showDiag); if (!showDiag && !diagReport) handleRunDiagnostics(); }}
+          aria-expanded={showDiag}
+          aria-controls="section-diag"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
@@ -798,7 +814,7 @@ export default function SettingsPage() {
           </div>
         </button>
         {showDiag && (
-          <div className="mt-4 space-y-3">
+          <div id="section-diag" className="mt-4 space-y-3">
             {diagLoading && <p className="text-xs text-slate-500 animate-pulse">正在运行诊断检查...</p>}
             {diagReport && (
               <>
@@ -837,6 +853,8 @@ export default function SettingsPage() {
         <button
           className="w-full flex items-center justify-between"
           onClick={() => setShowHistory(!showHistory)}
+          aria-expanded={showHistory}
+          aria-controls="section-history"
         >
           <h3 className="text-base font-semibold flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-slate-500/15 flex items-center justify-center">
@@ -852,7 +870,7 @@ export default function SettingsPage() {
         </button>
 
         {showHistory && stateHistory.length > 0 && (
-          <div className="mt-4 space-y-1 max-h-[300px] overflow-auto">
+          <div id="section-history" className="mt-4 space-y-1 max-h-[300px] overflow-auto">
             {[...stateHistory].reverse().map((t, i) => (
               <div
                 key={i}

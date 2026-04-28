@@ -19,7 +19,7 @@ function isCronFieldValid(part: string, min: number, max: number): boolean {
   }
   if (/^\*\/\d+$/.test(part)) {
     const step = Number(part.slice(2));
-    return step > 0;
+    return step > 0 && step <= max;
   }
   return false;
 }
@@ -59,7 +59,7 @@ export function validateScheduleTrigger(trigger: ScheduleTrigger): { valid: bool
       isCronFieldValid(parts[0], 0, 59) &&
       isCronFieldValid(parts[1], 0, 23) &&
       isCronFieldValid(parts[2], 1, 31) &&
-      isCronFieldValid(parts[3], 1, 12) &&
+      isCronFieldValid(parts[3], 0, 11) && // §G1.3 getUTCMonth() returns 0-11
       isCronFieldValid(parts[4], 0, 6);
     return ok ? { valid: true } : { valid: false, reason: "cron contains unsupported field" };
   }

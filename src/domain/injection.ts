@@ -131,15 +131,19 @@ export function resolveInjectionBlocks(
   }
 
   // §86 长度约束
+  // §P2-3 Account for join("\n") newlines in length calculation
   let totalLen = 0;
   const finalApplied: InjectionBlock[] = [];
-  for (const block of applied) {
-    if (totalLen + block.content.length > policy.max_injection_length) {
+  for (let idx = 0; idx < applied.length; idx++) {
+    const block = applied[idx];
+    // Add newline length except for last block
+    const newlineLen = idx > 0 ? 1 : 0;
+    if (totalLen + block.content.length + newlineLen > policy.max_injection_length) {
       dropped.push(block);
       conflicts.push(`注入长度超限: "${block.block_id}" 被截断丢弃`);
       continue;
     }
-    totalLen += block.content.length;
+    totalLen += block.content.length + newlineLen;
     finalApplied.push(block);
   }
 
@@ -174,5 +178,6 @@ export function promptChecksum(text: string): string {
     hash = ((hash << 5) - hash) + char;
     hash |= 0; // Convert to 32bit integer
   }
-  return `ck-${Math.abs(hash).toString(16)}`;
+    // §P2-4 Handle 32-bit integer overflow for MIN_SAFE_INTEGER
+  return `ck-${(hash >>> 0).toString(16)}`;
 }

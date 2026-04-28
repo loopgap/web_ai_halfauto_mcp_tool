@@ -97,20 +97,30 @@ pub fn clipboard_get_text() -> OsWinResult<String> {
     ))
 }
 
+/// §P3 Clipboard retry configuration with exponential backoff
+const CLIPBOARD_RETRY_BASE_DELAY_MS: u64 = 10;
+const CLIPBOARD_RETRY_MAX_DELAY_MS: u64 = 100;
+const CLIPBOARD_RETRY_MAX_ATTEMPTS: u32 = 5;
+
 #[cfg(windows)]
-fn retry_clipboard_open(timeout_ms: u64, interval_ms: u64) -> OsWinResult<()> {
+fn retry_clipboard_open(_timeout_ms: u64, _interval_ms: u64) -> OsWinResult<()> {
     use windows::Win32::Foundation::HWND;
 
-    let start = std::time::Instant::now();
+    let mut attempts = 0;
+    let mut delay = CLIPBOARD_RETRY_BASE_DELAY_MS;
+
     loop {
         let opened = unsafe { OpenClipboard(Some(HWND::default())) };
         if opened.is_ok() {
             return Ok(());
         }
 
-        if start.elapsed() >= std::time::Duration::from_millis(timeout_ms) {
-            return Err(OsWinError::Timeout(timeout_ms));
+        if attempts >= CLIPBOARD_RETRY_MAX_ATTEMPTS {
+            return Err(OsWinError::Timeout(CLIPBOARD_RETRY_MAX_ATTEMPTS as u64 * CLIPBOARD_RETRY_BASE_DELAY_MS));
         }
-        std::thread::sleep(std::time::Duration::from_millis(interval_ms));
+
+        std::thread::sleep(std::time::Duration::from_millis(delay));
+        delay = (delay * 2).min(CLIPBOARD_RETRY_MAX_DELAY_MS);
+        attempts += 1;
     }
 }

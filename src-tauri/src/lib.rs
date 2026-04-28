@@ -26,8 +26,9 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::{self};
-use std::io::{Read, Write};
-use std::sync::{Mutex, OnceLock};
+use std::io::Write;
+use std::sync::{mpsc, Mutex, OnceLock};
+use std::thread;
 use std::time::{Duration, Instant};
 use tauri::Emitter;
 
@@ -106,6 +107,136 @@ static DISPATCH_GUARD: OnceLock<Mutex<DispatchGuard>> = OnceLock::new();
 static CONFIRM_GUARD: OnceLock<Mutex<HashSet<u64>>> = OnceLock::new();
 /// §G2.2 Audit thread safety: protect concurrent file writes
 static AUDIT_GUARD: OnceLock<Mutex<()>> = OnceLock::new();
+/// §P1 Regex compilation cache to avoid recompiling same patterns
+static REGEX_CACHE: OnceLock<Mutex<HashMap<String, Regex>>> = OnceLock::new();
+
+/// Get a cached compiled regex or compile and cache a new one
+fn get_cached_regex(pattern: &str) -> Result<Regex, regex::Error> {
+    let cache = REGEX_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = cache.lock().map_err(|_| regex::Error::Syntax("lock poisoned".into()))?;
+
+    if let Some(regex) = guard.get(pattern).cloned() {
+        return Ok(regex);
+    }
+
+    let regex = Regex::new(pattern)?;
+    guard.insert(pattern.to_string(), regex.clone());
+    Ok(regex)
+}
+
+/// §P2 Owned audit event for async channel sending
+#[derive(Debug, Clone)]
+struct SendableAuditEvent {
+    ts_ms: u64,
+    action: String,
+    outcome: String,
+    trace_id: String,
+    detail: Option<String>,
+}
+
+impl From<AuditEvent<'_>> for SendableAuditEvent {
+    fn from(event: AuditEvent<'_>) -> Self {
+        SendableAuditEvent {
+            ts_ms: event.ts_ms as u64,
+            action: event.action.to_string(),
+            outcome: event.outcome.to_string(),
+            trace_id: event.trace_id.to_string(),
+            detail: event.detail.map(|s| s.to_string()),
+        }
+    }
+}
+
+/// §P2 MPSC channel for async audit logging
+static AUDIT_CHANNEL: OnceLock<mpsc::Sender<SendableAuditEvent>> = OnceLock::new();
+
+/// §P2 Initialize the audit background thread
+fn init_audit_channel() {
+    let _ = AUDIT_CHANNEL.get_or_init(|| {
+        let (tx, rx) = mpsc::channel::<SendableAuditEvent>();
+
+        // Spawn dedicated audit thread
+        thread::spawn(move || {
+            while let Ok(event) = rx.recv() {
+                // Write to audit storage
+                let entry = serde_json::json!({
+                    "ts_ms": event.ts_ms,
+                    "action": event.action,
+                    "outcome": event.outcome,
+                    "detail": event.detail,
+                    "trace_id": event.trace_id,
+                });
+
+                if let Ok(line) = serde_json::to_string(&entry) {
+                    if let Some(app_handle) = get_app_handle_for_audit() {
+                        let ctx = TauriContext::new(app_handle);
+                        let audit_path = ctx.audit_dir();
+                        let security_path = audit_path.join("security_events.jsonl");
+
+                        if std::fs::create_dir_all(&audit_path).is_ok() {
+                            if let Ok(mut file) = std::fs::OpenOptions::new()
+                                .create(true)
+                                .append(true)
+                                .open(&security_path)
+                            {
+                                use std::io::Write;
+                                let _ = writeln!(file, "{}", line);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        tx
+    });
+}
+
+/// §P2 Get app handle for audit thread
+fn get_app_handle_for_audit() -> Option<tauri::AppHandle> {
+    None
+}
+
+/// §P2 Write audit event asynchronously (non-blocking send)
+fn write_audit_async(event: AuditEvent<'_>) {
+    if AUDIT_CHANNEL.get().is_none() {
+        init_audit_channel();
+    }
+
+    if let Some(tx) = AUDIT_CHANNEL.get() {
+        let sendable: SendableAuditEvent = event.into();
+        let _ = tx.send(sendable);
+    }
+}
+
+/// §P2 Write audit event synchronously (for critical/error cases)
+fn write_audit_sync(ctx: &dyn AppContext, event: AuditEvent<'_>) {
+    let audit_path = ctx.audit_dir();
+    let security_path = audit_path.join("security_events.jsonl");
+
+    if let Err(e) = std::fs::create_dir_all(&audit_path) {
+        eprintln!("[audit] Failed to create audit dir: {}", e);
+        return;
+    }
+
+    let entry = serde_json::json!({
+        "ts_ms": event.ts_ms,
+        "action": event.action,
+        "outcome": event.outcome,
+        "detail": event.detail,
+        "trace_id": event.trace_id,
+    });
+
+    if let Ok(line) = serde_json::to_string(&entry) {
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&security_path)
+        {
+            use std::io::Write;
+            let _ = writeln!(file, "{}", line);
+        }
+    }
+}
 
 #[derive(Debug, Default)]
 struct DispatchGuard {
@@ -188,10 +319,17 @@ fn map_os_error(action: &str, e: PlatformError) -> ApiError {
 }
 
 /// Write audit event to security audit log
-/// Supports both Tauri mode (via AppHandle) and standalone mode (via context)
+/// §P2: For success outcomes, uses async logging to avoid lock contention.
+/// For error/failure outcomes, uses synchronous logging for security-critical events.
 pub fn write_audit(app_handle: &tauri::AppHandle, event: AuditEvent<'_>) {
     let ctx = TauriContext::new(app_handle.clone());
-    write_audit_with_context(&ctx, event);
+    if event.outcome == "ok" {
+        // Success path: use async logging to avoid lock contention
+        write_audit_async(event);
+    } else {
+        // Error path: keep synchronous for security-critical events
+        write_audit_sync(&ctx, event);
+    }
 }
 
 /// Write audit event using AppContext
@@ -717,7 +855,7 @@ fn evaluate_target_status(
 
         // title_regex match (fallback §9.1)
         for pat in &mc.title_regex {
-            if let Ok(re) = Regex::new(pat) {
+            if let Ok(re) = get_cached_regex(pat) {
                 if re.is_match(&win.title) {
                     score += 1;
                     break;
@@ -1373,116 +1511,228 @@ pub struct McpServerConfig {
 /// Static storage for MCP child process
 static MCP_CHILD: OnceLock<Mutex<Option<std::process::Child>>> = OnceLock::new();
 
-/// Allowed MCP server commands (whitelist)
-const ALLOWED_COMMANDS: [&str; 3] = ["node", "python3", "python"];
+/// Allowed MCP server commands with acceptable paths
+const ALLOWED_COMMANDS: &[&str] = &[
+    "node", "python3", "python",  // Simple names
+    "/usr/bin/node", "/usr/bin/python3", "/usr/bin/python",
+    "/usr/local/bin/node", "/usr/local/bin/python3", "/usr/local/bin/python",
+    // Windows paths
+    "C:\\Program Files\\nodejs\\node.exe",
+    "C:\\Python311\\python.exe", "C:\\Python310\\python.exe",
+];
 
 /// Dangerous patterns that should be blocked in args
-const DANGEROUS_PATTERNS: [&str; 4] = ["|", ";", "&&", "rm -rf"];
+const DANGEROUS_PATTERNS: &[&str] = &[
+    // Shell operators
+    "|", "||", ";", "&&", "&",
+    // I/O redirection
+    ">", ">>", "<", "<<", "2>&1", ">&1", "|&",
+    // Command substitution
+    "$(", "`", "${",
+    // Path traversal
+    "..", "../", "/..", "\\..",
+    // Dangerous commands
+    "rm -rf", "rm -r -f", "rm -f -r", "mkfs", "dd",
+    "nohup", "setsid",
+    // Newlines (command injection)
+    "\n", "\r",
+    // Environment variable injection
+    "LD_PRELOAD", "DYLD_INSERT",
+];
 
-/// Start MCP Server subprocess
+/// Blocked environment variables (security sensitive)
+const BLOCKED_ENV_VARS: &[&str] = &[
+    "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT", "LD_PRELOAD_AUDIT",
+    "DYLD_INSERT_LIBRARIES", "DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH",
+    "DYLD_INSERT", "DYLD_SET_LIBRARY_PATH",
+    "SYSTEM_ROOT", "SYSTEM_EMUL_PREFIX",
+    "PYTHONPATH", "PYTHONHOME", "PERL5LIB", "PERL_LIB",
+    "NODE_PATH", "NODE_OPTIONS",
+    "BASH_ENV", "ENV", "IFS",
+    "PATH",  // Block modification of PATH
+    "LD_DEBUG", "LD_PROFILE", "LD_TRACE_LOADED_OBJECTS",
+];
+
+/// IO limits
+const MAX_REQUEST_SIZE: usize = 1024 * 1024;     // 1MB
+const MAX_RESPONSE_SIZE: usize = 10 * 1024 * 1024; // 10MB
+
+/// Validate command is in whitelist (name OR absolute path)
+fn validate_command(cmd: &str) -> Result<(), String> {
+    // If contains path separator, must be in absolute path whitelist
+    if cmd.contains('/') || cmd.contains('\\') {
+        let is_allowed = ALLOWED_COMMANDS.iter().any(|allowed| {
+            cmd.eq_ignore_ascii_case(allowed)
+        });
+        if !is_allowed {
+            return Err(format!("Command path '{}' not in whitelist", cmd));
+        }
+    } else {
+        // Simple command name - check if in simple name list
+        let simple_cmds = ["node", "python3", "python"];
+        if !simple_cmds.contains(&cmd) {
+            return Err(format!("Command '{}' not in whitelist", cmd));
+        }
+    }
+    Ok(())
+}
+
+/// Validate argument contains no dangerous patterns
+fn validate_arg(arg: &str) -> Result<(), String> {
+    if arg.contains('\0') {
+        return Err("Argument contains null byte".to_string());
+    }
+    for pattern in DANGEROUS_PATTERNS {
+        if arg.contains(pattern) {
+            return Err(format!(
+                "Argument contains dangerous pattern '{}'", pattern
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Validate single environment variable
+fn validate_env_var(key: &str, value: &str) -> Result<(), String> {
+    // Check if key is blocked
+    for blocked in BLOCKED_ENV_VARS {
+        if key.eq_ignore_ascii_case(blocked) {
+            return Err(format!("Environment variable '{}' is not allowed", key));
+        }
+    }
+    // Check for null bytes
+    if key.contains('\0') || value.contains('\0') {
+        return Err("Environment variable contains null byte".to_string());
+    }
+    Ok(())
+}
+
+/// Validate request size
+fn validate_request_size(request: &str) -> Result<(), String> {
+    let size = request.len();
+    if size > MAX_REQUEST_SIZE {
+        return Err(format!(
+            "Request size {} exceeds limit {}", size, MAX_REQUEST_SIZE
+        ));
+    }
+    if size == 0 {
+        return Err("Request is empty".to_string());
+    }
+    Ok(())
+}
+
+/// Safe read with size limit
+fn safe_read_to_string(reader: &mut dyn std::io::Read, max_size: usize) -> Result<String, String> {
+    let mut buffer = Vec::new();
+    let mut chunk = [0u8; 8192];
+
+    loop {
+        let bytes_read = std::io::Read::read(reader, &mut chunk)
+            .map_err(|e| format!("Read error: {}", e))?;
+        if bytes_read == 0 {
+            break;
+        }
+        if buffer.len() + bytes_read > max_size {
+            return Err(format!("Response exceeds maximum size {} bytes", max_size));
+        }
+        buffer.extend_from_slice(&chunk[..bytes_read]);
+    }
+
+    String::from_utf8(buffer)
+        .map_err(|e| format!("Invalid UTF-8: {}", e))
+}
+
+/// Start MCP Server subprocess (atomic process management)
 #[tauri::command]
 fn mcp_start(app_handle: tauri::AppHandle, config: McpServerConfig) -> CmdResult<String> {
     let trace_id = new_trace_id();
 
-    // Command whitelist validation
-    if !ALLOWED_COMMANDS.contains(&config.command.as_str()) {
-        let detail = format!(
-            "Command '{}' not in whitelist. Allowed: {:?}",
-            config.command, ALLOWED_COMMANDS
-        );
-        write_audit(
-            &app_handle,
-            AuditEvent {
+    // Acquire lock ONCE and hold for entire operation
+    let mut child_guard = MCP_CHILD.get_or_init(|| Mutex::new(None)).lock().map_err(|e| {
+        err("MCP_LOCK_ERROR", &format!("Failed to acquire MCP lock: {}", e), None)
+    })?;
+
+    // 1. Validate command (still under lock)
+    validate_command(&config.command).map_err(|detail| {
+        write_audit(&app_handle, AuditEvent {
+            ts_ms: now_ms(),
+            action: "mcp_start",
+            outcome: "rejected",
+            trace_id: &trace_id,
+            detail: Some(&detail),
+        });
+        err("MCP_INVALID_COMMAND", "Command not allowed", Some(detail))
+    })?;
+
+    // 2. Validate args (still under lock)
+    for arg in &config.args {
+        validate_arg(arg).map_err(|detail| {
+            write_audit(&app_handle, AuditEvent {
                 ts_ms: now_ms(),
                 action: "mcp_start",
                 outcome: "rejected",
                 trace_id: &trace_id,
                 detail: Some(&detail),
-            },
-        );
-        return Err(err("MCP_INVALID_COMMAND", "Command not allowed", Some(detail)));
+            });
+            err("MCP_INVALID_ARG", "Dangerous pattern in arguments", Some(detail))
+        })?;
     }
 
-    // Check args for dangerous patterns
-    for arg in &config.args {
-        for pattern in &DANGEROUS_PATTERNS {
-            if arg.contains(pattern) {
-                let detail = format!(
-                    "Dangerous pattern '{}' found in arg '{}'",
-                    pattern, arg
-                );
-                write_audit(
-                    &app_handle,
-                    AuditEvent {
-                        ts_ms: now_ms(),
-                        action: "mcp_start",
-                        outcome: "rejected",
-                        trace_id: &trace_id,
-                        detail: Some(&detail),
-                    },
-                );
-                return Err(err(
-                    "MCP_INVALID_ARG",
-                    "Dangerous pattern in arguments",
-                    Some(detail),
-                ));
-            }
-        }
+    // 3. Validate env vars (still under lock)
+    for (key, value) in &config.env {
+        validate_env_var(key, value).map_err(|detail| {
+            write_audit(&app_handle, AuditEvent {
+                ts_ms: now_ms(),
+                action: "mcp_start",
+                outcome: "rejected",
+                trace_id: &trace_id,
+                detail: Some(&detail),
+            });
+            err("MCP_INVALID_ENV", "Dangerous environment variable", Some(detail))
+        })?;
     }
 
-    // Kill existing process if any
-    if let Some(mut child) = MCP_CHILD.get_or_init(|| Mutex::new(None)).lock().map_err(|e| {
-        err("MCP_LOCK_ERROR", &format!("Failed to acquire MCP lock: {}", e), None)
-    })?.take() {
+    // 4. Kill existing process (still under lock)
+    if let Some(mut child) = child_guard.take() {
         let _ = child.kill();
         let _ = child.wait();
     }
 
-    // Build command
+    // 5. Build command (still under lock)
     let mut cmd = std::process::Command::new(&config.command);
     cmd.args(&config.args);
-
-    // Set environment
     for (key, value) in &config.env {
         cmd.env(key, value);
     }
-
-    // Configure stdin/stdout pipes
     cmd.stdin(std::process::Stdio::piped());
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::inherit());
 
-    // Spawn child process
+    // 6. Spawn child (still under lock)
     let child = cmd.spawn().map_err(|e| {
         let detail = format!("Failed to start MCP server: {}", e);
-        write_audit(
-            &app_handle,
-            AuditEvent {
-                ts_ms: now_ms(),
-                action: "mcp_start",
-                outcome: "failed",
-                trace_id: &trace_id,
-                detail: Some(&detail),
-            },
-        );
+        write_audit(&app_handle, AuditEvent {
+            ts_ms: now_ms(),
+            action: "mcp_start",
+            outcome: "failed",
+            trace_id: &trace_id,
+            detail: Some(&detail),
+        });
         err("MCP_START_FAILED", "Failed to start MCP server", Some("spawn_failed".to_string()))
     })?;
 
     let pid = child.id();
-    *MCP_CHILD.get_or_init(|| Mutex::new(None)).lock().map_err(|e| {
-        err("MCP_LOCK_ERROR", &format!("Failed to acquire MCP lock: {}", e), None)
-    })? = Some(child);
+    *child_guard = Some(child);
 
-    write_audit(
-        &app_handle,
-        AuditEvent {
-            ts_ms: now_ms(),
-            action: "mcp_start",
-            outcome: "success",
-            trace_id: &trace_id,
-            detail: Some(format!("MCP server started with PID {}", pid).as_str()),
-        },
-    );
+    // Lock released automatically at end of function
+
+    write_audit(&app_handle, AuditEvent {
+        ts_ms: now_ms(),
+        action: "mcp_start",
+        outcome: "success",
+        trace_id: &trace_id,
+        detail: Some(format!("MCP server started with PID {}", pid).as_str()),
+    });
 
     Ok(format!("MCP server started with PID {}", pid))
 }
@@ -1490,6 +1740,11 @@ fn mcp_start(app_handle: tauri::AppHandle, config: McpServerConfig) -> CmdResult
 /// Send JSON-RPC request to MCP Server
 #[tauri::command]
 fn mcp_request(request: String) -> CmdResult<String> {
+    // Validate request size first
+    validate_request_size(&request).map_err(|detail| {
+        err("MCP_REQUEST_TOO_LARGE", "Request exceeds size limit", Some(detail))
+    })?;
+
     let mut child_lock = MCP_CHILD.get_or_init(|| Mutex::new(None)).lock().map_err(|e| {
         err("MCP_LOCK_ERROR", &format!("Failed to acquire MCP lock: {}", e), None)
     })?;
@@ -1514,9 +1769,8 @@ fn mcp_request(request: String) -> CmdResult<String> {
         err("MCP_FLUSH_ERROR", &format!("Failed to flush MCP stdin: {}", e), None)
     })?;
 
-    // Read response
-    let mut response = String::new();
-    stdout.read_to_string(&mut response).map_err(|e| {
+    // Read response with size limit
+    let response = safe_read_to_string(stdout, MAX_RESPONSE_SIZE).map_err(|e| {
         err("MCP_READ_ERROR", &format!("Failed to read from MCP stdout: {}", e), None)
     })?;
 

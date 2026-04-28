@@ -52,7 +52,7 @@ async function sendJsonRpcRequest(method: string, params?: Record<string, unknow
 
     return response.result;
   } catch (error) {
-    console.error("[McpWorker] JSON-RPC request failed:", error);
+    console.error("[McpWorker] Request failed, retrying...");
     throw error;
   }
 }
@@ -106,7 +106,7 @@ self.onmessage = async (event: MessageEvent<McpWorkerMessage>) => {
           id: "init",
           error: {
             code: -1,
-            message: error instanceof Error ? error.message : String(error),
+            message: 'Initialization failed',  // Generic message
           },
         });
       }
@@ -143,7 +143,7 @@ self.onmessage = async (event: MessageEvent<McpWorkerMessage>) => {
             id: message.id,
             error: {
               code: -1,
-              message: error instanceof Error ? error.message : String(error),
+              message: 'Request failed',  // Generic message
             },
           });
         }

@@ -47,15 +47,19 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
   sideEffectRef.current = sideEffects;
   const cleanupRef = useRef({ cancelled: false, unlisten: null as UnlistenFn | null });
 
+  // §E2 事件序列化队列 - 确保事件顺序处理，防止并发状态更新覆盖
+  const eventQueue = useRef<WorkbenchEvent[]>([]);
+  const isProcessing = useRef(false);
+
+  /** 队列背压机制：队列最大长度，防止内存泄漏 */
+  const MAX_QUEUE_SIZE = 1000;
+
   useEffect(() => {
     let unlisten: UnlistenFn | null = null;
 
-    const setup = async () => {
-      const fn = await listen<WorkbenchEvent>("workbench-event", (event) => {
-        const payload = event.payload;
-        const d = dispatchRef.current;
-
-        switch (payload.event_type) {
+    /** §E2 从队列中处理单个事件 */
+    const handleEvent = (payload: WorkbenchEvent, d: Dispatch<AppAction>, sideEffect: EventSideEffect | undefined) => {
+      switch (payload.event_type) {
           // ──── Run lifecycle events ────
           case "RunCreated":
           case "RunUpdated":
@@ -77,7 +81,7 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
           // ──── Step lifecycle events (§37/§38) ────
           case "StepDispatched":
             if (payload.run_id) {
-              sideEffectRef.current?.(payload);
+              sideEffect?.(payload);
             }
             break;
 
@@ -97,7 +101,7 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
                 ...payload,
                 event_type: "StepCaptured:auto_advance",
               });
-              sideEffectRef.current?.(payload);
+              sideEffect?.(payload);
             }
             break;
 
@@ -105,14 +109,14 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
           case "StepAwaitingSend":
           case "StepWaitingOutput":
             if (payload.run_id) {
-              sideEffectRef.current?.(payload);
+              sideEffect?.(payload);
             }
             break;
 
           case "ClipboardCaptured":
           case "NewFileInInbox":
           case "NewSourceFetched":
-            sideEffectRef.current?.(payload);
+            sideEffect?.(payload);
             break;
 
           case "StepFailed":
@@ -129,24 +133,24 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
                 },
               });
               d({ type: "SET_PAGE_STATE", payload: { page: "console", state: "error" } });
-              sideEffectRef.current?.(payload);
+              sideEffect?.(payload);
             }
             break;
 
           // ──── Target events ────
           case "TargetMissing":
             // §9.3 目标丢失 → 触发副作用（toast 通知等）
-            sideEffectRef.current?.(payload);
+            sideEffect?.(payload);
             break;
 
           case "TargetRebound":
             // 目标重绑成功
-            sideEffectRef.current?.(payload);
+            sideEffect?.(payload);
             break;
 
           // ──── Artifact events ────
           case "ArtifactSaved":
-            sideEffectRef.current?.(payload);
+            sideEffect?.(payload);
             break;
 
           // ═══ Governance events ═══
@@ -160,24 +164,56 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
             if (payload.decision && typeof payload.decision === "object") {
               d({ type: "UPSERT_GOV_DECISION", payload: payload.decision as ReleaseDecisionRecord });
             }
-            sideEffectRef.current?.(payload);
+            sideEffect?.(payload);
             break;
 
           case "GovernanceValidation":
             if (payload.report && typeof payload.report === "object") {
               d({ type: "ADD_GOV_REPORT", payload: payload.report as GovernanceValidationReport });
             }
-            sideEffectRef.current?.(payload);
+            sideEffect?.(payload);
             break;
 
           case "TelemetryEmitted":
-            sideEffectRef.current?.(payload);
+            sideEffect?.(payload);
             break;
 
           default:
             // 未知事件静默忽略（生产环境不 console.debug）
             break;
+      }
+    };
+
+    /** §E2 处理事件队列，串行执行 */
+    const processQueue = async () => {
+      if (isProcessing.current || eventQueue.current.length === 0) return;
+      isProcessing.current = true;
+
+      while (eventQueue.current.length > 0) {
+        const event = eventQueue.current.shift();
+        if (event) {
+          handleEvent(event, dispatchRef.current, sideEffectRef.current);
         }
+      }
+
+      isProcessing.current = false;
+    };
+
+    const setup = async () => {
+      const fn = await listen<WorkbenchEvent>("workbench-event", (event) => {
+        // §E2 事件入队，异步串行处理
+        // §E2 背压机制：队列满时移除最旧事件，异步发出 QUEUE_OVERFLOW 警告
+        if (eventQueue.current.length >= MAX_QUEUE_SIZE) {
+          const overflowEvent: WorkbenchEvent = {
+            event_type: "QUEUE_OVERFLOW",
+            message: `Event queue overflow: removed oldest event. Queue size: ${MAX_QUEUE_SIZE}`,
+            oldest_event: eventQueue.current.shift(),
+          };
+          // 异步发出警告，不阻塞事件发送者
+          setTimeout(() => sideEffectRef.current?.(overflowEvent), 0);
+        }
+        eventQueue.current.push(event.payload);
+        processQueue();
       });
       // Guard: if component unmounted while listen() was pending, clean up immediately
       if (cleanupRef.current.cancelled) {
@@ -193,6 +229,8 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
     return () => {
       cleanupRef.current.cancelled = true;
       if (cleanupRef.current.unlisten) cleanupRef.current.unlisten();
+      // §E2 清理队列，防止内存泄漏
+      eventQueue.current = [];
     };
   }, []);
 

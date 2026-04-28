@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import {
   analyzeDag,
+  clearDagCache,
   createWorkflowExecution,
   getReadySteps,
   getRunnableWorkflowSteps,
@@ -49,6 +50,10 @@ function makeWorkflow(steps: Array<{ id: string; depends_on: string[] }>): Workf
 }
 
 describe("analyzeDag", () => {
+  beforeEach(() => {
+    clearDagCache();
+  });
+
   it("线性 DAG 正确拓扑排序", () => {
     const wf = makeWorkflow([
       { id: "a", depends_on: [] },
@@ -130,6 +135,10 @@ describe("createWorkflowExecution", () => {
 });
 
 describe("getReadySteps", () => {
+  beforeEach(() => {
+    clearDagCache();
+  });
+
   it("根节点立即就绪", () => {
     const wf = makeWorkflow([
       { id: "a", depends_on: [] },
@@ -358,6 +367,10 @@ describe("getExecutionProgress", () => {
 });
 
 describe("validateWorkflowDag", () => {
+  beforeEach(() => {
+    clearDagCache();
+  });
+
   it("有效 workflow 无问题 (除缺少 compensation)", () => {
     const wf: Workflow = {
       id: "wf-v",

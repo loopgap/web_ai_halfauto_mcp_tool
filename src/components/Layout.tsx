@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Zap,
   GitBranch,
+  GitCommit,
   Monitor,
   Archive,
   Settings,
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "仪表盘", desc: "总览" },
   { to: "/skills", icon: Zap, label: "Skills", desc: "技能库" },
   { to: "/workflows", icon: GitBranch, label: "Workflows", desc: "工作流" },
+  { to: "/workflow-editor", icon: GitCommit, label: "编辑器", desc: "可视化编辑" },
   { to: "/console", icon: Monitor, label: "Console", desc: "控制台" },
   { to: "/archive", icon: Archive, label: "Archive", desc: "归档" },
   { to: "/scheduler", icon: CalendarClock, label: "Scheduler", desc: "定时" },
@@ -35,6 +37,7 @@ const pageTitle: Record<string, string> = {
   "/": "仪表盘",
   "/skills": "Skills 技能库",
   "/workflows": "Workflows 工作流",
+  "/workflow-editor": "工作流编辑器",
   "/console": "运行控制台",
   "/archive": "Runs 归档",
   "/scheduler": "Scheduler 定时任务",
@@ -68,6 +71,7 @@ export default function Layout() {
     { key: "ctrl+6",       handler: () => navigate("/scheduler") },
     { key: "ctrl+7",       handler: () => navigate("/reports") },
     { key: "ctrl+8",       handler: () => navigate("/targets") },
+    { key: "ctrl+9",       handler: () => navigate("/workflow-editor") },
     { key: "ctrl+,",       handler: () => navigate("/settings") },
   ]);
 
@@ -186,6 +190,7 @@ export default function Layout() {
               <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-slate-500 text-xs cursor-pointer hover:bg-white/[0.06] transition-colors"
                    onClick={() => setCmdOpen(true)}
                    role="button"
+                   aria-label="打开命令面板"
                    tabIndex={0}
                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setCmdOpen(true); }}>
                 <Search size={13} />
