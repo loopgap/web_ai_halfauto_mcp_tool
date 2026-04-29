@@ -205,7 +205,7 @@ jobs:
 
   # ── Tauri 完整构建 (仅 main 分支，简化依赖) ──
   build-release:
-    if: github.ref == 'refs/heads/main'
+    # TEMP: 验证 develop 分支的 build
     needs: [backend-check, backend-check-windows]
     strategy:
       fail-fast: false
