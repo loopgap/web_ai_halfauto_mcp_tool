@@ -37,7 +37,7 @@ export function generateTraceId(): string {
   return `t${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function sanitizeForLog(text: string): string {
+export function sanitizeForLog(text: string): string {
   return text
     .replace(/(?:password|token|secret|api[_-]?key)\s*[:=]\s*\S+/gi, "[REDACTED]")
     .replace(/[A-Za-z0-9+/]{32,}/g, "[REDACTED_BASE64]");

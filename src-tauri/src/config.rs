@@ -1411,6 +1411,16 @@ pub fn load_router_rules(
     }
 }
 
+pub fn save_router_rules(
+    app: &tauri::AppHandle,
+    rules: &RouterRulesConfig,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let path = config_dir(app).join("router_rules.yaml");
+    let yaml = serde_yaml::to_string(rules)?;
+    atomic_write(&path, yaml)?;
+    Ok(())
+}
+
 fn default_router_rules() -> RouterRulesConfig {
     let mut intents = HashMap::new();
     intents.insert(
@@ -2568,8 +2578,9 @@ pub fn route_prompt(prompt: &str, rules: &RouterRulesConfig) -> RouteDecision {
                     || normalized.contains(&kw_lower) // fallback to substring for CJK
             })
             .count();
-        let hard_match_score = if !rule.keywords.is_empty() && hard_hits == rule.keywords.len() {
-            1.0 // All keywords matched exactly → perfect hard match
+        // §G3.1 Partial matching: award proportional score for partial matches
+        let hard_match_score = if !rule.keywords.is_empty() && hard_hits > 0 {
+            (hard_hits as f64) / (rule.keywords.len() as f64)
         } else {
             0.0
         };
@@ -2619,10 +2630,14 @@ pub fn route_prompt(prompt: &str, rules: &RouterRulesConfig) -> RouteDecision {
         breakdown.insert("semantic_match".to_string(), semantic_score);
 
         // ─── confidence_boost from rule config ───
+        // §G3.2 Apply boost with decay to preserve differentiation (0.9+0.2→0.96 not 1.0)
         score += rule.confidence_boost;
         breakdown.insert("confidence_boost".to_string(), rule.confidence_boost);
 
-        // Clamp to [0, 1]
+        // Apply soft clamp to preserve differentiation
+        if score > 1.0 {
+            score = 1.0 - (score - 1.0) * 0.5; // Decay instead of hard clamp
+        }
         score = score.clamp(0.0, 1.0);
 
         let match_type = if match_types.is_empty() {
@@ -2743,6 +2758,28 @@ pub fn save_route_feedback(
     let json = serde_json::to_string_pretty(fb)?;
     atomic_write(&path, json)?;
     Ok(())
+}
+
+/// §5 加载所有路由反馈记录
+pub fn load_route_feedbacks(
+    app: &tauri::AppHandle,
+) -> Result<Vec<RouteFeedback>, Box<dyn std::error::Error>> {
+    let dir = vault_dir(app).join("route_feedback");
+    let mut feedbacks = Vec::new();
+    if dir.exists() {
+        let mut entries: Vec<_> = fs::read_dir(&dir)?
+            .filter_map(|e| e.ok())
+            .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
+            .collect();
+        entries.sort_by_key(|b| std::cmp::Reverse(b.file_name()));
+        for entry in entries.iter().take(500) {
+            let content = fs::read_to_string(entry.path())?;
+            if let Ok(fb) = serde_json::from_str::<RouteFeedback>(&content) {
+                feedbacks.push(fb);
+            }
+        }
+    }
+    Ok(feedbacks)
 }
 
 // Enterprise Closed Loop v2 shared contracts
@@ -3003,4 +3040,40 @@ pub fn governance_latest(
         quality,
         decision,
     }))
+}
+
+// ============================================================================
+// Context-aware path functions (for standalone mode)
+// ============================================================================
+
+use crate::context::AppContext;
+
+/// Get config directory from AppContext
+#[allow(dead_code)]
+pub fn config_dir_from_context(ctx: &dyn AppContext) -> PathBuf {
+    ctx.config_base().join("config")
+}
+
+/// Get vault directory from AppContext
+#[allow(dead_code)]
+pub fn vault_dir_from_context(ctx: &dyn AppContext) -> PathBuf {
+    ctx.config_base().join("vault")
+}
+
+/// Get health snapshots directory from AppContext
+#[allow(dead_code)]
+pub fn health_snapshots_dir_from_context(ctx: &dyn AppContext) -> PathBuf {
+    ctx.config_base().join("health")
+}
+
+/// Get archive directory from AppContext
+#[allow(dead_code)]
+pub fn archive_dir_from_context(ctx: &dyn AppContext) -> PathBuf {
+    ctx.config_base().join("archive")
+}
+
+/// Get telemetry directory from AppContext
+#[allow(dead_code)]
+pub fn telemetry_dir_from_context(ctx: &dyn AppContext) -> PathBuf {
+    ctx.config_base().join("telemetry")
 }

@@ -34,9 +34,10 @@ export function upsertSchedule(
     return { next: existing, error: valid.reason ?? "invalid trigger" };
   }
 
+  // §P2-2 disabled schedule should have a placeholder next_run_at
   const nextRunAt = incoming.enabled
     ? getNextRunAt(incoming.trigger, nowTs) ?? incoming.last_run_at ?? nowTs
-    : incoming.last_run_at ?? nowTs;
+    : nowTs;
 
   const record: ScheduledWorkflow = {
     ...incoming,

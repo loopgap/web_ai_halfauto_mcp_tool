@@ -1,6 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
-  ApiError,
   WindowInfo,
   TargetsConfig,
   Skill,
@@ -26,31 +25,7 @@ import type {
   NewsItem,
   ReportDocument,
 } from "./types";
-
-function normalizeError(error: unknown): ApiError {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    "message" in error &&
-    "trace_id" in error
-  ) {
-    const e = error as Record<string, unknown>;
-    return {
-      code: String(e.code),
-      message: String(e.message),
-      details: e.details ? String(e.details) : undefined,
-      trace_id: String(e.trace_id),
-    };
-  }
-
-  return {
-    code: "UNKNOWN_ERROR",
-    message: "Unexpected command error",
-    details: String(error),
-    trace_id: "n/a",
-  };
-}
+import { normalizeError } from "./domain/errors";
 
 async function invokeSafe<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   try {
@@ -137,6 +112,10 @@ export async function loadWorkflows(): Promise<Workflow[]> {
 
 export async function loadRouterRules(): Promise<RouterRulesConfig> {
   return invokeSafe("load_router_rules");
+}
+
+export async function saveRouterRules(rules: RouterRulesConfig): Promise<void> {
+  return invokeSafe("save_router_rules", { rules });
 }
 
 export async function healthCheck(): Promise<TargetHealth[]> {
@@ -263,6 +242,10 @@ export async function saveRouteFeedback(args: {
       override_intent: args.override_intent ?? null,
     },
   });
+}
+
+export async function getRouteFeedbacks(): Promise<import("./domain/feedback-learning").RouteFeedbackRecord[]> {
+  return invokeSafe("get_route_feedbacks");
 }
 
 // ═══ Browser Detection (§60-§61) ═══

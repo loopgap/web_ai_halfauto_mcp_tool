@@ -42,6 +42,14 @@ function emitWorkflowTelemetry(event: WorkflowTelemetryEvent) {
 
 // ═══ DAG 分析工具 ═══
 
+/** DAG 分析结果缓存 — 使用 workflow.id 作为 key 避免 WeakMap 引用失效问题 */
+const dagCache = new Map<string, DagAnalysis>();
+
+/** 清除 DAG 缓存（用于测试） */
+export function clearDagCache() {
+  dagCache.clear();
+}
+
 export interface DagNode {
   stepId: string;
   step: WorkflowStep;
@@ -57,6 +65,8 @@ export interface DagAnalysis {
   nodes: Map<string, DagNode>;
   /** 拓扑排序序列 */
   topoOrder: string[];
+  /** 拓扑排序 Set（用于 O(1) 查找） */
+  topoSet: Set<string>;
   /** 是否有环 */
   hasCycle: boolean;
   /** 每层可并行的节点列表 */
@@ -72,6 +82,10 @@ export interface DagAnalysis {
  * 返回拓扑排序、环检测、层级划分
  */
 export function analyzeDag(workflow: Workflow): DagAnalysis {
+  // 缓存命中检查 — 使用 workflow.id 作为 key
+  const cached = dagCache.get(workflow.id);
+  if (cached) return cached;
+
   const nodes = new Map<string, DagNode>();
   const steps = workflow.steps;
 
@@ -121,9 +135,11 @@ export function analyzeDag(workflow: Workflow): DagAnalysis {
   }
 
   const hasCycle = topoOrder.length !== nodes.size;
+  // 构建 topoSet 用于 O(1) 查找
+  const topoSet = new Set(topoOrder);
   const unreachable: string[] = [];
   for (const id of nodes.keys()) {
-    if (!topoOrder.includes(id)) unreachable.push(id);
+    if (!topoSet.has(id)) unreachable.push(id);
   }
 
   // Compute levels (longest path from root)
@@ -152,7 +168,9 @@ export function analyzeDag(workflow: Workflow): DagAnalysis {
     layers.push(layerMap.get(i) ?? []);
   }
 
-  return { nodes, topoOrder, hasCycle, layers, unreachable, maxDepth };
+  const result: DagAnalysis = { nodes, topoOrder, topoSet, hasCycle, layers, unreachable, maxDepth };
+  dagCache.set(workflow.id, result);
+  return result;
 }
 
 // ═══ Workflow Execution State ═══
@@ -175,6 +193,8 @@ export interface WorkflowExecution {
   failPolicy: "fail_fast" | "fail_at_end" | "continue";
   /** §7 checkpoint */
   checkpointStepId?: string;
+  /** §7 DAG 分析结果缓存 (热路径优化) */
+  dagAnalysis?: DagAnalysis;
 }
 
 export interface StepExecutionState {
@@ -230,6 +250,8 @@ export function createWorkflowExecution(
     globalTimeoutMs: workflow.policy.global_timeout_ms || 300000,
     maxParallelism: workflow.policy.max_parallelism || 3,
     failPolicy: (workflow.policy.fail_policy as WorkflowExecution["failPolicy"]) || "fail_fast",
+    // §7 热路径优化: 预先分析 DAG 并缓存
+    dagAnalysis: analyzeDag(workflow),
   };
 }
 
@@ -252,9 +274,10 @@ export function getReadySteps(
     const node = dag.nodes.get(stepId);
     if (!node) continue;
 
-    // all dependencies must be captured/done
+    // all dependencies must be captured/done, and not failed
     const depsOk = node.dependencies.every((dep) => {
       const depState = execution.steps.get(dep);
+      // 依赖必须完成(captured)且不能失败(failed)
       return depState?.status === "captured";
     });
 
@@ -323,12 +346,16 @@ export function getRunnableWorkflowSteps(
   execution: WorkflowExecution,
   workflow: Workflow,
 ): string[] {
-  const dag = analyzeDag(workflow);
+  // §7 热路径优化: 复用 execution.dagAnalysis 缓存，避免重复调用 analyzeDag
+  const dag = execution.dagAnalysis ?? analyzeDag(workflow);
   const readySteps = getReadySteps(execution, dag);
   const context = createWorkflowConditionContext(execution);
 
+  // §7 构建 stepMap 避免 O(n²) 查找
+  const stepMap = new Map(workflow.steps.map((s) => [s.id ?? s.use, s]));
+
   return readySteps.filter((stepId) => {
-    const step = workflow.steps.find((candidate) => (candidate.id ?? candidate.use) === stepId);
+    const step = stepMap.get(stepId);
     if (!step) return false;
     return evaluateWorkflowStepCondition(step, context);
   });
@@ -464,15 +491,15 @@ export function canRetryStep(step: StepExecutionState): boolean {
 /**
  * §7 验证 DAG 完整性 (发布约束)
  */
-export function validateWorkflowDag(workflow: Workflow): string[] {
+export function validateWorkflowDag(workflow: Workflow, dag?: DagAnalysis): string[] {
   const issues: string[] = [];
-  const dag = analyzeDag(workflow);
+  const dagAnalysis = dag ?? analyzeDag(workflow);
 
-  if (dag.hasCycle) {
+  if (dagAnalysis.hasCycle) {
     issues.push("DAG 存在循环依赖");
   }
-  if (dag.unreachable.length > 0) {
-    issues.push(`不可达节点: ${dag.unreachable.join(", ")}`);
+  if (dagAnalysis.unreachable.length > 0) {
+    issues.push(`不可达节点: ${dagAnalysis.unreachable.join(", ")}`);
   }
   if (workflow.steps.length === 0) {
     issues.push("Workflow 无任何步骤");
@@ -536,7 +563,7 @@ export function getCompensationPlan(
   workflow: Workflow,
   failedStepId: string,
 ): { stepsToCompensate: string[]; compensations: Array<{ stepId: string; compensation: string }> } {
-  const dag = analyzeDag(workflow);
+  const dag = execution.dagAnalysis ?? analyzeDag(workflow);
   const stepsToCompensate: string[] = [];
   const compensations: Array<{ stepId: string; compensation: string }> = [];
 
@@ -547,7 +574,9 @@ export function getCompensationPlan(
   for (const stepId of topoReversed) {
     if (stepId === failedStepId) continue;
     const state = execution.steps.get(stepId);
-    if (!state || state.status !== "captured") continue;
+    // §G1.2 收集需要补偿的步骤：captured 和 in-flight (dispatched/awaiting_send/waiting_output)
+    const needsCompensation = ["captured", "dispatched", "awaiting_send", "waiting_output"];
+    if (!state || !needsCompensation.includes(state.status)) continue;
 
     const stepDef = workflow.steps.find((s) => (s.id ?? s.use) === stepId);
     if (stepDef?.compensation) {

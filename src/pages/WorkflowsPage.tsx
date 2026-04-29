@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAppStore } from '../store/AppStore';
 import { SkeletonList } from "../components/Skeleton";
+import EmptyState from "../components/EmptyState";
 import { GitBranch, ArrowRight, ChevronDown, ChevronRight, Timer, RefreshCw, AlertTriangle, CheckCircle, Layers } from "lucide-react";
 import { analyzeDag, validateWorkflowDag } from "../domain/workflow-engine";
 import type { Workflow } from "../types";
@@ -12,6 +13,24 @@ export default function WorkflowsPage() {
 
   if (!initialized) {
     return <div className="p-8"><SkeletonList count={3} /></div>;
+  }
+
+  if (workflows.length === 0) {
+    return (
+      <div className="p-8 space-y-8">
+        <div className="animate-fade-in-up">
+          <h2 className="text-2xl font-bold text-gradient">Workflows</h2>
+          <p className="text-slate-500 text-sm mt-1">
+            已注册 0 个工作流 · DAG++ Schema v3
+          </p>
+        </div>
+        <EmptyState
+          icon="⚡"
+          title="暂无工作流"
+          description="创建一个新的工作流来自动化您的任务流程"
+        />
+      </div>
+    );
   }
 
   return (
@@ -33,6 +52,8 @@ export default function WorkflowsPage() {
             <button
               className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
               onClick={() => setExpanded(expanded === wf.id ? null : wf.id)}
+              aria-expanded={expanded === wf.id}
+              aria-controls="workflows-list"
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-purple-500/15 flex items-center justify-center">
@@ -58,7 +79,7 @@ export default function WorkflowsPage() {
             </button>
 
             {/* Steps Pipeline */}
-            <div className="px-5 pb-4">
+            <div className="px-5 pb-4" id="workflows-list">
               <div className="flex items-center gap-2 flex-wrap">
                 {wf.steps.map((step, i) => (
                   <div key={step.id || i} className="flex items-center gap-2">

@@ -71,8 +71,8 @@ export function computeRunStats(runs: RunRecord[]): RunStats {
   }
 
   const completed = byStatus["completed"] ?? 0;
-  const errors = Object.values(byStatus).reduce((sum, v, i) => {
-    const k = Object.keys(byStatus)[i];
+  // §P2-1 Use Object.entries for safe key-value pairing
+  const errors = Object.entries(byStatus).reduce((sum, [k, v]) => {
     return k === "error" || k === "failed" ? sum + v : sum;
   }, 0);
 

@@ -5,6 +5,7 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import type { ApiError } from "../types";
+import { normalizeError } from "./errors";
 
 // ── 可重试错误码 (瞬态/竞争条件) ──
 const RETRYABLE_CODES = new Set([
@@ -16,30 +17,6 @@ const RETRYABLE_CODES = new Set([
   "TIMEOUT",
   "IO_ERROR",
 ]);
-
-function normalizeError(error: unknown): ApiError {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    "message" in error &&
-    "trace_id" in error
-  ) {
-    const e = error as Record<string, unknown>;
-    return {
-      code: String(e.code),
-      message: String(e.message),
-      details: e.details ? String(e.details) : undefined,
-      trace_id: String(e.trace_id),
-    };
-  }
-  return {
-    code: "UNKNOWN_ERROR",
-    message: "Unexpected command error",
-    details: String(error),
-    trace_id: "n/a",
-  };
-}
 
 export interface RetryOptions {
   /** 最大重试次数 (默认 3) */

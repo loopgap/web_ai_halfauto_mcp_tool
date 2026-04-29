@@ -7,25 +7,27 @@ import {
   routePromptFlow,
   validateInput,
   lookupError,
-  getRecoveryActions,
   MAX_INPUT_LEN,
 } from "../domain/actions";
-import type { InjectionMode, RouteDecision } from "../types";
+import type { RouteDecision } from "../types";
+import type { DispatchOptions } from "../types";
 import StepProgress from "../components/StepProgress";
 import RunHistoryList from "../components/RunHistoryList";
+import RouteDecisionComponent from "../components/RouteDecision";
+import EmptyState from "../components/EmptyState";
+import SkillSelector from "../components/SkillSelector";
+import ErrorRecoveryPanel from "../components/ErrorRecoveryPanel";
+import DispatchOptionsComponent from "../components/DispatchOptions";
 import { useToast } from "../components/Toast";
 import { useDebouncedAction } from "../hooks/useDebounce";
 import {
   Play,
   Copy,
-  AlertCircle,
   CheckCircle,
   Loader2,
-  Route,
   ShieldAlert,
   Info,
   Send,
-  Pause,
   AlertTriangle,
   Globe,
 } from "lucide-react";
@@ -69,16 +71,30 @@ export default function ConsolePage() {
   const [inputErrors, setInputErrors] = useState<Record<string, string>>({});
   const [stagedHwnd, setStagedHwnd] = useState<number | null>(null);
   const [stagedTargetName, setStagedTargetName] = useState<string>("");
-  const [twoPhaseMode, setTwoPhaseMode] = useState(true);
-  const [autoBrowserSelect, setAutoBrowserSelect] = useState(true);
-  const [autoInject, setAutoInject] = useState(true);
-  const [injectionMode, setInjectionMode] = useState<InjectionMode>("balanced");
+  const [dispatchOptions, setDispatchOptions] = useState<DispatchOptions>({
+    twoPhaseMode: true,
+    autoBrowserSelect: true,
+    autoInject: true,
+    injectionMode: "balanced",
+  });
   const [lastErrorCode, setLastErrorCode] = useState<string>("");
   const [browserWarning, setBrowserWarning] = useState<string>("");
   const [isStaging, setIsStaging] = useState(false);
 
   const pageState = pageStates.console || "idle";
   const currentSkill = useMemo(() => skills.find((s) => s.id === selectedSkill), [skills, selectedSkill]);
+
+  // ─── Skill 变化时重置状态 ───
+  const handleSkillChange = useCallback((skillId: string) => {
+    setSelectedSkill(skillId);
+    setInputValues({});
+    setInputErrors({});
+    setOutput("");
+    setErrorMsg("");
+    setLastRunId(null);
+    setShowConfirm(false);
+    dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
+  }, [dispatch]);
 
   // ─── 渲染 prompt 模板 ───
   const renderedPrompt = useMemo(() => {
@@ -152,10 +168,10 @@ export default function ConsolePage() {
           targets,
           inputValues,
           routeDecision: routeDecision ?? undefined,
-          stageOnly: twoPhaseMode,
-          autoBrowserSelect,
-          autoInject,
-          injectionMode,
+          stageOnly: dispatchOptions.twoPhaseMode,
+          autoBrowserSelect: dispatchOptions.autoBrowserSelect,
+          autoInject: dispatchOptions.autoInject,
+          injectionMode: dispatchOptions.injectionMode,
         },
         dispatch,
       );
@@ -166,7 +182,7 @@ export default function ConsolePage() {
           setBrowserWarning(result.browserWarning);
           toast("warning", "\u68c0\u6d4b\u5230\u672a\u8bc6\u522b\u7684\u6d4f\u89c8\u5668\uff0c\u8bf7\u67e5\u770b\u63d0\u793a");
         }
-        if (twoPhaseMode && result.stagedHwnd) {
+        if (dispatchOptions.twoPhaseMode && result.stagedHwnd) {
           setStagedHwnd(result.stagedHwnd);
           setStagedTargetName(selectedTarget);
           toast("info", `\u5df2\u7c98\u8d34\u5230 ${selectedTarget}\uff0c\u8bf7\u786e\u8ba4\u540e\u70b9\u51fb Send Now`);
@@ -182,7 +198,7 @@ export default function ConsolePage() {
     } finally {
       setIsStaging(false);
     }
-  }, [currentSkill, targets, selectedTarget, inputValues, routeDecision, showConfirm, twoPhaseMode, autoBrowserSelect, autoInject, injectionMode, dispatch, errorCatalog, toast]);
+  }, [currentSkill, targets, selectedTarget, inputValues, routeDecision, showConfirm, dispatchOptions, dispatch, errorCatalog, toast]);
 
   // ─── 两阶段 Send Now 确认 ───
   const handleConfirmSend = useCallback(async () => {
@@ -244,53 +260,12 @@ export default function ConsolePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Input */}
         <div className="space-y-4">
-          {/* Skill Select */}
-          <div className="glass-card-static p-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              {"\u9009\u62e9 Skill"}
-            </label>
-            <select
-              className="select-modern"
-              value={selectedSkill}
-              onChange={(e) => {
-                setSelectedSkill(e.target.value);
-                setInputValues({});
-                setInputErrors({});
-                setOutput("");
-                setErrorMsg("");
-                setLastRunId(null);
-                setShowConfirm(false);
-                dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
-              }}
-            >
-              <option value="">{"\u002d\u002d \u9009\u62e9\u6280\u80fd \u002d\u002d"}</option>
-              {sortedSkills.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title} ({s.id}) v{s.version}
-                </option>
-              ))}
-            </select>
-            {currentSkill && (
-              <div className="flex gap-1.5 mt-2 flex-wrap">
-                {currentSkill.intent_tags.map((t) => (
-                  <span key={t} className="badge badge-purple text-[10px]">
-                    {t}
-                  </span>
-                ))}
-                <span
-                  className={`badge text-[10px] ${
-                    currentSkill.safety_level === "safe"
-                      ? "badge-green"
-                      : currentSkill.safety_level === "dangerous"
-                      ? "badge-red"
-                      : "badge-yellow"
-                  }`}
-                >
-                  {currentSkill.safety_level}
-                </span>
-              </div>
-            )}
-          </div>
+{/* Skill Select */}
+          <SkillSelector
+            skills={sortedSkills}
+            selectedSkill={selectedSkill}
+            onChange={handleSkillChange}
+          />
 
           {/* Inputs with validation */}
           {currentSkill && Object.keys(currentSkill.inputs).length > 0 && (
@@ -298,7 +273,7 @@ export default function ConsolePage() {
               <h3 className="text-sm font-medium text-slate-300">{"\u8f93\u5165\u53c2\u6570"}</h3>
               {Object.entries(currentSkill.inputs).map(([key, input]) => (
                 <div key={key}>
-                  <label className="block text-xs text-slate-400 mb-1">
+                  <label htmlFor={key} className="block text-xs text-slate-400 mb-1">
                     {key} {input.required && <span className="text-red-400">*</span>}
                     {input.description && (
                       <span className="text-slate-600 ml-1">{"\u2014 "}{input.description}</span>
@@ -310,6 +285,7 @@ export default function ConsolePage() {
                     )}
                   </label>
                   <textarea
+                    id={key}
                     className={`input-modern resize-y min-h-[60px] ${
                       inputErrors[key] ? "!border-red-500" : ""
                     }`}
@@ -327,10 +303,11 @@ export default function ConsolePage() {
 
           {/* Target Select */}
           <div className="glass-card-static p-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label htmlFor="target-select" className="block text-sm font-medium text-slate-300 mb-2">
               {"\u9009\u62e9 Target"}
             </label>
             <select
+              id="target-select"
               className="select-modern"
               value={selectedTarget}
               onChange={(e) => setSelectedTarget(e.target.value)}
@@ -352,91 +329,10 @@ export default function ConsolePage() {
 
           {/* Route Decision */}
           {routeDecision && (
-            <div className="glass-card-static p-4">
-              <h3 className="text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                <Route size={14} className="text-emerald-400" />
-                {"\u8def\u7531\u51b3\u7b56"}
-              </h3>
-              <div className="text-xs text-slate-400 space-y-1">
-                <div>
-                  {"\u52a8\u4f5c: "}
-                  <span
-                    className={
-                      routeDecision.action === "auto_execute"
-                        ? "text-green-300"
-                        : routeDecision.action === "user_confirm"
-                        ? "text-yellow-300"
-                        : "text-slate-300"
-                    }
-                  >
-                    {{ auto_execute: "\u81ea\u52a8\u6267\u884c", user_confirm: "\u9700\u786e\u8ba4", fallback_default: "\u9ed8\u8ba4\u56de\u9000" }[routeDecision.action] ?? routeDecision.action}
-                  </span>{" "}
-                  {"\u00b7 \u7f6e\u4fe1\u5ea6 "}{(routeDecision.confidence * 100).toFixed(0)}%
-                </div>
-                <div className="text-slate-500">{routeDecision.explanation}</div>
-                {routeDecision.top_candidates.length > 0 && (
-                  <div className="flex gap-1 mt-1">
-                    {routeDecision.top_candidates.map((c) => (
-                      <span
-                        key={c.intent}
-                        className="badge badge-slate text-[10px]"
-                      >
-                        {c.intent} ({(c.score * 100).toFixed(0)}%)
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            <RouteDecisionComponent decision={routeDecision} />
           )}
 
-          {/* 两阶段模式切换 */}
-          <div className="flex items-center gap-3 px-4 py-2.5 glass-card-static">
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={twoPhaseMode}
-                onChange={(e) => setTwoPhaseMode(e.target.checked)}
-                className="w-4 h-4 rounded accent-indigo-500"
-              />
-              <Pause size={14} className="text-indigo-400" />
-              {"\u4e24\u9636\u6bb5\u63d0\u4ea4"}
-            </label>
-            <span className="text-xs text-slate-500">
-              {twoPhaseMode ? "\u4ec5\u7c98\u8d34\uff0c\u786e\u8ba4\u540e\u53d1\u9001" : "\u7c98\u8d34\u540e\u81ea\u52a8\u56de\u8f66\u53d1\u9001"}
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 glass-card-static">
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoBrowserSelect}
-                onChange={(e) => setAutoBrowserSelect(e.target.checked)}
-                className="w-4 h-4 rounded accent-indigo-500"
-              />
-              {"\u6d4f\u89c8\u5668\u667a\u80fd\u9009\u62e9"}
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={autoInject}
-                onChange={(e) => setAutoInject(e.target.checked)}
-                className="w-4 h-4 rounded accent-indigo-500"
-              />
-              {"\u81ea\u52a8\u6307\u4ee4\u6ce8\u5165"}
-            </label>
-            <select
-              className="bg-[#060a14]/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
-              value={injectionMode}
-              onChange={(e) => setInjectionMode(e.target.value as InjectionMode)}
-              disabled={!autoInject}
-            >
-              <option value="strict">{"\u6ce8\u5165\u4e25\u683c"}</option>
-              <option value="balanced">{"\u6ce8\u5165\u5e73\u8861"}</option>
-              <option value="lean">{"\u6ce8\u5165\u7b80\u6d01"}</option>
-            </select>
-          </div>
+          <DispatchOptionsComponent options={dispatchOptions} onChange={setDispatchOptions} />
 
           {/* Actions */}
           <div className="flex gap-3">
@@ -457,7 +353,7 @@ export default function ConsolePage() {
               ) : (
                 <Play size={16} />
               )}
-              {isStaging ? "\u6b63\u5728\u7c98\u8d34..." : pageState === "dispatching" ? "\u6295\u9012\u4e2d..." : twoPhaseMode ? "Stage \u7c98\u8d34" : "\u6295\u9012 Dispatch"}
+              {isStaging ? "\u6b63\u5728\u7c98\u8d34..." : pageState === "dispatching" ? "\u6295\u9012\u4e2d..." : dispatchOptions.twoPhaseMode ? "Stage \u7c98\u8d34" : "\u6295\u9012 Dispatch"}
             </button>
 
             {/* Send Now — 两阶段确认 */}
@@ -529,55 +425,36 @@ export default function ConsolePage() {
 
           {/* 状态反馈 — 智能恢复路径 */}
           {pageState === "error" && errorMsg && (
-            <div className="bg-red-900/30 border border-red-800 rounded-lg p-4 space-y-3">
-              <div className="flex items-start gap-2 text-sm text-red-300">
-                <AlertCircle size={16} className="mt-0.5 shrink-0" />
-                <pre className="whitespace-pre-wrap text-xs flex-1">{errorMsg}</pre>
-              </div>
-              {lastErrorCode && (
-                <div className="flex gap-2 pl-6">
-                  {getRecoveryActions(lastErrorCode).map((ra) => (
-                    <button
-                      key={ra.action}
-                      onClick={() => {
-                        if (ra.action === "retry" || ra.action === "redetect" || ra.action === "retry_clipboard") {
-                          setErrorMsg("");
-                          setLastErrorCode("");
-                          dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
-                        } else if (ra.action === "edit") {
-                          setErrorMsg("");
-                          setLastErrorCode("");
-                          dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "ready" } });
-                        } else if (ra.action === "cancel") {
-                          setErrorMsg("");
-                          setLastErrorCode("");
-                          dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
-                          toast("info", "已强行中断 Agent 执行，阻止循环");
-                        } else if (ra.action === "delay_retry") {
-                          toast("warning", "已触发速率限制，正在执行冷却...");
-                          setTimeout(() => {
-                            setErrorMsg("");
-                            setLastErrorCode("");
-                            dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
-                            toast("success", "冷却结束，可以重试");
-                          }, 5000);
-                        } else if (ra.action === "detail") {
-                          toast("info", "详细信息：此功能在 Agent 日志中记录了拦截详情。");
-                        }
-                      }}
-                      className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-                        ra.primary
-                          ? "bg-red-600/30 hover:bg-red-600/50 text-red-200 font-medium"
-                          : "bg-slate-700/50 hover:bg-slate-700/80 text-slate-300"
-                      }`}
-                      title={ra.description}
-                    >
-                      {ra.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <ErrorRecoveryPanel
+              errorMsg={errorMsg}
+              lastErrorCode={lastErrorCode}
+              onAction={(action) => {
+                if (action === "retry" || action === "redetect" || action === "retry_clipboard") {
+                  setErrorMsg("");
+                  setLastErrorCode("");
+                  dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
+                } else if (action === "edit") {
+                  setErrorMsg("");
+                  setLastErrorCode("");
+                  dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "ready" } });
+                } else if (action === "cancel") {
+                  setErrorMsg("");
+                  setLastErrorCode("");
+                  dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
+                  toast("info", "已强行中断 Agent 执行，阻止循环");
+                } else if (action === "delay_retry") {
+                  toast("warning", "已触发速率限制，正在执行冷却...");
+                  setTimeout(() => {
+                    setErrorMsg("");
+                    setLastErrorCode("");
+                    dispatch({ type: "SET_PAGE_STATE", payload: { page: "console", state: "idle" } });
+                    toast("success", "冷却结束，可以重试");
+                  }, 5000);
+                } else if (action === "detail") {
+                  toast("info", "详细信息：此功能在 Agent 日志中记录了拦截详情。");
+                }
+              }}
+            />
           )}
           {(pageState === "waiting_capture" || pageState === "archived") && (
             <div className="flex items-center gap-2 px-4 py-3 bg-green-900/30 border border-green-800 rounded-lg text-sm text-green-300">
@@ -634,9 +511,17 @@ export default function ConsolePage() {
                 </span>
               )}
             </h3>
-            <pre className="inner-panel rounded-xl p-4 text-sm text-slate-300 overflow-auto max-h-[300px] whitespace-pre-wrap font-mono">
-              {renderedPrompt || "\u9009\u62e9 Skill \u540e\u663e\u793a.."}
-            </pre>
+            {renderedPrompt ? (
+              <pre className="inner-panel rounded-xl p-4 text-sm text-slate-300 overflow-auto max-h-[300px] whitespace-pre-wrap font-mono">
+                {renderedPrompt}
+              </pre>
+            ) : (
+              <EmptyState
+                icon="🧩"
+                title="选择 Skill 后显示"
+                description="从左侧选择一个 Skill 来开始配置和生成 Prompt"
+              />
+            )}
           </div>
 
           {/* Quality Gates Info */}
@@ -665,9 +550,17 @@ export default function ConsolePage() {
             <h3 className="text-sm font-medium text-slate-300 mb-2">
               {"Captured \u8f93\u51fa"}
             </h3>
-            <pre className="inner-panel rounded-xl p-4 text-sm text-slate-300 overflow-auto max-h-[300px] whitespace-pre-wrap font-mono">
-              {output || "\u70b9\u51fb Capture \u6309\u94ae\u83b7\u53d6\u526a\u8d34\u677f\u5185\u5bb9.."}
-            </pre>
+            {output ? (
+              <pre className="inner-panel rounded-xl p-4 text-sm text-slate-300 overflow-auto max-h-[300px] whitespace-pre-wrap font-mono">
+                {output}
+              </pre>
+            ) : (
+              <EmptyState
+                icon="📋"
+                title="点击 Capture 按钮获取剪贴板内容"
+                description="使用上方的 Capture 按钮捕获剪贴板内容后，这里将显示结果"
+              />
+            )}
           </div>
         </div>
       </div>

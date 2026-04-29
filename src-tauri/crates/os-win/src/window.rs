@@ -1,6 +1,25 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
 
 use crate::error::{OsWinError, OsWinResult};
+
+/// §P1 Regex compilation cache to avoid recompiling same patterns
+static REGEX_CACHE: OnceLock<Mutex<HashMap<String, regex::Regex>>> = OnceLock::new();
+
+/// Get a cached compiled regex or compile and cache a new one
+fn get_cached_regex(pattern: &str) -> Result<regex::Regex, regex::Error> {
+    let cache = REGEX_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut guard = cache.lock().map_err(|_| regex::Error::Syntax("lock poisoned".into()))?;
+
+    if let Some(regex) = guard.get(pattern).cloned() {
+        return Ok(regex);
+    }
+
+    let regex = regex::Regex::new(pattern)?;
+    guard.insert(pattern.to_string(), regex.clone());
+    Ok(regex)
+}
 
 #[cfg(windows)]
 use windows::Win32::{
@@ -169,7 +188,7 @@ pub fn find_window_by_title_regex(
             if p.len() > 200 {
                 return Err(OsWinError::InvalidArg("Regex pattern exceeds maximum length of 200 characters".into()));
             }
-            regex::Regex::new(p)
+            get_cached_regex(p)
                 .map_err(|e| OsWinError::InvalidArg(format!("Invalid regex '{}': {}", p, e)))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -198,7 +217,7 @@ pub fn find_all_windows_by_title_regex(
             if p.len() > 200 {
                 return Err(OsWinError::InvalidArg("Regex pattern exceeds maximum length of 200 characters".into()));
             }
-            regex::Regex::new(p)
+            get_cached_regex(p)
                 .map_err(|e| OsWinError::InvalidArg(format!("Invalid regex '{}': {}", p, e)))
         })
         .collect::<Result<Vec<_>, _>>()?;

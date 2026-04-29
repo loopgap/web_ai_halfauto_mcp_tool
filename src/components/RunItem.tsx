@@ -15,6 +15,8 @@ const RunItem = React.memo(({ run }: RunItemProps) => {
           className={`w-2 h-2 rounded-full ${
             RUN_STATUS[run.status]?.dot ?? "bg-slate-400"
           }`}
+          aria-label={`状态: ${RUN_STATUS[run.status]?.label ?? "未知"}`}
+          role="status"
         />
         <span className="font-medium">{run.skill_id}</span>
         <span className="text-slate-500">{"\u2192"}</span>
