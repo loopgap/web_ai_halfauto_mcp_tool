@@ -86,8 +86,9 @@ function writeLog(entry: LogEntry): void {
       buffer.splice(0, buffer.length - MAX_BUFFER_SIZE);
     }
     localStorage.setItem(LOG_BUFFER_KEY, JSON.stringify(buffer));
-  } catch {
-    // localStorage 不可用时静默降级
+  } catch (e) {
+    // localStorage 不可用时静默降级 (Safari 隐私模式 / 存储满)
+    console.debug("[logging] localStorage unavailable:", e);
   }
 }
 
@@ -124,7 +125,11 @@ export function getLogBuffer(): LogEntry[] {
 
 /** 清空日志缓冲 */
 export function clearLogBuffer(): void {
-  try { localStorage.removeItem(LOG_BUFFER_KEY); } catch { /* noop */ }
+  try {
+    localStorage.removeItem(LOG_BUFFER_KEY);
+  } catch (e) {
+    console.debug("[logging] Failed to clear log buffer:", e);
+  }
 }
 
 /** 导出日志为文本 */

@@ -25,8 +25,9 @@ export function persistUIState(state: AppState): void {
       lastRoute: window.location.hash.replace("#", "") || "/",
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {
+  } catch (e) {
     // localStorage 可能满了或 Safari 隐私模式，忽略
+    console.debug("[persistence] Failed to persist UI state:", e);
   }
 }
 
@@ -44,7 +45,9 @@ export function restoreUIState(): Partial<Pick<AppState, "pageStates">> & { last
       pageStates: data.pageStates,
       lastRoute: data.lastRoute,
     };
-  } catch {
+  } catch (e) {
+    // 数据损坏时清理并返回空状态
+    console.debug("[persistence] Failed to restore UI state, clearing:", e);
     localStorage.removeItem(STORAGE_KEY);
     return {};
   }

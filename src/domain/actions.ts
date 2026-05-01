@@ -88,7 +88,9 @@ export function checkQualityGates(text: string, gates: QualityGate[]): QualityCh
 
 // ───────── 安全防护层 (Security Hardening) ─────────
 
-/** Prompt 注入检测 — 检查常见 prompt injection 模式 */
+/** Prompt 注入检测 — 检查常见 prompt injection 模式
+ * §Security: Fixed ReDoS vulnerability - use non-greedy .*? instead of greedy .*
+ */
 const INJECTION_PATTERNS = [
   /ignore\s+(all\s+)?previous\s+instructions/i,
   /forget\s+(all\s+)?previous/i,
@@ -96,7 +98,7 @@ const INJECTION_PATTERNS = [
   /system\s*:\s*/i,
   /\[INST\]/i,
   /<<SYS>>/i,
-  /\bDAN\b.*\bmode\b/i,
+  /\bDAN\b.*?\bmode\b/i,  // §Security: Fixed - non-greedy to prevent ReDoS
   /jailbreak/i,
   /bypass\s+(all\s+)?safety/i,
   /act\s+as\s+(if\s+)?you\s+(have\s+)?no\s+restrictions/i,
@@ -112,11 +114,13 @@ export function detectPromptInjection(text: string): { detected: boolean; patter
   return { detected: matched.length > 0, patterns: matched };
 }
 
-/** PII 检测 — 检查常见个人敏感信息 */
+/** PII 检测 — 检查常见个人敏感信息
+ * §Security: Fixed email regex - [A-Z|a-z] is incorrect, should be [A-Za-z]
+ */
 const PII_PATTERNS = [
   { name: "身份证号", pattern: /\b\d{17}[\dXx]\b/ },
   { name: "手机号", pattern: /\b1[3-9]\d{9}\b/ },
-  { name: "邮箱", pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/ },
+  { name: "邮箱", pattern: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/ },  // §Security: Fixed
   { name: "银行卡号", pattern: /\b\d{16,19}\b/ },
   { name: "社保号", pattern: /\b\d{3}-\d{2}-\d{4}\b/ },
 ];

@@ -232,6 +232,10 @@ export function useEventBus(dispatch: Dispatch<AppAction>, sideEffects?: EventSi
       // §E2 清理队列，防止内存泄漏
       eventQueue.current = [];
     };
+    // §E2 依赖分析：此 effect 使用 ref 而非 state 来避免闭包陷阱
+    // dispatchRef/sideEffectRef 在 setup 时捕获，后续通过 .current 访问
+    // eventQueue/isProcessing 是 mutable ref，不应加入依赖数组
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return () => {

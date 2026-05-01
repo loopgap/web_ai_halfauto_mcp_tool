@@ -2,6 +2,16 @@
 
 欢迎来到 **Web AI Half-Auto MCP Tool** 项目维基。这是一个基于 React + Tauri + Rust 构建的跨平台桌面应用，旨在通过 FFI (Foreign Function Interface) 实现对浏览器窗口的高效、自动化操作。
 
+## 支持的平台
+
+| 平台 | 最低版本 | 架构 | 状态 |
+|------|----------|------|------|
+| **Windows** | Windows 10 | x64 | ✅ 支持 |
+| **Ubuntu** | 22.04 LTS | x64 | ✅ 支持 |
+| **macOS** | - | - | ❌ 不支持 |
+
+> **注意**: 本项目明确不支持 macOS，仅维护 Windows 10+ 和 Ubuntu 22.04+。
+
 ## 🚀 项目入口 (Main Entries)
 
 *   **[快速开始 (Quickstart)](docs/QUICKSTART.md)** - 环境准备与 5 分钟上手。

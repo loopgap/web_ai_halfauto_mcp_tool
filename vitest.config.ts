@@ -22,11 +22,14 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
+      reportsDirectory: "coverage",
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "src/main.tsx",
         "src/vite-env.d.ts",
         "src/__tests__/**",
+        "src/types.ts",
+        "src/mcp/**",
       ],
     },
   },

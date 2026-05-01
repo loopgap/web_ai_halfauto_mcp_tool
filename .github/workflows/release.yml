@@ -1,7 +1,10 @@
 name: Release
 
-# 标准 Tauri 发布工作流
+# ═══════════════════════════════════════════════════════════
+# 支持的平台: Windows 10+ (x64) / Ubuntu 22.04+ (x64)
+# 不支持: macOS
 # 触发方式: 推送形如 v* 的 tag
+# ═══════════════════════════════════════════════════════════
 
 on:
   push:
@@ -22,7 +25,7 @@ env:
 
 jobs:
   create-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       release_id: ${{ steps.create.outputs.id }}
       tag_name: ${{ github.ref_name }}
@@ -95,7 +98,8 @@ jobs:
   build-tauri-windows:
     needs: create-release
     if: ${{ !contains(github.ref_name, '-linux') }}
-    runs-on: windows-latest
+    # Windows 10/11 (x64)
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4.2.2
 
@@ -138,7 +142,7 @@ jobs:
   publish-release:
     if: ${{ always() && needs.create-release.result == 'success' && (needs['build-tauri-linux'].result == 'success' || needs['build-tauri-windows'].result == 'success') }}
     needs: [create-release, build-tauri-linux, build-tauri-windows]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Publish release
         uses: actions/github-script@v7.1.0
