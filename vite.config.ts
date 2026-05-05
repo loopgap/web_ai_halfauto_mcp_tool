@@ -11,10 +11,7 @@ const isProd = process.env.NODE_ENV === "production";
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [
-    react({
-      // 生产环境移除 React DevTools，减小 bundle
-      babel: isProd ? { plugins: [["transform-remove-console", { exclude: ["error", "warn"] }]] } : undefined,
-    }),
+    react(),
     tailwindcss(),
   ],
 

@@ -1,0 +1,11 @@
+# Security Audit Ignore Patterns
+# 每行一个模式，支持模块名、 advisory ID 或 URL 匹配
+
+# 示例:
+# 1234                    # 忽略 ID 为 1234 的 advisory
+# lodash                  # 忽略 lodash 模块的所有问题
+# https://npmjs.com/advisory/1234  # 忽略特定 URL
+
+# 允许忽略的低风险模式:
+# 某些开发依赖的低风险漏洞可以忽略
+babel-plugin-transform-remove-console

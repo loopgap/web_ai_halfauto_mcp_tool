@@ -1065,6 +1065,19 @@ fn dispatch_stage(
     state.last_dispatch_at = Some(Instant::now());
     drop(state);
 
+    // §Security: Validate focus_recipe to prevent key injection
+    const MAX_FOCUS_RECIPE_KEYS: usize = 10;
+    if args.focus_recipe.len() > MAX_FOCUS_RECIPE_KEYS {
+        return Err(err("INVALID_ARG", "Too many keys in focus_recipe", Some(format!("max {} keys", MAX_FOCUS_RECIPE_KEYS))));
+    }
+    const VALID_KEY_PATTERN: &str = r#"^[a-zA-Z0-9_+-]+$"#;
+    let valid_key_re = Regex::new(VALID_KEY_PATTERN).unwrap();
+    for key in &args.focus_recipe {
+        if !valid_key_re.is_match(key) {
+            return Err(err("INVALID_ARG", "Invalid key in focus_recipe", Some(format!("key '{}' contains illegal characters", key))));
+        }
+    }
+
     let opts = PasteOptions {
         auto_enter: false, // Stage = no enter (§9.4)
         paste_delay_ms: args.paste_delay_ms,
@@ -1522,6 +1535,7 @@ const ALLOWED_COMMANDS: &[&str] = &[
 ];
 
 /// Dangerous patterns that should be blocked in args
+/// §Security: Enhanced to block code execution patterns (node -e, python -c, etc.)
 const DANGEROUS_PATTERNS: &[&str] = &[
     // Shell operators
     "|", "||", ";", "&&", "&",
@@ -1538,7 +1552,15 @@ const DANGEROUS_PATTERNS: &[&str] = &[
     "\n", "\r",
     // Environment variable injection
     "LD_PRELOAD", "DYLD_INSERT",
+    // §Security: Code execution patterns (node -e, python -c, etc.)
+    "require(", "child_process", "exec(", "spawn(",
+    "import os", "import subprocess", "os.system", "subprocess.run",
+    "eval(", "__import__", "compile(", "exec(",
+    "open(", "file(", "readlines", "write(",
 ];
+
+/// §Security: Maximum number of arguments allowed for MCP commands
+const MAX_MCP_ARGS: usize = 8;
 
 /// Blocked environment variables (security sensitive)
 const BLOCKED_ENV_VARS: &[&str] = &[
@@ -1578,9 +1600,14 @@ fn validate_command(cmd: &str) -> Result<(), String> {
 }
 
 /// Validate argument contains no dangerous patterns
+/// §Security: Enhanced with length check to prevent buffer abuse
 fn validate_arg(arg: &str) -> Result<(), String> {
+    const MAX_ARG_LEN: usize = 4096;
     if arg.contains('\0') {
         return Err("Argument contains null byte".to_string());
+    }
+    if arg.len() > MAX_ARG_LEN {
+        return Err(format!("Argument exceeds maximum length {}", MAX_ARG_LEN));
     }
     for pattern in DANGEROUS_PATTERNS {
         if arg.contains(pattern) {
@@ -1663,6 +1690,11 @@ fn mcp_start(app_handle: tauri::AppHandle, config: McpServerConfig) -> CmdResult
         });
         err("MCP_INVALID_COMMAND", "Command not allowed", Some(detail))
     })?;
+
+    // §Security: Validate args count limit before individual arg validation
+    if config.args.len() > MAX_MCP_ARGS {
+        return Err(err("MCP_INVALID_ARG", "Too many arguments", Some(format!("max {} args", MAX_MCP_ARGS))));
+    }
 
     // 2. Validate args (still under lock)
     for arg in &config.args {
@@ -2186,6 +2218,7 @@ fn governance_emit_telemetry(
 }
 
 /// §99 Vault 统计 — 返回存档目录大小和文件数量
+/// §Security: Fixed to avoid unwrap() panic on file system errors
 #[tauri::command]
 fn get_vault_stats(app_handle: tauri::AppHandle) -> CmdResult<serde_json::Value> {
     let vault = config::vault_dir(&app_handle);
@@ -2193,10 +2226,24 @@ fn get_vault_stats(app_handle: tauri::AppHandle) -> CmdResult<serde_json::Value>
     let mut file_count: u64 = 0;
     let mut by_subdir: HashMap<String, u64> = HashMap::new();
 
+    // §Security: Use if-let instead of unwrap to avoid panic
     if vault.exists() {
-        for e in fs::read_dir(&vault)
-            .unwrap_or_else(|_| fs::read_dir(std::env::temp_dir()).unwrap())
-            .flatten()
+        let entries = match fs::read_dir(&vault) {
+            Ok(iter) => iter,
+            Err(e) => {
+                // Log error but don't fail the entire stats command
+                eprintln!("[vault_stats] Failed to read vault dir: {}", e);
+                return Ok(serde_json::json!({
+                    "vault_path": vault.to_string_lossy(),
+                    "total_bytes": 0u64,
+                    "total_kb": 0u64,
+                    "file_count": 0u64,
+                    "by_subdir": by_subdir,
+                    "error": format!("Failed to read vault: {}", e),
+                }));
+            }
+        };
+        for e in entries.flatten()
         {
             let path = e.path();
             let dir_name = e.file_name().to_string_lossy().to_string();

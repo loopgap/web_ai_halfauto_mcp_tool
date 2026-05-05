@@ -42,8 +42,9 @@ const WIZARD_STEPS: { key: WizardStep; label: string; stepNum: number }[] = [
 function setWizardCompleted(completed: boolean): void {
   try {
     localStorage.setItem(WIZARD_COMPLETED_KEY, completed ? "true" : "false");
-  } catch {
-    // localStorage not available
+  } catch (e) {
+    // localStorage not available (Safari privacy mode)
+    console.debug("[TargetWizard] localStorage unavailable:", e);
   }
 }
 
@@ -53,8 +54,9 @@ function getWizardStep(): WizardStep | null {
     if (saved && WIZARD_STEPS.some((s) => s.key === saved)) {
       return saved as WizardStep;
     }
-  } catch {
+  } catch (e) {
     // localStorage not available
+    console.debug("[TargetWizard] localStorage unavailable:", e);
   }
   return null;
 }
@@ -62,15 +64,17 @@ function getWizardStep(): WizardStep | null {
 function setWizardStep(step: WizardStep): void {
   try {
     localStorage.setItem(WIZARD_STEP_KEY, step);
-  } catch {
+  } catch (e) {
     // localStorage not available
+    console.debug("[TargetWizard] localStorage unavailable:", e);
   }
 }
 
 function getFirstTargetCreated(): boolean {
   try {
     return localStorage.getItem(FIRST_TARGET_CREATED_KEY) === "true";
-  } catch {
+  } catch (e) {
+    console.debug("[TargetWizard] localStorage unavailable:", e);
     return false;
   }
 }
@@ -78,8 +82,9 @@ function getFirstTargetCreated(): boolean {
 function setFirstTargetCreated(): void {
   try {
     localStorage.setItem(FIRST_TARGET_CREATED_KEY, "true");
-  } catch {
+  } catch (e) {
     // localStorage not available
+    console.debug("[TargetWizard] localStorage unavailable:", e);
   }
 }
 
@@ -412,8 +417,8 @@ export default function TargetWizard({ windows, onComplete, onCancel }: TargetWi
     setWizardCompleted(false);
     try {
       localStorage.removeItem(WIZARD_STEP_KEY);
-    } catch {
-      // ignore
+    } catch (e) {
+      console.debug("[TargetWizard] Failed to reset wizard step:", e);
     }
     setStep("welcome");
     setSelectedWin(null);

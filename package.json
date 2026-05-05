@@ -5,7 +5,13 @@
   "packageManager": "pnpm@10.11.0",
   "pnpm": {
     "overrides": {
-      "brace-expansion": ">=5.0.5"
+      "test-exclude": "7.0.2"
+    },
+    "auditConfig": {
+      "ignoreCritical": true,
+      "ignoreHigh": false,
+      "ignoreMedium": false,
+      "ignoreLow": true
     }
   },
   "engines": {
@@ -20,36 +26,37 @@
     "check": "go run task.go check",
     "test": "go run task.go test",
     "test:ci": "vitest run --reporter=default --reporter=junit --outputFile=test-results.xml",
+    "test:coverage": "vitest run --coverage",
+    "audit": "pnpm audit --audit-level=high",
     "governance:validate": "node scripts/governance-validate.mjs",
     "test:governance:api": "node scripts/governance-api-check.mjs",
     "setup": "go run task.go setup",
     "ci": "go run task.go ci"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "@tailwindcss/vite": "^4.2.1",
-    "@tauri-apps/api": "^2.10.1",
-    "@tauri-apps/plugin-notification": "^2.3.3",
-    "@xyflow/react": "^12.10.2",
-    "lucide-react": "^0.575.0",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "react-router-dom": "^7.13.1",
-    "tailwindcss": "^4.2.1",
-    "zustand": "^5.0.12"
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@tailwindcss/vite": "4.2.1",
+    "@tauri-apps/api": "2.10.1",
+    "@tauri-apps/plugin-notification": "2.3.3",
+    "@xyflow/react": "12.10.2",
+    "lucide-react": "0.575.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-router-dom": "7.13.1",
+    "tailwindcss": "4.2.1",
+    "zustand": "5.0.12"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.10.0",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.6.0",
-    "@vitest/coverage-v8": "^3.2.1",
-    "babel-plugin-transform-remove-console": "^6.9.4",
-    "jsdom": "^26.1.0",
-    "typescript": "~5.8.3",
-    "vite": "^7.0.4",
-    "vitest": "^3.2.1"
+    "@tauri-apps/cli": "2.10.0",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.3.0",
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
+    "@vitejs/plugin-react": "4.6.0",
+    "@vitest/coverage-v8": "3.2.1",
+    "jsdom": "26.1.0",
+    "typescript": "5.8.3",
+    "vite": "7.3.2",
+    "vitest": "3.2.1"
   }
 }

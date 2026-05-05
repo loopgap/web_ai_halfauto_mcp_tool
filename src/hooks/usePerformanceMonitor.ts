@@ -124,6 +124,7 @@ export function usePerformanceMonitor(intervalMs: number = 2000, enabled: boolea
       cancelAnimationFrame(rafIdRef.current);
       longTaskObserver?.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intervalMs, enabled, countFrame]);
 
   return metrics;

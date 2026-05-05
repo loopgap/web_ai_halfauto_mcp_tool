@@ -2379,3 +2379,70 @@ Tauri v2 遵循各操作系统原生安装包标准：
 - 工作流引擎已具备协作流第一版执行语义，可继续向审批、循环节点编排与 UI 编辑器扩展。
 - 仍未完成的外部交付动作是 GitHub 推送；当前受凭据/认证状态限制，未在本环境完成推送。
 
+---
+
+## 构建规范 (Build Profiles)
+
+本项目采用 **互斥构建策略**，同一时间仅保留一种构建产物以节省磁盘空间。
+
+### 构建命令
+
+| 场景 | 命令 | 产物位置 | 备注 |
+|------|------|----------|------|
+| **前端开发** | `npm run dev` | Vite dev server | 轻量，保留 |
+| **Tauri 开发** | `npm run tauri dev` | `src-tauri/target/debug/` | **开发专用** |
+| **Tauri 发布** | `npm run tauri build` | `src-tauri/target/release/` | 发布前需清理 debug |
+| **全量构建** | `npm run build` | `dist/` + `src-tauri/target/release/` | 发布专用 |
+| **清理** | `npm run clean` | - | - |
+
+### 开发策略（互斥构建）
+
+> **重要**：开发环境只保留 `target/debug/`，发布前才构建 `target/release/`。
+
+**开发流程：**
+```bash
+# 开发时只构建 debug（轻量）
+npm run tauri dev
+
+# 发布前清理 debug，再构建 release
+Remove-Item src-tauri/target/debug -Recurse -Force
+npm run tauri build
+```
+
+### Profile 配置
+
+`src-tauri/Cargo.toml` 中的 release profile 已优化：
+
+```toml
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "abort"
+incremental = false
+```
+
+### 清理规则
+
+| 构建类型 | 何时清理 | 目的 |
+|----------|----------|------|
+| `src-tauri/target/debug/` | **发布构建前必须清理** | 释放空间 (~2GB)，避免与 release 混淆 |
+| `src-tauri/target/release/` | 开发模式切换前清理 | 仅在发布时保留 |
+| `dist/` | 前端大版本升级后 | 确保完全重新构建 |
+
+### 构建检查清单
+
+- [ ] **发布前必须先清理 `target/debug/`** 再构建 release
+- [ ] 发布构建前运行 `npm run check` 验证
+- [ ] 构建完成后运行 `cargo test --manifest-path src-tauri/Cargo.toml` 验证
+- [ ] 勿将 `target/`、`dist/`、`src-tauri/gen/` 目录提交至 Git
+- [ ] 提交前运行 `pnpm ci` 检查代码质量
+
+### CI 构建产物
+
+CI 构建产物通过 GitHub Actions Artifacts 上传，不通过 Git 传输：
+- Windows: `ai_workbench_*_windows_x64.exe`
+- Ubuntu: `ai_workbench_*_amd64.deb`
+- Checksums: `checksums-sha256.txt`
+
